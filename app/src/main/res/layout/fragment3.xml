@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2E2B3E"
+    android:padding="16dp">
+
+
+    <!-- Карточка пользователя -->
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#3C374A"
+        android:padding="24dp"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:clipToOutline="true"
+        android:elevation="4dp"
+        android:backgroundTintMode="src_in"
+        android:backgroundTint="#4A445C">
+
+        <ImageView
+            android:id="@+id/avatarImageView"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:src="@drawable/ic_avatar_placeholder"
+            android:scaleType="centerCrop"
+            android:layout_gravity="center"
+            android:background="@drawable/circle_background"
+            android:padding="8dp" />
+
+        <TextView
+            android:id="@+id/userNameTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ИМЯ"
+            android:textColor="#8CA0FF"
+            android:textSize="24sp"
+            android:layout_marginTop="16dp"
+
+            android:layout_gravity="center"/>
+
+        <TextView
+            android:id="@+id/userEmailTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="почта.com должна еще сабака быть"
+            android:textColor="#8CA0FF"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:layout_gravity="center"/>
+    </LinearLayout>
+
+    <!-- Опции меню -->
+    <TextView
+        android:id="@+id/settingsOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="настройки"
+        android:textColor="#8CA0FF"
+        android:textSize="18sp"
+
+        android:paddingVertical="8dp" />
+
+    <TextView
+        android:id="@+id/notificationsOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="уведомления"
+        android:textColor="#8CA0FF"
+        android:textSize="18sp"
+
+        android:paddingVertical="8dp" />
+
+    <TextView
+        android:id="@+id/loginParamsOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="параметры входа"
+        android:textColor="#8CA0FF"
+        android:textSize="18sp"
+
+        android:paddingVertical="8dp" />
+
+    <TextView
+        android:id="@+id/helpOption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="помощь"
+        android:textColor="#8CA0FF"
+        android:textSize="18sp"
+
+        android:paddingVertical="8dp" />
+
+</LinearLayout>
