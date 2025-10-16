@@ -1,14 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:background="#EEE">
+    android:orientation="vertical"
+    android:background="#322b36"
+    android:padding="24dp">
 
+    <!-- Заголовок -->
     <TextView
+        android:id="@+id/loginHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="логин страница"
-        android:textSize="24sp" />
+        android:text="параметры входа"
+        android:textSize="20sp"
+        android:textColor="#b5b5e7"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="28dp"/>
+
+    <!-- Логин -->
+    <TextView
+        android:id="@+id/loginLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="    логин: nnn@gmail.com"
+        android:textSize="16sp"
+        android:textColor="#e7b5a9"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Пароль -->
+    <TextView
+        android:id="@+id/passwordLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="пароль: ******"
+        android:textSize="16sp"
+        android:textColor="#e7b5a9"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="24dp"
+        android:minHeight="48dp"
+        android:minWidth="48dp"
+        android:gravity="center_vertical"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"/>
+
+    <!-- Кнопка смены пароля -->
+    <Button
+        android:id="@+id/changePasswordButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сменить пароль"
+        android:textColor="#322b36"
+        android:textSize="16sp"
+        android:background="#e7b5a9"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Кнопка Выйти -->
+    <TextView
+        android:id="@+id/logoutLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="выйти"
+        android:textColor="#fcb6b0"
+        android:fontFamily="@font/jura_font_wght"
+        android:textSize="16sp"
+        android:layout_marginBottom="56dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"/>
+
+    <!-- Удаление аккаунта -->
+    <TextView
+        android:id="@+id/deleteAccountLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="удалить аккаунт"
+        android:textColor="#ff8c8c"
+        android:textSize="14sp"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="18dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"/>
 </LinearLayout>
