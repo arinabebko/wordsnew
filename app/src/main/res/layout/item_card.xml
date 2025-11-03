@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="24dp"
+    android:background="#322b36">
+
+    <!-- Звезда в правом верхнем углу -->
+    <ImageButton
+        android:id="@+id/starButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_star"
+        android:scaleType="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Избранное"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="8dp"/>
+
+    <!-- Основная карточка с словом -->
+    <LinearLayout
+        android:id="@+id/wordCard"
+        android:layout_width="320dp"
+        android:layout_height="350dp"
+        android:orientation="vertical"
+        android:background="@drawable/card_pastel_bg"
+        android:gravity="center"
+        android:elevation="4dp"
+        android:layout_centerInParent="true"
+        android:padding="16dp">
+
+        <!-- Английское слово -->
+        <TextView
+            android:id="@+id/wordText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="spring"
+            android:textColor="#625fba"
+            android:textSize="40sp"
+            android:fontFamily="@font/jura_font_wght"
+            android:layout_gravity="center_horizontal"/>
+
+        <!-- Перевод (изначально скрыт) -->
+        <TextView
+            android:id="@+id/hintText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="весна"
+            android:textColor="#babba9"
+            android:textSize="16sp"
+            android:fontFamily="@font/jura_font_wght"
+            android:layout_marginTop="26dp"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
