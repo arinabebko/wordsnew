@@ -4,9 +4,18 @@
     android:padding="16dp"
     android:background="@drawable/background_gradient"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:gravity="center">
 
-
+    <TextView
+        android:id="@+id/daysTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="здравствуй!"
+        android:textSize="28sp"
+        android:textColor="#5539D0"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="16dp" />
     <EditText
         android:id="@+id/emailEditText"
         android:layout_width="match_parent"
@@ -15,9 +24,9 @@
         android:hint="Email"
         android:inputType="textEmailAddress"
         android:minWidth="48dp"
-        android:textColor="#372C2CFF"
-
-        android:minHeight="48dp" />
+        android:textColor="#372C2C"
+        android:textColorHint="#2C3D4E"
+    android:minHeight="48dp" />
 
     <EditText
         android:id="@+id/passwordEditText"
@@ -26,9 +35,10 @@
         android:layout_marginBottom="24dp"
         android:hint="Пароль"
         android:textColor="#372C2C"
-        android:inputType="textPassword"
-        android:minWidth="48dp"
-        android:minHeight="48dp" />
+        android:textColorHint="#2C3D4E"
+    android:inputType="textPassword"
+    android:minWidth="48dp"
+    android:minHeight="48dp" />
 
     <Button
         android:id="@+id/registerButton"
