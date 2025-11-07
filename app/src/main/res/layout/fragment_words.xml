@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#322b36">
 
-
     <!-- ProgressBar для индикации загрузки -->
     <ProgressBar
         android:id="@+id/progressBar"
@@ -17,6 +16,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Текст прогресса -->
+    <TextView
+        android:id="@+id/progressText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0/0"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp" />
+
     <!-- ViewPager2 для карточек слов -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager2"
@@ -24,13 +36,48 @@
         android:layout_height="0dp"
         android:overScrollMode="never"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/backButton"
+        app:layout_constraintBottom_toTopOf="@+id/buttonLayout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- Кнопка назад в левом нижнем углу -->
+    <!-- Layout для кнопок управления -->
+    <LinearLayout
+        android:id="@+id/buttonLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/backButton"
+        android:layout_marginBottom="20dp"
+        android:paddingHorizontal="40dp">
+
+        <!-- Кнопка "Повторить" (свайп влево) -->
+        <ImageButton
+            android:id="@+id/reviewButton"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_undo"
+        android:background="@drawable/back_button_bg"
+        android:contentDescription="Повторить позже"
+        android:layout_marginEnd="40dp" />
+
+        <!-- Кнопка "Выучено" (свайп вправо) -->
+        <ImageButton
+            android:id="@+id/learnedButton"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_check"
+        android:background="@drawable/back_button_bg"
+        android:contentDescription="Выучено"
+        android:layout_marginStart="40dp" />
+
+    </LinearLayout>
+
+    <!-- Кнопка назад -->
     <ImageButton
         android:id="@+id/backButton"
         android:layout_width="56dp"

@@ -7,24 +7,26 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WordsFragment extends Fragment implements WordCardAdapter.OnWordActionListener {
+public class WordsFragment extends Fragment implements StackCardAdapter.OnCardActionListener {
 
     private ViewPager2 viewPager2;
-    private WordCardAdapter adapter;
+    private StackCardAdapter adapter;
     private WordRepository wordRepository;
     private List<WordItem> wordList = new ArrayList<>();
     private ProgressBar progressBar;
-    private int previousPosition = 0;
+    private TextView progressText;
 
     private static final String TAG = "WordsFragment";
 
@@ -40,10 +42,16 @@ public class WordsFragment extends Fragment implements WordCardAdapter.OnWordAct
 
         // Находим View элементы
         viewPager2 = view.findViewById(R.id.viewPager2);
-        progressBar = view.findViewById(R.id.progressBar); // Добавим ProgressBar позже
+        progressBar = view.findViewById(R.id.progressBar);
+
+        // Добавим TextView для прогресса (нужно добавить в макет)
+        progressText = view.findViewById(R.id.progressText);
 
         // Настраиваем кнопку назад
         setupBackButton(view);
+
+        // Настраиваем свайпы
+        setupSwipeGestures(view);
 
         // Загружаем слова из Firebase
         loadWordsFromFirebase();
@@ -52,29 +60,54 @@ public class WordsFragment extends Fragment implements WordCardAdapter.OnWordAct
     }
 
     /**
+     * Настраивает жесты свайпа
+     */
+    private void setupSwipeGestures(View view) {
+        // Кнопка "Выучено" (свайп вправо)
+        ImageButton learnedButton = view.findViewById(R.id.learnedButton);
+        // Кнопка "Повторить" (свайп влево)
+        ImageButton reviewButton = view.findViewById(R.id.reviewButton);
+
+        if (learnedButton != null) {
+            learnedButton.setOnClickListener(v -> {
+                if (adapter != null) {
+                    adapter.swipeRight();
+                    updateProgress();
+                }
+            });
+        }
+
+        if (reviewButton != null) {
+            reviewButton.setOnClickListener(v -> {
+                if (adapter != null) {
+                    adapter.swipeLeft();
+                    updateProgress();
+                }
+            });
+        }
+    }
+
+    /**
      * Загружает слова из Firebase Firestore
      */
     private void loadWordsFromFirebase() {
         Log.d(TAG, "Начинаем загрузку слов из Firebase...");
-
-        // Показываем прогресс-бар (если он есть)
         showLoading(true);
 
-        wordRepository.getUserActiveWords(new WordRepository.OnWordsLoadedListener() {
+        wordRepository.getLearningSessionWords(new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Успешно загружено слов: " + words.size());
+                Log.d(TAG, "Успешно загружено слов для сессии: " + words.size());
 
                 wordList.clear();
                 wordList.addAll(words);
 
-                // Если слов нет, добавляем демо-слова
                 if (wordList.isEmpty()) {
                     Log.d(TAG, "Слов нет, добавляем демо-слова...");
                     addDemoWords();
                 } else {
-                    Log.d(TAG, "Настройка ViewPager с загруженными словами...");
-                    setupViewPagerWithWords();
+                    Log.d(TAG, "Настройка колоды карточек...");
+                    setupCardStack();
                 }
 
                 showLoading(false);
@@ -83,13 +116,60 @@ public class WordsFragment extends Fragment implements WordCardAdapter.OnWordAct
             @Override
             public void onError(Exception e) {
                 Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
-
-                // Если ошибка, используем локальные слова
                 Toast.makeText(getContext(), "Ошибка загрузки. Используем локальные слова", Toast.LENGTH_SHORT).show();
-                setupViewPagerWithLocalWords();
+                setupWithLocalWords();
                 showLoading(false);
             }
         });
+    }
+
+    /**
+     * Настраивает колоду карточек
+     */
+    private void setupCardStack() {
+        Log.d(TAG, "Настройка колоды с " + wordList.size() + " словами");
+
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                adapter = new StackCardAdapter(wordList, this);
+                viewPager2.setAdapter(adapter);
+
+                // Отключаем стандартные свайпы ViewPager2
+                viewPager2.setUserInputEnabled(false);
+
+                updateProgress();
+
+                Toast.makeText(getContext(), "Готово! Карточек: " + wordList.size(), Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    /**
+     * Обновляет отображение прогресса
+     */
+    private void updateProgress() {
+        if (adapter != null && progressText != null) {
+            int current = adapter.getCurrentProgress() + 1;
+            int total = adapter.getTotalCards();
+
+            String progress = current + "/" + total;
+            progressText.setText(progress);
+
+            // Обновляем ProgressBar
+            if (progressBar != null) {
+                int progressPercent = total > 0 ? (current * 100) / total : 0;
+                progressBar.setProgress(progressPercent);
+            }
+        }
+    }
+
+    /**
+     * Использует локальные слова при ошибке
+     */
+    private void setupWithLocalWords() {
+        wordList.clear();
+        wordList.addAll(createDemoWordList());
+        setupCardStack();
     }
 
     /**
@@ -108,81 +188,22 @@ public class WordsFragment extends Fragment implements WordCardAdapter.OnWordAct
                     wordList.add(addedWord);
                     wordsAdded[0]++;
 
-                    Log.d(TAG, "Добавлено слово: " + addedWord.getWord() + " (" + wordsAdded[0] + "/" + demoWords.size() + ")");
-
-                    // Когда все слова добавлены, настраиваем ViewPager
                     if (wordsAdded[0] == demoWords.size()) {
-                        Log.d(TAG, "Все демо-слова добавлены, настраиваем ViewPager...");
-                        setupViewPagerWithWords();
+                        setupCardStack();
                     }
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    Log.e(TAG, "Ошибка добавления слова: " + e.getMessage());
                     wordsAdded[0]++;
-
-                    // Все равно добавляем слово локально
                     wordList.add(word);
 
                     if (wordsAdded[0] == demoWords.size()) {
-                        setupViewPagerWithWords();
+                        setupCardStack();
                     }
                 }
             });
         }
-    }
-
-    /**
-     * Настраивает ViewPager с загруженными словами
-     */
-    private void setupViewPagerWithWords() {
-        Log.d(TAG, "Настройка ViewPager с " + wordList.size() + " словами");
-
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                adapter = new WordCardAdapter(wordList, WordsFragment.this);
-                viewPager2.setAdapter(adapter);
-
-                // Настраиваем обработчик свайпов
-                setupSwipeListener();
-
-                Toast.makeText(getContext(), "Загружено слов: " + wordList.size(), Toast.LENGTH_SHORT).show();
-            });
-        }
-    }
-
-    /**
-     * Настраивает ViewPager с локальными словами (при ошибке)
-     */
-    private void setupViewPagerWithLocalWords() {
-        Log.d(TAG, "Используем локальные слова");
-
-        wordList.clear();
-        wordList.addAll(createDemoWordList());
-        setupViewPagerWithWords();
-    }
-
-    /**
-     * Настраивает обработчик свайпов для отслеживания прогресса
-     */
-    private void setupSwipeListener() {
-        viewPager2.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-
-                // Логируем свайпы для отладки
-                if (position > previousPosition) {
-                    Log.d(TAG, "Свайп влево → " + wordList.get(previousPosition).getWord());
-                    onWordNotLearned(wordList.get(previousPosition));
-                } else if (position < previousPosition) {
-                    Log.d(TAG, "Свайп вправо → " + wordList.get(previousPosition).getWord());
-                    onWordLearned(wordList.get(previousPosition));
-                }
-                previousPosition = position;
-            }
-        });
     }
 
     /**
@@ -216,58 +237,60 @@ public class WordsFragment extends Fragment implements WordCardAdapter.OnWordAct
      * Показывает/скрывает индикатор загрузки
      */
     private void showLoading(boolean show) {
-        if (getActivity() != null && progressBar != null) {
+        if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
-                if (show) {
-                    progressBar.setVisibility(View.VISIBLE);
-                    viewPager2.setVisibility(View.GONE);
-                } else {
-                    progressBar.setVisibility(View.GONE);
-                    viewPager2.setVisibility(View.VISIBLE);
+                if (progressBar != null) {
+                    progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+                if (viewPager2 != null) {
+                    viewPager2.setVisibility(show ? View.GONE : View.VISIBLE);
                 }
             });
         }
     }
 
-    // === РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА WordCardAdapter.OnWordActionListener ===
+    // === РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА StackCardAdapter.OnCardActionListener ===
 
     @Override
-    public void onWordLearned(WordItem word) {
+    public void onCardLearned(WordItem word) {
         Log.d(TAG, "Слово выучено: " + word.getWord());
 
-        // Обновляем слово в базе
-        wordRepository.updateWord(word);
+        // Сохраняем в базу
+        wordRepository.markWordAsLearned(word.getWordId(),
+                () -> Log.d(TAG, "Слово помечено как выучено"),
+                e -> Log.e(TAG, "Ошибка сохранения: " + e.getMessage())
+        );
 
-        // Показываем уведомление
-        if (getContext() != null) {
-            Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public void onWordNotLearned(WordItem word) {
+    public void onCardNotLearned(WordItem word) {
         Log.d(TAG, "Слово не выучено: " + word.getWord());
 
-        // Обновляем слово в базе
-        wordRepository.updateWord(word);
+        // Сохраняем в базу для повторения
+        wordRepository.markWordForReview(word.getWordId(),
+                () -> Log.d(TAG, "Слово отложено для повторения"),
+                e -> Log.e(TAG, "Ошибка сохранения: " + e.getMessage())
+        );
 
-        // Показываем уведомление
-        if (getContext() != null) {
-            Toast.makeText(getContext(), "❌ " + word.getWord() + " - нужно повторить", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(getContext(), "🔄 " + word.getWord() + " - повторим позже", Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public void onWordFavoriteToggled(WordItem word, boolean isFavorite) {
+    public void onCardFavoriteToggled(WordItem word, boolean isFavorite) {
         Log.d(TAG, "Избранное изменено: " + word.getWord() + " = " + isFavorite);
-
-        // Обновляем слово в базе
         wordRepository.updateWord(word);
 
-        // Показываем уведомление
-        if (getContext() != null) {
-            String message = isFavorite ? "★ Добавлено в избранное" : "☆ Убрано из избранного";
-            Toast.makeText(getContext(), message + ": " + word.getWord(), Toast.LENGTH_SHORT).show();
-        }
+        String message = isFavorite ? "★ Добавлено в избранное" : "☆ Убрано из избранного";
+        Toast.makeText(getContext(), message + ": " + word.getWord(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onAllCardsCompleted() {
+        Log.d(TAG, "Все карточки пройдены!");
+        Toast.makeText(getContext(), "🎉 Все карточки пройдены! Молодец!", Toast.LENGTH_LONG).show();
+
+        // Можно добавить переход к результатам или повторение
     }
 }

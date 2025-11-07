@@ -12,7 +12,7 @@ public class WordLibrary {
     private String languageTo;
     private boolean isPublic;
     private Date createdAt;
-
+    private String createdBy; // Кто создал библиотеку
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
     }
@@ -51,7 +51,9 @@ public class WordLibrary {
     public void setLanguageTo(String languageTo) { this.languageTo = languageTo; }
     public void setPublic(boolean aPublic) { isPublic = aPublic; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-
+    // Геттер и сеттер
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     @Override
     public String toString() {
         return "WordLibrary{" +

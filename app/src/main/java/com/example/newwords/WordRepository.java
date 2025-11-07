@@ -272,6 +272,105 @@ public class WordRepository {
     /**
      * Получить прогресс пользователя по слову
      */
+
+    // В WordRepository.java добавьте:
+
+    /**
+     * Получить слова для текущей сессии обучения
+     */
+    public void getLearningSessionWords(OnWordsLoadedListener listener) {
+        // Здесь будет сложная логика выбора слов для повторения
+        // Пока просто возвращаем все активные слова
+        getUserActiveWords(listener);
+    }
+
+    /**
+     * Пометить слово как выученное (убрать из текущей сессии)
+     */
+    public void markWordAsLearned(String wordId, OnSuccessListener success, OnErrorListener error) {
+        // Здесь будет логика перемещения слова в "выученные"
+        // Пока просто обновляем прогресс
+        success.onSuccess();
+    }
+
+    /**
+     * Пометить слово для повторения (вернуть в колоду позже)
+     */
+    public void markWordForReview(String wordId, OnSuccessListener success, OnErrorListener error) {
+        // Здесь будет логика планирования повторения
+        success.onSuccess();
+    }
+
+
+    /**
+     * Создать пользовательскую библиотеку
+     */
+    public void createCustomLibrary(String name, String description, String category,
+                                    OnLibraryCreatedListener listener) {
+        Map<String, Object> libraryData = new HashMap<>();
+        libraryData.put("name", name);
+        libraryData.put("description", description);
+        libraryData.put("category", category);
+        libraryData.put("wordCount", 0);
+        libraryData.put("languageFrom", "en");
+        libraryData.put("languageTo", "ru");
+        libraryData.put("isPublic", false); // Пользовательские библиотеки приватные
+        libraryData.put("createdBy", userId);
+        libraryData.put("createdAt", new Date());
+
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .add(libraryData)
+                .addOnSuccessListener(documentReference -> {
+                    WordLibrary library = new WordLibrary();
+                    library.setLibraryId(documentReference.getId());
+                    library.setName(name);
+                    library.setDescription(description);
+                    library.setCategory(category);
+                    library.setWordCount(0);
+                    library.setCreatedBy(userId);
+                    listener.onLibraryCreated(library);
+                })
+                .addOnFailureListener(listener::onError);
+    }
+
+    /**
+     * Получить пользовательские библиотеки
+     */
+    public void getCustomLibraries(OnLibrariesLoadedListener listener) {
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        List<WordLibrary> customLibraries = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            WordLibrary library = document.toObject(WordLibrary.class);
+                            library.setLibraryId(document.getId());
+                            customLibraries.add(library);
+                        }
+                        listener.onLibrariesLoaded(customLibraries);
+                    } else {
+                        listener.onError(task.getException());
+                    }
+                });
+    }
+
+    /**
+     * Добавить слово в пользовательскую библиотеку
+     */
+    public void addWordToCustomLibrary(String libraryId, WordItem word, OnWordAddedListener listener) {
+        // Реализация похожа на addCustomWord, но для конкретной библиотеки
+    }
+
+    public interface OnLibraryCreatedListener {
+        void onLibraryCreated(WordLibrary library);
+        void onError(Exception e);
+    }
+
+
     public void getUserWordProgress(String wordId, OnWordsLoadedListener listener) {
         db.collection("users")
                 .document(userId)
