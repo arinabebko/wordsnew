@@ -1,5 +1,6 @@
 package com.example.newwords;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -60,6 +61,9 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         // Настраиваем кнопку начала обучения
         setupStartLearningButton();
         setupAddLibraryButton(view);
+        // В onCreateView после setupAddLibraryButton():
+        setupRefreshButton(view);
+
         // Загружаем библиотеки
         loadLibraries();
 
@@ -75,6 +79,16 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         librariesRecyclerView.setAdapter(libraryAdapter);
     }
 
+    // Добавьте метод:
+    private void setupRefreshButton(View view) {
+        ImageButton refreshButton = view.findViewById(R.id.refreshButton);
+        if (refreshButton != null) {
+            refreshButton.setOnClickListener(v -> {
+                Log.d(TAG, "Принудительное обновление библиотек");
+                loadLibraries();
+            });
+        }
+    }
     /**
      * Загружает доступные библиотеки
      */
@@ -265,18 +279,97 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     /**
      * Показывает диалог с информацией о библиотеке
      */
-
-
-
-
-
-
     // Добавьте метод:
     private void setupAddLibraryButton(View view) {
         ImageButton addLibraryButton = view.findViewById(R.id.addLibraryButton);
         if (addLibraryButton != null) {
             addLibraryButton.setOnClickListener(v -> showAddLibraryDialog());
         }
+    }
+
+
+    @Override
+    public void onLibraryManageClicked(WordLibrary library) {
+        Log.d(TAG, "Управление библиотекой: " + library.getName());
+        showLibraryManagementDialog(library);
+    }
+
+    /**
+     * Показывает диалог управления библиотекой
+     */
+    private void showLibraryManagementDialog(WordLibrary library) {
+        String[] options = {"Добавить слово", "Просмотреть слова", "Удалить библиотеку"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Управление: " + library.getName())
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Добавить слово
+                            showAddWordDialog(library);
+                            break;
+                        case 1: // Просмотреть слова
+                            showLibraryWords(library);
+                            break;
+                        case 2: // Удалить библиотеку
+                            deleteLibrary(library);
+                            break;
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+
+    /**
+     * Показывает диалог добавления слова
+     */
+    private void showAddWordDialog(WordLibrary library) {
+        AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getName());
+        dialog.setOnWordAddedListener(new AddWordDialog.OnWordAddedListener() {
+            @Override
+            public void onWordAdded(String word, String translation, String note) {
+                addWordToLibrary(library.getLibraryId(), word, translation, note);
+            }
+        });
+        dialog.show(getParentFragmentManager(), "add_word_dialog");
+    }
+
+    /**
+     * Добавляет слово в библиотеку
+     */
+    private void addWordToLibrary(String libraryId, String word, String translation, String note) {
+        WordItem newWord = new WordItem(word, translation, note);
+
+        wordRepository.addWordToCustomLibrary(libraryId, newWord,
+                new WordRepository.OnWordAddedListener() {
+                    @Override
+                    public void onWordAdded(WordItem word) {
+                        Toast.makeText(getContext(), "Слово добавлено!", Toast.LENGTH_SHORT).show();
+                        // Обновляем список библиотек чтобы обновить счетчик слов
+                        loadLibraries();
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Toast.makeText(getContext(), "Ошибка добавления слова", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Показывает слова библиотеки
+     */
+    private void showLibraryWords(WordLibrary library) {
+        // Здесь можно реализовать просмотр слов библиотеки
+        Toast.makeText(getContext(), "Просмотр слов для: " + library.getName(), Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Удаляет библиотеку
+     */
+    private void deleteLibrary(WordLibrary library) {
+        // Реализация удаления библиотеки
+        Toast.makeText(getContext(), "Удаление: " + library.getName(), Toast.LENGTH_SHORT).show();
     }
 
     // Добавьте метод показа диалога:
@@ -293,18 +386,23 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
     // Добавьте метод создания библиотеки:
     private void createCustomLibrary(String name, String description, String category) {
+        Log.d(TAG, "Создание библиотеки: " + name);
+
         wordRepository.createCustomLibrary(name, description, category,
                 new WordRepository.OnLibraryCreatedListener() {
                     @Override
                     public void onLibraryCreated(WordLibrary library) {
+                        Log.d(TAG, "Библиотека успешно создана: " + library.getName() + ", ID: " + library.getLibraryId());
                         Toast.makeText(getContext(), "Библиотека создана!", Toast.LENGTH_SHORT).show();
-                        // Обновляем список библиотек
+
+                        // Принудительно обновляем список библиотек
                         loadLibraries();
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        Toast.makeText(getContext(), "Ошибка создания библиотеки", Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Ошибка создания библиотеки: " + e.getMessage());
+                        Toast.makeText(getContext(), "Ошибка создания библиотеки: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

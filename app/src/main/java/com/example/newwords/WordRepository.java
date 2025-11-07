@@ -47,6 +47,11 @@ public class WordRepository {
         void onError(Exception e);
     }
 
+    public interface OnLibraryCreatedListener {
+        void onLibraryCreated(WordLibrary library);
+        void onError(Exception e);
+    }
+
     // === ОСНОВНЫЕ МЕТОДЫ ===
 
     /**
@@ -90,19 +95,28 @@ public class WordRepository {
      */
     private void getLibraryWords(OnWordsLoadedListener listener) {
         // Временно: загружаем все слова из всех публичных библиотек
-        // Позже добавим логику с активными библиотеками пользователя
-
         db.collection("word_libraries")
                 .whereEqualTo("isPublic", true)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         List<WordItem> libraryWords = new ArrayList<>();
+                        List<String> libraryIds = new ArrayList<>();
 
+                        // Сначала собираем ID всех библиотек
                         for (QueryDocumentSnapshot libraryDoc : task.getResult()) {
-                            String libraryId = libraryDoc.getId();
+                            libraryIds.add(libraryDoc.getId());
+                        }
 
-                            // Для каждой библиотеки загружаем слова
+                        // Если нет библиотек, возвращаем пустой список
+                        if (libraryIds.isEmpty()) {
+                            listener.onWordsLoaded(libraryWords);
+                            return;
+                        }
+
+                        // Загружаем слова из каждой библиотеки
+                        final int[] librariesProcessed = {0};
+                        for (String libraryId : libraryIds) {
                             db.collection("word_libraries")
                                     .document(libraryId)
                                     .collection("words")
@@ -116,18 +130,14 @@ public class WordRepository {
                                                 word.setCustomWord(false);
                                                 libraryWords.add(word);
                                             }
+                                        }
 
-                                            // Когда все слова загружены
+                                        librariesProcessed[0]++;
+                                        // Когда все библиотеки обработаны
+                                        if (librariesProcessed[0] == libraryIds.size()) {
                                             listener.onWordsLoaded(libraryWords);
-                                        } else {
-                                            listener.onError(wordTask.getException());
                                         }
                                     });
-                        }
-
-                        // Если нет библиотек, возвращаем пустой список
-                        if (task.getResult().isEmpty()) {
-                            listener.onWordsLoaded(libraryWords);
                         }
                     } else {
                         listener.onError(task.getException());
@@ -163,23 +173,66 @@ public class WordRepository {
     }
 
     /**
-     * Получить все доступные библиотеки
+     * Получить все доступные библиотеки (публичные + пользовательские)
      */
     public void getAvailableLibraries(OnLibrariesLoadedListener listener) {
+        List<WordLibrary> allLibraries = new ArrayList<>();
+
+        // Загружаем публичные библиотеки
         db.collection("word_libraries")
                 .whereEqualTo("isPublic", true)
                 .get()
+                .addOnCompleteListener(publicTask -> {
+                    if (publicTask.isSuccessful() && publicTask.getResult() != null) {
+                        for (QueryDocumentSnapshot document : publicTask.getResult()) {
+                            WordLibrary library = document.toObject(WordLibrary.class);
+                            library.setLibraryId(document.getId());
+                            library.setCreatedBy("system");
+                            allLibraries.add(library);
+                        }
+
+                        // Теперь загружаем пользовательские библиотеки
+                        getCustomLibraries(new OnLibrariesLoadedListener() {
+                            @Override
+                            public void onLibrariesLoaded(List<WordLibrary> customLibraries) {
+                                allLibraries.addAll(customLibraries);
+                                listener.onLibrariesLoaded(allLibraries);
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                // Если ошибка с пользовательскими, возвращаем хотя бы публичные
+                                listener.onLibrariesLoaded(allLibraries);
+                            }
+                        });
+
+                    } else {
+                        // Если ошибка с публичными, пробуем загрузить только пользовательские
+                        getCustomLibraries(listener);
+                    }
+                });
+    }
+
+    /**
+     * Получить пользовательские библиотеки
+     */
+    public void getCustomLibraries(OnLibrariesLoadedListener listener) {
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        List<WordLibrary> libraries = new ArrayList<>();
+                        List<WordLibrary> customLibraries = new ArrayList<>();
 
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             WordLibrary library = document.toObject(WordLibrary.class);
                             library.setLibraryId(document.getId());
-                            libraries.add(library);
+                            library.setCreatedBy(userId);
+                            customLibraries.add(library);
                         }
 
-                        listener.onLibrariesLoaded(libraries);
+                        listener.onLibrariesLoaded(customLibraries);
                     } else {
                         listener.onError(task.getException());
                     }
@@ -187,7 +240,158 @@ public class WordRepository {
     }
 
     /**
-     * Добавить кастомное слово
+     * Создать пользовательскую библиотеку
+     */
+    public void createCustomLibrary(String name, String description, String category,
+                                    OnLibraryCreatedListener listener) {
+        Map<String, Object> libraryData = new HashMap<>();
+        libraryData.put("name", name);
+        libraryData.put("description", description);
+        libraryData.put("category", category);
+        libraryData.put("wordCount", 0);
+        libraryData.put("languageFrom", "en");
+        libraryData.put("languageTo", "ru");
+        libraryData.put("isPublic", false);
+        libraryData.put("createdBy", userId);
+        libraryData.put("createdAt", new Date());
+
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .add(libraryData)
+                .addOnSuccessListener(documentReference -> {
+                    WordLibrary library = new WordLibrary();
+                    library.setLibraryId(documentReference.getId());
+                    library.setName(name);
+                    library.setDescription(description);
+                    library.setCategory(category);
+                    library.setWordCount(0);
+                    library.setCreatedBy(userId);
+                    listener.onLibraryCreated(library);
+                })
+                .addOnFailureListener(listener::onError);
+    }
+
+    /**
+     * Добавить слово в пользовательскую библиотеку
+     */
+    public void addWordToCustomLibrary(String libraryId, WordItem word, OnWordAddedListener listener) {
+        word.setUserId(userId);
+        word.setCustomWord(true);
+        word.setLibraryId(libraryId);
+        word.setCreatedAt(new Date());
+
+        Map<String, Object> wordData = new HashMap<>();
+        wordData.put("word", word.getWord());
+        wordData.put("translation", word.getTranslation());
+        wordData.put("note", word.getNote());
+        wordData.put("isFavorite", word.isFavorite());
+        wordData.put("difficulty", word.getDifficulty());
+        wordData.put("reviewCount", word.getReviewCount());
+        wordData.put("correctAnswers", word.getCorrectAnswers());
+        wordData.put("userId", userId);
+        wordData.put("isCustomWord", true);
+        wordData.put("libraryId", libraryId);
+        wordData.put("createdAt", word.getCreatedAt());
+
+        // Добавляем слово в подколлекцию библиотеки
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .document(libraryId)
+                .collection("words")
+                .add(wordData)
+                .addOnSuccessListener(documentReference -> {
+                    word.setWordId(documentReference.getId());
+
+                    // Обновляем счетчик слов в библиотеке
+                    updateLibraryWordCount(libraryId);
+
+                    listener.onWordAdded(word);
+                })
+                .addOnFailureListener(listener::onError);
+    }
+
+    /**
+     * Обновить счетчик слов в библиотеке
+     */
+    private void updateLibraryWordCount(String libraryId) {
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .document(libraryId)
+                .collection("words")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        int wordCount = task.getResult().size();
+
+                        // Обновляем счетчик в библиотеке
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("wordCount", wordCount);
+
+                        db.collection("users")
+                                .document(userId)
+                                .collection("custom_libraries")
+                                .document(libraryId)
+                                .update(updates);
+                    }
+                });
+    }
+
+    /**
+     * Получить слова из конкретной библиотеки
+     */
+    public void getWordsFromLibrary(String libraryId, boolean isCustomLibrary, OnWordsLoadedListener listener) {
+        if (isCustomLibrary) {
+            // Слова из пользовательской библиотеки
+            db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(libraryId)
+                    .collection("words")
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            List<WordItem> words = new ArrayList<>();
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                WordItem word = document.toObject(WordItem.class);
+                                word.setWordId(document.getId());
+                                word.setCustomWord(true);
+                                word.setLibraryId(libraryId);
+                                words.add(word);
+                            }
+                            listener.onWordsLoaded(words);
+                        } else {
+                            listener.onError(task.getException());
+                        }
+                    });
+        } else {
+            // Слова из публичной библиотеки
+            db.collection("word_libraries")
+                    .document(libraryId)
+                    .collection("words")
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            List<WordItem> words = new ArrayList<>();
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                WordItem word = document.toObject(WordItem.class);
+                                word.setWordId(document.getId());
+                                word.setCustomWord(false);
+                                word.setLibraryId(libraryId);
+                                words.add(word);
+                            }
+                            listener.onWordsLoaded(words);
+                        } else {
+                            listener.onError(task.getException());
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Добавить кастомное слово (общее, не привязанное к библиотеке)
      */
     public void addCustomWord(WordItem word, OnWordAddedListener listener) {
         word.setUserId(userId);
@@ -229,12 +433,23 @@ public class WordRepository {
         updates.put("reviewCount", word.getReviewCount() + 1);
 
         if (word.isCustomWord()) {
-            // Обновляем кастомное слово
-            db.collection("users")
-                    .document(userId)
-                    .collection("custom_words")
-                    .document(word.getWordId())
-                    .update(updates);
+            if (word.getLibraryId() != null && !word.getLibraryId().isEmpty()) {
+                // Слово из пользовательской библиотеки
+                db.collection("users")
+                        .document(userId)
+                        .collection("custom_libraries")
+                        .document(word.getLibraryId())
+                        .collection("words")
+                        .document(word.getWordId())
+                        .update(updates);
+            } else {
+                // Обычное кастомное слово
+                db.collection("users")
+                        .document(userId)
+                        .collection("custom_words")
+                        .document(word.getWordId())
+                        .update(updates);
+            }
         } else {
             // Для слов из библиотек сохраняем прогресс отдельно
             updateUserWordProgress(word, updates);
@@ -270,17 +485,9 @@ public class WordRepository {
     }
 
     /**
-     * Получить прогресс пользователя по слову
-     */
-
-    // В WordRepository.java добавьте:
-
-    /**
      * Получить слова для текущей сессии обучения
      */
     public void getLearningSessionWords(OnWordsLoadedListener listener) {
-        // Здесь будет сложная логика выбора слов для повторения
-        // Пока просто возвращаем все активные слова
         getUserActiveWords(listener);
     }
 
@@ -288,8 +495,6 @@ public class WordRepository {
      * Пометить слово как выученное (убрать из текущей сессии)
      */
     public void markWordAsLearned(String wordId, OnSuccessListener success, OnErrorListener error) {
-        // Здесь будет логика перемещения слова в "выученные"
-        // Пока просто обновляем прогресс
         success.onSuccess();
     }
 
@@ -297,80 +502,12 @@ public class WordRepository {
      * Пометить слово для повторения (вернуть в колоду позже)
      */
     public void markWordForReview(String wordId, OnSuccessListener success, OnErrorListener error) {
-        // Здесь будет логика планирования повторения
         success.onSuccess();
     }
 
-
     /**
-     * Создать пользовательскую библиотеку
+     * Получить прогресс пользователя по слову
      */
-    public void createCustomLibrary(String name, String description, String category,
-                                    OnLibraryCreatedListener listener) {
-        Map<String, Object> libraryData = new HashMap<>();
-        libraryData.put("name", name);
-        libraryData.put("description", description);
-        libraryData.put("category", category);
-        libraryData.put("wordCount", 0);
-        libraryData.put("languageFrom", "en");
-        libraryData.put("languageTo", "ru");
-        libraryData.put("isPublic", false); // Пользовательские библиотеки приватные
-        libraryData.put("createdBy", userId);
-        libraryData.put("createdAt", new Date());
-
-        db.collection("users")
-                .document(userId)
-                .collection("custom_libraries")
-                .add(libraryData)
-                .addOnSuccessListener(documentReference -> {
-                    WordLibrary library = new WordLibrary();
-                    library.setLibraryId(documentReference.getId());
-                    library.setName(name);
-                    library.setDescription(description);
-                    library.setCategory(category);
-                    library.setWordCount(0);
-                    library.setCreatedBy(userId);
-                    listener.onLibraryCreated(library);
-                })
-                .addOnFailureListener(listener::onError);
-    }
-
-    /**
-     * Получить пользовательские библиотеки
-     */
-    public void getCustomLibraries(OnLibrariesLoadedListener listener) {
-        db.collection("users")
-                .document(userId)
-                .collection("custom_libraries")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        List<WordLibrary> customLibraries = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            WordLibrary library = document.toObject(WordLibrary.class);
-                            library.setLibraryId(document.getId());
-                            customLibraries.add(library);
-                        }
-                        listener.onLibrariesLoaded(customLibraries);
-                    } else {
-                        listener.onError(task.getException());
-                    }
-                });
-    }
-
-    /**
-     * Добавить слово в пользовательскую библиотеку
-     */
-    public void addWordToCustomLibrary(String libraryId, WordItem word, OnWordAddedListener listener) {
-        // Реализация похожа на addCustomWord, но для конкретной библиотеки
-    }
-
-    public interface OnLibraryCreatedListener {
-        void onLibraryCreated(WordLibrary library);
-        void onError(Exception e);
-    }
-
-
     public void getUserWordProgress(String wordId, OnWordsLoadedListener listener) {
         db.collection("users")
                 .document(userId)
@@ -379,8 +516,6 @@ public class WordRepository {
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
-                        // Здесь можно обновить прогресс слова
-                        // Пока просто возвращаем пустой список, т.к. это вспомогательный метод
                         listener.onWordsLoaded(new ArrayList<>());
                     } else {
                         listener.onWordsLoaded(new ArrayList<>());

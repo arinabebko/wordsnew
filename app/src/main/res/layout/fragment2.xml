@@ -105,6 +105,17 @@
         android:layout_marginStart="8dp"
         android:layout_marginBottom="8dp" />
 
+    <ImageButton
+        android:id="@+id/refreshButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_refresh"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Обновить"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/addLibraryButton"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp" />
 
     <!-- Добавьте эту кнопку рядом с заголовком -->
     <ImageButton
