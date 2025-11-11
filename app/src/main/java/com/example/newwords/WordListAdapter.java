@@ -17,11 +17,22 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
     private List<WordItem> wordList;
     private WordRepository wordRepository;
     private boolean showDeleteButton;
+    private OnWordDeleteListener deleteListener;
+    private String currentLibraryId; // ID текущей библиотеки (если есть)
 
     public WordListAdapter(List<WordItem> wordList, WordRepository wordRepository, boolean showDeleteButton) {
         this.wordList = wordList;
         this.wordRepository = wordRepository;
         this.showDeleteButton = showDeleteButton;
+    }
+
+    // Конструктор с библиотекой
+    public WordListAdapter(List<WordItem> wordList, WordRepository wordRepository,
+                           boolean showDeleteButton, String libraryId) {
+        this.wordList = wordList;
+        this.wordRepository = wordRepository;
+        this.showDeleteButton = showDeleteButton;
+        this.currentLibraryId = libraryId;
     }
 
     @NonNull
@@ -47,6 +58,19 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
         wordList.clear();
         wordList.addAll(newWords);
         notifyDataSetChanged();
+    }
+
+    // Удаляем слово из списка по позиции
+    public void removeWord(int position) {
+        if (position >= 0 && position < wordList.size()) {
+            wordList.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
+    // Устанавливаем слушатель удаления
+    public void setOnWordDeleteListener(OnWordDeleteListener listener) {
+        this.deleteListener = listener;
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
@@ -115,10 +139,79 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
         }
 
         private void deleteWord() {
-            if (currentWordItem != null) {
-                // Здесь будет логика удаления слова
-                Toast.makeText(itemView.getContext(), "Удаление: " + currentWordItem.getWord(), Toast.LENGTH_SHORT).show();
-                // TODO: Реализовать удаление слова из базы
+            if (currentWordItem != null && currentWordItem.getWordId() != null) {
+                int position = getAdapterPosition();
+                if (position == RecyclerView.NO_POSITION) return;
+
+                // Показываем подтверждение удаления
+                showDeleteConfirmationDialog(position);
+            }
+        }
+
+        private void showDeleteConfirmationDialog(int position) {
+            new android.app.AlertDialog.Builder(itemView.getContext())
+                    .setTitle("Удаление слова")
+                    .setMessage("Вы уверены, что хотите удалить слово \"" + currentWordItem.getWord() + "\"?")
+                    .setPositiveButton("Удалить", (dialog, which) -> {
+                        performDelete(position);
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
+        }
+
+        private void performDelete(int position) {
+            if (currentWordItem == null || currentWordItem.getWordId() == null) return;
+
+            // Определяем тип слова и вызываем соответствующий метод удаления
+            if (currentWordItem.isCustomWord()) {
+                if (currentWordItem.getLibraryId() != null && !currentWordItem.getLibraryId().isEmpty()) {
+                    // Слово из пользовательской библиотеки
+                    wordRepository.deleteWordFromLibrary(
+                            currentWordItem.getLibraryId(),
+                            currentWordItem.getWordId(),
+                            () -> {
+                                // Успех
+                                handleDeleteSuccess(position);
+                                Toast.makeText(itemView.getContext(),
+                                        "Слово удалено", Toast.LENGTH_SHORT).show();
+                            },
+                            e -> {
+                                // Ошибка
+                                Toast.makeText(itemView.getContext(),
+                                        "Ошибка удаления слова", Toast.LENGTH_SHORT).show();
+                            }
+                    );
+                } else {
+                    // Обычное кастомное слово
+                    wordRepository.deleteCustomWord(
+                            currentWordItem.getWordId(),
+                            () -> {
+                                // Успех
+                                handleDeleteSuccess(position);
+                                Toast.makeText(itemView.getContext(),
+                                        "Слово удалено", Toast.LENGTH_SHORT).show();
+                            },
+                            e -> {
+                                // Ошибка
+                                Toast.makeText(itemView.getContext(),
+                                        "Ошибка удаления слова", Toast.LENGTH_SHORT).show();
+                            }
+                    );
+                }
+            } else {
+                // Слова из публичных библиотек нельзя удалять
+                Toast.makeText(itemView.getContext(),
+                        "Нельзя удалять слова из публичных библиотек", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        private void handleDeleteSuccess(int position) {
+            // Удаляем из списка
+            removeWord(position);
+
+            // Уведомляем слушателя
+            if (deleteListener != null) {
+                deleteListener.onWordDeleted(currentWordItem);
             }
         }
 
@@ -141,9 +234,10 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
                 favoriteButton.setColorFilter(0xFF888888); // Сервая иконка
             }
         }
+    }
 
-
-
-
+    // Интерфейс для обработки удаления слов
+    public interface OnWordDeleteListener {
+        void onWordDeleted(WordItem word);
     }
 }

@@ -518,7 +518,94 @@ public class WordRepository {
 
 
 
+    /**
+     * Удаляет слово из пользовательской библиотеки
+     */
+    public void deleteWordFromLibrary(String libraryId, String wordId, OnSuccessListener success, OnErrorListener error) {
+        Log.d(TAG, "Удаление слова из библиотеки: " + libraryId + ", слово: " + wordId);
 
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .document(libraryId)
+                .collection("words")
+                .document(wordId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    // Обновляем счетчик слов в библиотеке
+                    updateLibraryWordCount(libraryId);
+                    success.onSuccess();
+                })
+                .addOnFailureListener(error::onError);
+    }
+
+    /**
+     * Удаляет кастомное слово (не из библиотеки)
+     */
+    public void deleteCustomWord(String wordId, OnSuccessListener success, OnErrorListener error) {
+        Log.d(TAG, "Удаление кастомного слова: " + wordId);
+
+        db.collection("users")
+                .document(userId)
+                .collection("custom_words")
+                .document(wordId)
+                .delete()
+                .addOnSuccessListener(aVoid -> success.onSuccess())
+                .addOnFailureListener(error::onError);
+    }
+
+    /**
+     * Удаляет пользовательскую библиотеку
+     */
+    public void deleteCustomLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
+        Log.d(TAG, "Удаление пользовательской библиотеки: " + libraryId);
+
+        // Сначала удаляем все слова из библиотеки
+        deleteAllWordsFromLibrary(libraryId,
+                () -> {
+                    // Затем удаляем саму библиотеку
+                    db.collection("users")
+                            .document(userId)
+                            .collection("custom_libraries")
+                            .document(libraryId)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                // Также удаляем из активных библиотек
+                                deactivateLibrary(libraryId, success, error);
+                            })
+                            .addOnFailureListener(error::onError);
+                },
+                error::onError
+        );
+    }
+
+    /**
+     * Удаляет все слова из библиотеки
+     */
+    private void deleteAllWordsFromLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .document(libraryId)
+                .collection("words")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Task<Void>> deleteTasks = new ArrayList<>();
+
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            deleteTasks.add(document.getReference().delete());
+                        }
+
+                        // Ждем завершения всех операций удаления
+                        Tasks.whenAll(deleteTasks)
+                                .addOnSuccessListener(aVoid -> success.onSuccess())
+                                .addOnFailureListener(error::onError);
+                    } else {
+                        error.onError(task.getException());
+                    }
+                });
+    }
 
     /**
      * Загружает информацию о библиотеках по их ID

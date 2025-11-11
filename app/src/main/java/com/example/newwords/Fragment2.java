@@ -511,7 +511,35 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         }
     }
 
+    /**
+     * Удаляет библиотеку
+     */
     private void deleteLibrary(WordLibrary library) {
-        Toast.makeText(getContext(), "Удаление: " + library.getName(), Toast.LENGTH_SHORT).show();
+        if (library.getCreatedBy() == null || library.getCreatedBy().equals("system")) {
+            Toast.makeText(getContext(), "Нельзя удалять системные библиотеки", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Удаление библиотеки")
+                .setMessage("Вы уверены, что хотите удалить библиотеку \"" + library.getName() + "\"? Все слова в ней будут удалены.")
+                .setPositiveButton("Удалить", (dialog, which) -> {
+                    performLibraryDelete(library);
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void performLibraryDelete(WordLibrary library) {
+        wordRepository.deleteCustomLibrary(library.getLibraryId(),
+                () -> {
+                    Toast.makeText(getContext(), "Библиотека удалена", Toast.LENGTH_SHORT).show();
+                    // Обновляем список библиотек
+                    loadLibraries();
+                },
+                e -> {
+                    Toast.makeText(getContext(), "Ошибка удаления библиотеки", Toast.LENGTH_SHORT).show();
+                }
+        );
     }
 }
