@@ -2,10 +2,10 @@ package com.example.newwords;
 
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -77,6 +77,8 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         private ImageButton manageButton;
         private WordLibrary currentLibrary;
 
+        private boolean isUpdating = false; // Флаг чтобы избежать рекурсии
+
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
@@ -104,8 +106,58 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
             // Обработчик переключателя
             activeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (listener != null && currentLibrary != null) {
-                    listener.onLibraryToggled(currentLibrary.getLibraryId(), isChecked);
+                if (isUpdating || currentLibrary == null || listener == null) {
+                    return;
+                }
+
+                isUpdating = true;
+                boolean originalState = !isChecked; // Сохраняем исходное состояние
+
+                Log.d("LibraryAdapter", "Переключение библиотеки: " + currentLibrary.getName() +
+                        " с " + originalState + " на " + isChecked);
+
+                if (isChecked) {
+                    // Активируем библиотеку
+                    listener.getWordRepository().activateLibrary(
+                            currentLibrary.getLibraryId(),
+                            () -> {
+                                // Успех
+                                isUpdating = false;
+                                if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    listener.onLibraryToggleSuccess(currentLibrary.getLibraryId(), true);
+                                }
+                                Log.d("LibraryAdapter", "Библиотека активирована: " + currentLibrary.getName());
+                            },
+                            e -> {
+                                // Ошибка
+                                isUpdating = false;
+                                if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    listener.onLibraryToggleError(currentLibrary.getLibraryId(), originalState);
+                                }
+                                Log.e("LibraryAdapter", "Ошибка активации библиотеки: " + currentLibrary.getName(), e);
+                            }
+                    );
+                } else {
+                    // Деактивируем библиотеку
+                    listener.getWordRepository().deactivateLibrary(
+                            currentLibrary.getLibraryId(),
+                            () -> {
+                                // Успех
+                                isUpdating = false;
+                                if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    listener.onLibraryToggleSuccess(currentLibrary.getLibraryId(), false);
+                                }
+                                Log.d("LibraryAdapter", "Библиотека деактивирована: " + currentLibrary.getName());
+                            },
+                            e -> {
+                                // Ошибка
+                                isUpdating = false;
+                                if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    listener.onLibraryToggleError(currentLibrary.getLibraryId(), originalState);
+                                }
+                                Log.e("LibraryAdapter", "Ошибка деактивации библиотеки: " + currentLibrary.getName(), e);
+                            }
+                    );
                 }
             });
         }
@@ -113,10 +165,24 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         public void bind(WordLibrary library) {
             currentLibrary = library;
 
+            // Временно отключаем слушатель чтобы избежать рекурсии
+            isUpdating = true;
+
             nameText.setText(library.getName());
             descriptionText.setText(library.getDescription());
             wordCountText.setText(library.getWordCount() + " слов");
             categoryText.setText(getCategoryDisplayName(library.getCategory()));
+
+            // Устанавливаем состояние переключателя на основе поля isActive
+            // Используем library.isActive() как основной источник истины
+            boolean isActive = library.isActive();
+            activeSwitch.setChecked(isActive);
+
+            Log.d("LibraryAdapter", "Привязка библиотеки: " + library.getName() +
+                    ", активна: " + isActive + ", ID: " + library.getLibraryId());
+
+            // Включаем слушатель обратно
+            isUpdating = false;
 
             // Показываем badge для пользовательских библиотек
             if (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")) {
@@ -124,10 +190,6 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             } else {
                 hideCustomLibraryBadge();
             }
-
-            // Устанавливаем состояние переключателя
-            boolean isActive = activeLibraries.getOrDefault(library.getLibraryId(), false);
-            activeSwitch.setChecked(isActive);
 
             // Показываем кнопку управления только для пользовательских библиотек
             if (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")) {
@@ -175,8 +237,14 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
     }
 
     public interface OnLibraryActionListener {
-        void onLibraryToggled(String libraryId, boolean isActive);
+        // Убрали старый метод onLibraryToggled - больше не нужен
+
         void onLibraryInfoClicked(WordLibrary library);
         void onLibraryManageClicked(WordLibrary library);
+
+        // Новые методы для работы с репозиторием
+        WordRepository getWordRepository();
+        void onLibraryToggleSuccess(String libraryId, boolean isActive);
+        void onLibraryToggleError(String libraryId, boolean originalState);
     }
 }

@@ -12,9 +12,12 @@ public class WordLibrary {
     private String languageTo;
     private boolean isPublic;
     private Date createdAt;
-    private String createdBy; // Кто создал библиотеку
+    private String createdBy;
+    private boolean isActive; // ← ДОБАВЛЯЕМ ЭТО ПОЛЕ
+
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
+        this.isActive = false; // по умолчанию неактивна
     }
 
     // Конструктор с параметрами
@@ -28,6 +31,7 @@ public class WordLibrary {
         this.languageTo = languageTo;
         this.isPublic = true;
         this.createdAt = new Date();
+        this.isActive = false; // по умолчанию неактивна
     }
 
     // === ГЕТТЕРЫ ===
@@ -40,6 +44,8 @@ public class WordLibrary {
     public String getLanguageTo() { return languageTo; }
     public boolean isPublic() { return isPublic; }
     public Date getCreatedAt() { return createdAt; }
+    public String getCreatedBy() { return createdBy; }
+    public boolean isActive() { return isActive; } // ← ДОБАВЛЯЕМ ГЕТТЕР
 
     // === СЕТТЕРЫ ===
     public void setLibraryId(String libraryId) { this.libraryId = libraryId; }
@@ -51,15 +57,16 @@ public class WordLibrary {
     public void setLanguageTo(String languageTo) { this.languageTo = languageTo; }
     public void setPublic(boolean aPublic) { isPublic = aPublic; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-    // Геттер и сеттер
-    public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public void setActive(boolean active) { isActive = active; } // ← ДОБАВЛЯЕМ СЕТТЕР
+
     @Override
     public String toString() {
         return "WordLibrary{" +
                 "name='" + name + '\'' +
                 ", wordCount=" + wordCount +
                 ", category='" + category + '\'' +
+                ", isActive=" + isActive +
                 '}';
     }
 }

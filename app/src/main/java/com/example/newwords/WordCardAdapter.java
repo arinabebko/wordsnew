@@ -44,10 +44,21 @@ public class WordCardAdapter extends RecyclerView.Adapter<WordCardAdapter.ViewHo
     // Заполняет карточку данными (вызывается при прокрутке)
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // Берем слово из списка по позиции
         WordItem wordItem = wordList.get(position);
-        // Передаем слово в карточку для отображения
-        holder.bind(wordItem);
+
+        // Если это ViewPager2 - используем обычный bind, если список - bindForList
+        if (isViewPagerMode) {
+            holder.bind(wordItem);
+        } else {
+            holder.bindForList(wordItem);
+        }
+    }
+
+    // Добавьте поле и метод для режима:
+    private boolean isViewPagerMode = true;
+
+    public void setViewPagerMode(boolean isViewPagerMode) {
+        this.isViewPagerMode = isViewPagerMode;
     }
 
     // Сколько всего карточек
@@ -96,8 +107,22 @@ public class WordCardAdapter extends RecyclerView.Adapter<WordCardAdapter.ViewHo
                     hintText.setVisibility(View.VISIBLE); // Показываем
                 }
             });
-        }
 
+
+
+        }
+        public void bindForList(WordItem wordItem) {
+            currentWordItem = wordItem;
+            wordText.setText(wordItem.getWord());
+            hintText.setText(wordItem.getTranslation());
+            hintText.setVisibility(View.VISIBLE); // В режиме списка всегда показываем перевод
+
+            if (wordItem.isFavorite()) {
+                starButton.setBackgroundColor(0x30FFD700);
+            } else {
+                starButton.setBackgroundColor(0x00000000);
+            }
+        }
         // Заполняем карточку данными слова
         public void bind(WordItem wordItem) {
             wordText.setText(wordItem.getWord());

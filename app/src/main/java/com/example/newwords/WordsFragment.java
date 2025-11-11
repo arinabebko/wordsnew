@@ -1,10 +1,13 @@
 package com.example.newwords;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -12,6 +15,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -90,24 +95,28 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     /**
      * Загружает слова из Firebase Firestore
      */
+    /**
+     * Загружает слова из АКТИВНЫХ библиотек Firebase
+     */
     private void loadWordsFromFirebase() {
-        Log.d(TAG, "Начинаем загрузку слов из Firebase...");
+        Log.d(TAG, "Начинаем загрузку слов из АКТИВНЫХ библиотек...");
         showLoading(true);
 
-        wordRepository.getLearningSessionWords(new WordRepository.OnWordsLoadedListener() {
+        wordRepository.getWordsFromActiveLibraries(new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Успешно загружено слов для сессии: " + words.size());
+                Log.d(TAG, "Успешно загружено слов из активных библиотек: " + words.size());
 
                 wordList.clear();
                 wordList.addAll(words);
 
+                // Если слов нет, показываем сообщение и предлагаем выбрать библиотеки
                 if (wordList.isEmpty()) {
-                    Log.d(TAG, "Слов нет, добавляем демо-слова...");
-                    addDemoWords();
+                    Log.d(TAG, "Нет слов в активных библиотеках");
+                    showNoActiveLibrariesState();
                 } else {
-                    Log.d(TAG, "Настройка колоды карточек...");
-                    setupCardStack();
+                    Log.d(TAG, "Настройка ViewPager с загруженными словами...");
+                    setupViewPagerWithWords();
                 }
 
                 showLoading(false);
@@ -115,12 +124,154 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
+                Log.e(TAG, "Ошибка загрузки слов из активных библиотек: " + e.getMessage());
+
+                // Если ошибка, используем локальные слова как запасной вариант
                 Toast.makeText(getContext(), "Ошибка загрузки. Используем локальные слова", Toast.LENGTH_SHORT).show();
-                setupWithLocalWords();
+                setupViewPagerWithLocalWords();
                 showLoading(false);
             }
         });
+    }
+    /**
+     * Настраивает ViewPager с загруженными словами
+     */
+    private void setupViewPagerWithWords() {
+        Log.d(TAG, "Настройка ViewPager с " + wordList.size() + " словами");
+
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                // Используем StackCardAdapter для колоды карточек
+                adapter = new StackCardAdapter(wordList, this);
+                viewPager2.setAdapter(adapter);
+
+                // Отключаем стандартные свайпы ViewPager2 (управляем кнопками)
+                viewPager2.setUserInputEnabled(false);
+
+                // Настраиваем кнопки управления
+                setupControlButtons();
+
+                // Обновляем прогресс
+                updateProgress();
+
+                Toast.makeText(getContext(), "Готово! Карточек: " + wordList.size(), Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    /**
+     * Настраивает ViewPager с локальными словами (при ошибке загрузки)
+     */
+    private void setupViewPagerWithLocalWords() {
+        Log.d(TAG, "Используем локальные слова");
+
+        wordList.clear();
+        wordList.addAll(createDemoWordList());
+        setupViewPagerWithWords();
+    }
+
+    /**
+     * Настраивает кнопки управления для карточек
+     */
+    private void setupControlButtons() {
+        // Находим кнопки в макете
+        View view = getView();
+        if (view == null) return;
+
+        ImageButton learnedButton = view.findViewById(R.id.learnedButton);
+        ImageButton reviewButton = view.findViewById(R.id.reviewButton);
+
+        if (learnedButton != null && reviewButton != null) {
+            learnedButton.setOnClickListener(v -> {
+                if (adapter != null) {
+                    adapter.swipeRight();
+                    updateProgress();
+                }
+            });
+
+            reviewButton.setOnClickListener(v -> {
+                if (adapter != null) {
+                    adapter.swipeLeft();
+                    updateProgress();
+                }
+            });
+
+            Log.d(TAG, "Кнопки управления настроены");
+        } else {
+            Log.w(TAG, "Кнопки управления не найдены в макете");
+        }
+    }
+    /**
+     * Показывает состояние когда нет активных библиотек
+     */
+    private void showNoActiveLibrariesState() {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                // Создаем layout для состояния "нет активных библиотек"
+                ConstraintLayout noLibrariesLayout = new ConstraintLayout(getContext());
+                noLibrariesLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+                noLibrariesLayout.setBackgroundColor(0xFF322b36);
+
+                // Текст сообщения
+                TextView messageText = new TextView(getContext());
+                messageText.setId(View.generateViewId());
+                messageText.setText("Выберите библиотеки для изучения");
+                messageText.setTextColor(Color.WHITE);
+                messageText.setTextSize(18f);
+                messageText.setGravity(Gravity.CENTER);
+
+                // Кнопка выбора библиотек
+                Button chooseButton = new Button(getContext());
+                chooseButton.setId(View.generateViewId());
+                chooseButton.setText("Выбрать библиотеки");
+                chooseButton.setBackgroundResource(R.drawable.button_primary_bg);
+                chooseButton.setTextColor(Color.WHITE);
+
+                // Добавляем элементы в layout
+                noLibrariesLayout.addView(messageText);
+                noLibrariesLayout.addView(chooseButton);
+
+                // Настраиваем constraints
+                ConstraintSet constraintSet = new ConstraintSet();
+                constraintSet.clone(noLibrariesLayout);
+
+                // Message text constraints
+                constraintSet.connect(messageText.getId(), ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 100);
+                constraintSet.connect(messageText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 16);
+                constraintSet.connect(messageText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 16);
+                constraintSet.constrainHeight(messageText.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Button constraints
+                constraintSet.connect(chooseButton.getId(), ConstraintSet.TOP, messageText.getId(), ConstraintSet.BOTTOM, 32);
+                constraintSet.connect(chooseButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 50);
+                constraintSet.connect(chooseButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 50);
+                constraintSet.constrainHeight(chooseButton.getId(), ConstraintSet.WRAP_CONTENT);
+
+                constraintSet.applyTo(noLibrariesLayout);
+
+                // Обработчик кнопки
+                chooseButton.setOnClickListener(v -> {
+                    // Переходим к выбору библиотек
+                    Fragment2 fragment2 = new Fragment2();
+                    if (getActivity() != null) {
+                        getActivity().getSupportFragmentManager().beginTransaction()
+                                .replace(android.R.id.content, fragment2)
+                                .addToBackStack(null)
+                                .commit();
+                    }
+                });
+
+                // Заменяем текущий view
+                ViewGroup rootView = (ViewGroup) getView();
+                if (rootView != null) {
+                    rootView.removeAllViews();
+                    rootView.addView(noLibrariesLayout);
+                }
+            });
+        }
     }
 
     /**

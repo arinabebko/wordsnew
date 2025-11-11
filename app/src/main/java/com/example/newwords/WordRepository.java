@@ -1,9 +1,17 @@
 package com.example.newwords;
 
+import static android.content.ContentValues.TAG;
+
+import android.util.Log;
+
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
@@ -467,22 +475,7 @@ public class WordRepository {
                 .set(updates, SetOptions.merge());
     }
 
-    /**
-     * Активировать библиотеку для пользователя
-     */
-    public void activateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("active", true);
-        data.put("activatedAt", new Date());
 
-        db.collection("users")
-                .document(userId)
-                .collection("active_libraries")
-                .document(libraryId)
-                .set(data)
-                .addOnSuccessListener(aVoid -> success.onSuccess())
-                .addOnFailureListener(error::onError);
-    }
 
     /**
      * Получить слова для текущей сессии обучения
@@ -521,5 +514,298 @@ public class WordRepository {
                         listener.onWordsLoaded(new ArrayList<>());
                     }
                 });
+    }
+
+
+
+
+
+    /**
+     * Загружает информацию о библиотеках по их ID
+     */
+    private void loadLibrariesInfo(List<String> libraryIds, OnLibrariesLoadedListener listener) {
+        if (libraryIds.isEmpty()) {
+            listener.onLibrariesLoaded(new ArrayList<>());
+            return;
+        }
+
+        List<WordLibrary> activeLibraries = new ArrayList<>();
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+
+        for (String libraryId : libraryIds) {
+            // Пробуем загрузить из публичных библиотек
+            Task<DocumentSnapshot> publicTask = db.collection("word_libraries")
+                    .document(libraryId)
+                    .get();
+
+            tasks.add(publicTask);
+        }
+
+        Tasks.whenAllComplete(tasks).addOnCompleteListener(combinedTask -> {
+            for (Task<DocumentSnapshot> task : tasks) {
+                if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                    WordLibrary library = task.getResult().toObject(WordLibrary.class);
+                    if (library != null) {
+                        library.setLibraryId(task.getResult().getId());
+                        library.setCreatedBy("system");
+                        activeLibraries.add(library);
+                    }
+                }
+            }
+
+            // Теперь загружаем пользовательские библиотеки
+            loadCustomLibrariesInfo(libraryIds, activeLibraries, listener);
+        });
+    }
+
+    /**
+     * Загружает информацию о пользовательских библиотеках
+     */
+    private void loadCustomLibrariesInfo(List<String> libraryIds, List<WordLibrary> activeLibraries, OnLibrariesLoadedListener listener) {
+        List<Task<DocumentSnapshot>> customTasks = new ArrayList<>();
+
+        for (String libraryId : libraryIds) {
+            Task<DocumentSnapshot> customTask = db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(libraryId)
+                    .get();
+            customTasks.add(customTask);
+        }
+
+        Tasks.whenAllComplete(customTasks).addOnCompleteListener(combinedTask -> {
+            for (Task<DocumentSnapshot> task : customTasks) {
+                if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                    WordLibrary library = task.getResult().toObject(WordLibrary.class);
+                    if (library != null) {
+                        library.setLibraryId(task.getResult().getId());
+                        library.setCreatedBy(userId);
+                        activeLibraries.add(library);
+                    }
+                }
+            }
+            listener.onLibrariesLoaded(activeLibraries);
+        });
+    }
+
+    /**
+     * Получить слова ТОЛЬКО из активных библиотек пользователя
+     */
+    /**
+     * Получить слова ТОЛЬКО из активных библиотек пользователя
+     */
+    public void getWordsFromActiveLibraries(OnWordsLoadedListener listener) {
+        Log.d(TAG, "Получение слов из активных библиотек");
+
+        getUserActiveLibraries(new OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> activeLibraries) {
+                Log.d(TAG, "Активные библиотеки загружены: " + activeLibraries.size());
+
+                // Фильтруем только активные библиотеки
+                List<WordLibrary> filteredLibraries = new ArrayList<>();
+                for (WordLibrary library : activeLibraries) {
+                    if (library.isActive()) {
+                        filteredLibraries.add(library);
+                        Log.d(TAG, "Активная библиотека: " + library.getName());
+                    }
+                }
+
+                Log.d(TAG, "После фильтрации активных библиотек: " + filteredLibraries.size());
+
+                if (filteredLibraries.isEmpty()) {
+                    Log.d(TAG, "Нет активных библиотек, возвращаем пустой список");
+                    listener.onWordsLoaded(new ArrayList<>());
+                    return;
+                }
+
+                List<WordItem> allWords = new ArrayList<>();
+                List<Task<QuerySnapshot>> allTasks = new ArrayList<>();
+
+                for (WordLibrary library : filteredLibraries) {
+                    boolean isCustom = library.getCreatedBy() != null &&
+                            !library.getCreatedBy().equals("system");
+
+                    Task<QuerySnapshot> task = getWordsFromSingleLibrary(library.getLibraryId(), isCustom);
+                    allTasks.add(task);
+                }
+
+                Tasks.whenAllSuccess(allTasks).addOnSuccessListener(results -> {
+                    for (Object result : results) {
+                        if (result instanceof QuerySnapshot) {
+                            QuerySnapshot snapshot = (QuerySnapshot) result;
+                            for (QueryDocumentSnapshot document : snapshot) {
+                                WordItem word = document.toObject(WordItem.class);
+                                word.setWordId(document.getId());
+                                word.setLibraryId(document.getReference().getParent().getParent().getId());
+                                allWords.add(word);
+                            }
+                        }
+                    }
+                    Log.d(TAG, "Всего слов из активных библиотек: " + allWords.size());
+                    listener.onWordsLoaded(allWords);
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "Ошибка загрузки слов из активных библиотек", e);
+                    listener.onError(e);
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка загрузки активных библиотек", e);
+                listener.onError(e);
+            }
+        });
+    }
+    /**
+     * Активировать библиотеку для пользователя
+     */
+    public void activateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
+        // Сначала загружаем информацию о библиотеке
+        loadLibraryInfo(libraryId, new OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> libraries) {
+                if (libraries.isEmpty()) {
+                    error.onError(new Exception("Библиотека не найдена"));
+                    return;
+                }
+
+                WordLibrary library = libraries.get(0);
+                library.setActive(true); // Устанавливаем флаг активности
+
+                // Сохраняем в активные библиотеки пользователя
+                Map<String, Object> data = new HashMap<>();
+                data.put("active", true);
+                data.put("activatedAt", new Date());
+                data.put("libraryInfo", library); // Сохраняем полную информацию
+
+                db.collection("users")
+                        .document(userId)
+                        .collection("active_libraries")
+                        .document(libraryId)
+                        .set(data)
+                        .addOnSuccessListener(aVoid -> success.onSuccess())
+                        .addOnFailureListener(error::onError);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                error.onError(e);
+            }
+        });
+    }
+
+    /**
+     * Деактивировать библиотеку для пользователя
+     */
+    public void deactivateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
+        db.collection("users")
+                .document(userId)
+                .collection("active_libraries")
+                .document(libraryId)
+                .delete()
+                .addOnSuccessListener(aVoid -> success.onSuccess())
+                .addOnFailureListener(error::onError);
+    }
+
+    /**
+     * Загружает информацию о библиотеке по ID
+     */
+    private void loadLibraryInfo(String libraryId, OnLibrariesLoadedListener listener) {
+        List<String> libraryIds = new ArrayList<>();
+        libraryIds.add(libraryId);
+        loadLibrariesInfo(libraryIds, listener);
+    }
+
+    /**
+     * Получить активные библиотеки пользователя
+     */
+    public void getUserActiveLibraries(OnLibrariesLoadedListener listener) {
+        db.collection("users")
+                .document(userId)
+                .collection("active_libraries")
+                .whereEqualTo("active", true)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        List<WordLibrary> activeLibraries = new ArrayList<>();
+
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            // Пробуем получить информацию о библиотеке из документа
+                            if (document.contains("libraryInfo")) {
+                                WordLibrary library = document.get("libraryInfo", WordLibrary.class);
+                                if (library != null) {
+                                    library.setActive(true); // Устанавливаем флаг активности
+                                    activeLibraries.add(library);
+                                    continue;
+                                }
+                            }
+
+                            // Если нет полной информации, загружаем по ID
+                            String libraryId = document.getId();
+                            WordLibrary library = new WordLibrary();
+                            library.setLibraryId(libraryId);
+                            library.setActive(true);
+                            activeLibraries.add(library);
+                        }
+
+                        Log.d(TAG, "Найдено активных библиотек: " + activeLibraries.size());
+
+                        // Если есть библиотеки без полной информации, загружаем её
+                        loadFullLibrariesInfo(activeLibraries, listener);
+                    } else {
+                        Log.e(TAG, "Ошибка загрузки активных библиотек", task.getException());
+                        listener.onError(task.getException());
+                    }
+                });
+    }
+
+    /**
+     * Загружает полную информацию о библиотеках
+     */
+    private void loadFullLibrariesInfo(List<WordLibrary> libraries, OnLibrariesLoadedListener listener) {
+        List<String> libraryIds = new ArrayList<>();
+        for (WordLibrary library : libraries) {
+            libraryIds.add(library.getLibraryId());
+        }
+
+        loadLibrariesInfo(libraryIds, new OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> fullLibraries) {
+                // Объединяем информацию об активности с полной информацией
+                for (WordLibrary fullLibrary : fullLibraries) {
+                    for (WordLibrary activeLibrary : libraries) {
+                        if (activeLibrary.getLibraryId().equals(fullLibrary.getLibraryId())) {
+                            fullLibrary.setActive(true);
+                            break;
+                        }
+                    }
+                }
+                listener.onLibrariesLoaded(fullLibraries);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                listener.onError(e);
+            }
+        });
+    }
+    /**
+     * Получить слова из одной библиотеки
+     */
+    private Task<QuerySnapshot> getWordsFromSingleLibrary(String libraryId, boolean isCustom) {
+        if (isCustom) {
+            return db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(libraryId)
+                    .collection("words")
+                    .get();
+        } else {
+            return db.collection("word_libraries")
+                    .document(libraryId)
+                    .collection("words")
+                    .get();
+        }
     }
 }
