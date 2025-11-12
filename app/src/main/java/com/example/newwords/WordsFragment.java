@@ -22,12 +22,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class WordsFragment extends Fragment implements StackCardAdapter.OnCardActionListener {
 
     private ViewPager2 viewPager2;
-    private StackCardAdapter adapter;
+     private StackCardAdapter adapter;
+   // private SimpleStackCardAdapter adapter; // Изменяем на новый адаптер
+
     private WordRepository wordRepository;
     private List<WordItem> wordList = new ArrayList<>();
     private ProgressBar progressBar;
@@ -110,13 +113,16 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 wordList.clear();
                 wordList.addAll(words);
 
-                // Если слов нет, показываем сообщение и предлагаем выбрать библиотеки
-                if (wordList.isEmpty()) {
-                    Log.d(TAG, "Нет слов в активных библиотеках");
-                    showNoActiveLibrariesState();
+                logWordDetails(wordList);
+                // Фильтруем слова для сессии
+                List<WordItem> sessionWords = getWordsForSession(wordList);
+
+                if (sessionWords.isEmpty()) {
+                    Log.d(TAG, "Нет слов для изучения в данный момент");
+                    showNoWordsForStudyState();
                 } else {
-                    Log.d(TAG, "Настройка ViewPager с загруженными словами...");
-                    setupViewPagerWithWords();
+                    Log.d(TAG, "Настройка ViewPager с " + sessionWords.size() + " словами для сессии");
+                    setupViewPagerWithWords(sessionWords);
                 }
 
                 showLoading(false);
@@ -125,24 +131,120 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             @Override
             public void onError(Exception e) {
                 Log.e(TAG, "Ошибка загрузки слов из активных библиотек: " + e.getMessage());
-
-                // Если ошибка, используем локальные слова как запасной вариант
                 Toast.makeText(getContext(), "Ошибка загрузки. Используем локальные слова", Toast.LENGTH_SHORT).show();
                 setupViewPagerWithLocalWords();
                 showLoading(false);
             }
         });
     }
+
+
+    /**
+     * Выбирает слова для текущей сессии изучения
+     */
+
+
+    /**
+     * Выбирает слова для текущей сессии изучения
+     */
+    private List<WordItem> getWordsForSession(List<WordItem> allWords) {
+        List<WordItem> sessionWords = new ArrayList<>();
+        int maxWords = 20;
+
+        Log.d(TAG, "=== ВЫБОР СЛОВ ДЛЯ СЕССИИ ===");
+        Log.d(TAG, "Всего слов доступно: " + allWords.size());
+
+        int newWordsCount = 0;
+        int dueWordsCount = 0;
+        int learnedWordsCount = 0;
+
+        // 1. Собираем слова которые нужно показать СЕЙЧАС
+        for (WordItem word : allWords) {
+            if (SimpleRepetitionSystem.shouldShowInSession(word)) {
+                sessionWords.add(word);
+
+                // Логируем тип слова
+                if (word.isNew() && word.needsMoreShows()) {
+                    newWordsCount++;
+                } else {
+                    dueWordsCount++;
+                }
+
+                if (sessionWords.size() >= maxWords) break;
+            } else if (word.isLearned()) {
+                learnedWordsCount++;
+            }
+        }
+
+        Log.d(TAG, "Статистика сессии:");
+        Log.d(TAG, " - Новые слова: " + newWordsCount);
+        Log.d(TAG, " - Для повторения: " + dueWordsCount);
+        Log.d(TAG, " - Выученные (не показываем): " + learnedWordsCount);
+        Log.d(TAG, " - Всего для сессии: " + sessionWords.size());
+
+        return sessionWords;
+    }
+
+    /**
+     * Получает слова, готовые к повторению
+     */
+    private List<WordItem> getDueWords(List<WordItem> allWords) {
+        List<WordItem> dueWords = new ArrayList<>();
+        for (WordItem word : allWords) {
+            if (word.isDueForReview() && !word.isLearned()) {
+                dueWords.add(word);
+            }
+        }
+
+        // Сортируем по приоритету (самые старые первыми)
+        Collections.sort(dueWords, (w1, w2) -> {
+            if (w1.getNextReviewDate() == null) return -1;
+            if (w2.getNextReviewDate() == null) return 1;
+            return w1.getNextReviewDate().compareTo(w2.getNextReviewDate());
+        });
+
+        return dueWords;
+    }
+
+    /**
+     * Получает новые слова
+     */
+    private List<WordItem> getNewWords(List<WordItem> allWords) {
+        List<WordItem> newWords = new ArrayList<>();
+        for (WordItem word : allWords) {
+            if (word.isNew()) {
+                newWords.add(word);
+            }
+        }
+        return newWords;
+    }
+
+    /**
+     * Получает слова в процессе изучения
+     */
+    private List<WordItem> getLearningWords(List<WordItem> allWords) {
+        List<WordItem> learningWords = new ArrayList<>();
+        for (WordItem word : allWords) {
+            if (word.getDifficulty() == 2) { // Средняя сложность
+                learningWords.add(word);
+            }
+        }
+        return learningWords;
+    }
+
     /**
      * Настраивает ViewPager с загруженными словами
      */
-    private void setupViewPagerWithWords() {
-        Log.d(TAG, "Настройка ViewPager с " + wordList.size() + " словами");
+    /**
+     * Настраивает ViewPager с загруженными словами
+     */
+    private void setupViewPagerWithWords(List<WordItem> sessionWords) {
+        Log.d(TAG, "Настройка ViewPager с " + sessionWords.size() + " словами");
 
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
-                // Используем StackCardAdapter для колоды карточек
-                adapter = new StackCardAdapter(wordList, this);
+                // ИСПРАВЬ ЭТУ СТРОКУ: передавай sessionWords вместо wordList
+                adapter = new StackCardAdapter(sessionWords, this, wordRepository); // ← sessionWords вместо wordList
                 viewPager2.setAdapter(adapter);
 
                 // Отключаем стандартные свайпы ViewPager2 (управляем кнопками)
@@ -154,11 +256,27 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 // Обновляем прогресс
                 updateProgress();
 
-                Toast.makeText(getContext(), "Готово! Карточек: " + wordList.size(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Готово! Карточек: " + sessionWords.size(), Toast.LENGTH_SHORT).show();
             });
         }
     }
 
+    /**
+     * Логирует детальную информацию о словах
+     */
+    private void logWordDetails(List<WordItem> words) {
+        Log.d(TAG, "=== ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О СЛОВАХ ===");
+        for (WordItem word : words) {
+            Log.d(TAG, "Слово: " + word.getWord() +
+                    " | сложность: " + word.getDifficulty() +
+                    " | этап: " + word.getReviewStage() +
+                    " | показов: " + word.getConsecutiveShows() +
+                    " | след. дата: " + word.getNextReviewDate() +
+                    " | готово к повторению: " + word.isDueForReview() +
+                    " | выучено: " + word.isLearned() +
+                    " | нужно показывать: " + SimpleRepetitionSystem.shouldShowInSession(word));
+        }
+    }
     /**
      * Настраивает ViewPager с локальными словами (при ошибке загрузки)
      */
@@ -167,8 +285,12 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
         wordList.clear();
         wordList.addAll(createDemoWordList());
-        setupViewPagerWithWords();
+
+        // Используем ту же логику выбора слов для сессии
+        List<WordItem> sessionWords = getWordsForSession(wordList);
+        setupViewPagerWithWords(sessionWords);
     }
+
 
     /**
      * Настраивает кнопки управления для карточек
@@ -202,65 +324,60 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         }
     }
     /**
-     * Показывает состояние когда нет активных библиотек
+     * Показывает состояние когда нет слов для изучения
      */
-    private void showNoActiveLibrariesState() {
+    private void showNoWordsForStudyState() {
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
-                // Создаем layout для состояния "нет активных библиотек"
-                ConstraintLayout noLibrariesLayout = new ConstraintLayout(getContext());
-                noLibrariesLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                ConstraintLayout noWordsLayout = new ConstraintLayout(getContext());
+                noWordsLayout.setLayoutParams(new ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 ));
-                noLibrariesLayout.setBackgroundColor(0xFF322b36);
+                noWordsLayout.setBackgroundColor(0xFF322b36);
 
                 // Текст сообщения
                 TextView messageText = new TextView(getContext());
                 messageText.setId(View.generateViewId());
-                messageText.setText("Выберите библиотеки для изучения");
+                messageText.setText("На сегодня все слова изучены! 🎉\n\nНовые слова появятся завтра.");
                 messageText.setTextColor(Color.WHITE);
-                messageText.setTextSize(18f);
+                messageText.setTextSize(16f);
                 messageText.setGravity(Gravity.CENTER);
+                messageText.setLineSpacing(1.5f, 1.5f);
 
-                // Кнопка выбора библиотек
-                Button chooseButton = new Button(getContext());
-                chooseButton.setId(View.generateViewId());
-                chooseButton.setText("Выбрать библиотеки");
-                chooseButton.setBackgroundResource(R.drawable.button_primary_bg);
-                chooseButton.setTextColor(Color.WHITE);
+                // Кнопка возврата
+                Button backButton = new Button(getContext());
+                backButton.setId(View.generateViewId());
+                backButton.setText("Вернуться назад");
+                backButton.setBackgroundResource(R.drawable.button_primary_bg);
+                backButton.setTextColor(Color.WHITE);
 
                 // Добавляем элементы в layout
-                noLibrariesLayout.addView(messageText);
-                noLibrariesLayout.addView(chooseButton);
+                noWordsLayout.addView(messageText);
+                noWordsLayout.addView(backButton);
 
                 // Настраиваем constraints
                 ConstraintSet constraintSet = new ConstraintSet();
-                constraintSet.clone(noLibrariesLayout);
+                constraintSet.clone(noWordsLayout);
 
                 // Message text constraints
-                constraintSet.connect(messageText.getId(), ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 100);
-                constraintSet.connect(messageText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 16);
-                constraintSet.connect(messageText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 16);
+                constraintSet.connect(messageText.getId(), ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 150);
+                constraintSet.connect(messageText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 32);
+                constraintSet.connect(messageText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 32);
                 constraintSet.constrainHeight(messageText.getId(), ConstraintSet.WRAP_CONTENT);
 
                 // Button constraints
-                constraintSet.connect(chooseButton.getId(), ConstraintSet.TOP, messageText.getId(), ConstraintSet.BOTTOM, 32);
-                constraintSet.connect(chooseButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 50);
-                constraintSet.connect(chooseButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 50);
-                constraintSet.constrainHeight(chooseButton.getId(), ConstraintSet.WRAP_CONTENT);
+                constraintSet.connect(backButton.getId(), ConstraintSet.TOP, messageText.getId(), ConstraintSet.BOTTOM, 32);
+                constraintSet.connect(backButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 50);
+                constraintSet.connect(backButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 50);
+                constraintSet.constrainHeight(backButton.getId(), ConstraintSet.WRAP_CONTENT);
 
-                constraintSet.applyTo(noLibrariesLayout);
+                constraintSet.applyTo(noWordsLayout);
 
                 // Обработчик кнопки
-                chooseButton.setOnClickListener(v -> {
-                    // Переходим к выбору библиотек
-                    Fragment2 fragment2 = new Fragment2();
+                backButton.setOnClickListener(v -> {
                     if (getActivity() != null) {
-                        getActivity().getSupportFragmentManager().beginTransaction()
-                                .replace(android.R.id.content, fragment2)
-                                .addToBackStack(null)
-                                .commit();
+                        getActivity().onBackPressed();
                     }
                 });
 
@@ -268,29 +385,8 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 ViewGroup rootView = (ViewGroup) getView();
                 if (rootView != null) {
                     rootView.removeAllViews();
-                    rootView.addView(noLibrariesLayout);
+                    rootView.addView(noWordsLayout);
                 }
-            });
-        }
-    }
-
-    /**
-     * Настраивает колоду карточек
-     */
-    private void setupCardStack() {
-        Log.d(TAG, "Настройка колоды с " + wordList.size() + " словами");
-
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                adapter = new StackCardAdapter(wordList, this);
-                viewPager2.setAdapter(adapter);
-
-                // Отключаем стандартные свайпы ViewPager2
-                viewPager2.setUserInputEnabled(false);
-
-                updateProgress();
-
-                Toast.makeText(getContext(), "Готово! Карточек: " + wordList.size(), Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -311,8 +407,59 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 int progressPercent = total > 0 ? (current * 100) / total : 0;
                 progressBar.setProgress(progressPercent);
             }
+
+            // Если все карточки пройдены
+            if (current >= total && total > 0) {
+                showSessionCompleted();
+            }
         }
     }
+
+    /**
+     * Показывает сообщение о завершении сессии
+     */
+    private void showSessionCompleted() {
+        Toast.makeText(getContext(), "🎉 Сессия завершена! Отлично поработали!", Toast.LENGTH_LONG).show();
+
+        /**
+        // Можно добавить автоматический возврат через 3 секунды
+        if (getActivity() != null) {
+            getActivity().getWindow().getDecorView().postDelayed(() -> {
+                if (getActivity() != null) {
+                    getActivity().onBackPressed();
+                }
+            }, 3000);
+        }
+         */
+    }
+
+
+    /**
+     * Настраивает колоду карточек
+     */
+    private void setupCardStack() {
+        Log.d(TAG, "Настройка колоды с " + wordList.size() + " словами");
+
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                // ДОБАВЬ wordRepository КАК ТРЕТИЙ ПАРАМЕТР:
+                adapter = new StackCardAdapter(wordList, this, wordRepository);
+                viewPager2.setAdapter(adapter);
+
+                // Отключаем стандартные свайпы ViewPager2
+                viewPager2.setUserInputEnabled(false);
+
+                updateProgress();
+
+                Toast.makeText(getContext(), "Готово! Карточек: " + wordList.size(), Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    /**
+     * Обновляет отображение прогресса
+     */
+
 
     /**
      * Использует локальные слова при ошибке

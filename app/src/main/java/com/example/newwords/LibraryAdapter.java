@@ -164,8 +164,6 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
         public void bind(WordLibrary library) {
             currentLibrary = library;
-
-            // Временно отключаем слушатель чтобы избежать рекурсии
             isUpdating = true;
 
             nameText.setText(library.getName());
@@ -173,15 +171,18 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             wordCountText.setText(library.getWordCount() + " слов");
             categoryText.setText(getCategoryDisplayName(library.getCategory()));
 
-            // Устанавливаем состояние переключателя на основе поля isActive
-            // Используем library.isActive() как основной источник истины
-            boolean isActive = library.isActive();
+            // ИСПРАВЛЕНИЕ: используем activeLibraries как основной источник
+            boolean isActive = activeLibraries.containsKey(library.getLibraryId())
+                    ? activeLibraries.get(library.getLibraryId())
+                    : library.isActive();
+
             activeSwitch.setChecked(isActive);
 
             Log.d("LibraryAdapter", "Привязка библиотеки: " + library.getName() +
-                    ", активна: " + isActive + ", ID: " + library.getLibraryId());
+                    ", активна: " + isActive + " (из activeLibraries: " +
+                    activeLibraries.containsKey(library.getLibraryId()) +
+                    "), ID: " + library.getLibraryId());
 
-            // Включаем слушатель обратно
             isUpdating = false;
 
             // Показываем badge для пользовательских библиотек

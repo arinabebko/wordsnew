@@ -27,6 +27,24 @@ public class LocalWordItem {
     private Date lastReviewed;
     private Date lastSynced;
 
+
+    // ДОБАВЬ ЭТИ ПОЛЯ:
+    private int reviewStage;
+    private Date nextReviewDate;
+    private int consecutiveShows;
+
+    // ДОБАВЬ ГЕТТЕРЫ И СЕТТЕРЫ:
+    public int getReviewStage() { return reviewStage; }
+    public void setReviewStage(int reviewStage) { this.reviewStage = reviewStage; }
+
+    public Date getNextReviewDate() { return nextReviewDate; }
+    public void setNextReviewDate(Date nextReviewDate) { this.nextReviewDate = nextReviewDate; }
+
+    public int getConsecutiveShows() { return consecutiveShows; }
+    public void setConsecutiveShows(int consecutiveShows) { this.consecutiveShows = consecutiveShows; }
+
+
+
     // Конструкторы, геттеры и сеттеры
     public LocalWordItem() {
         this.wordId = ""; // Инициализируем пустой строкой
@@ -37,7 +55,10 @@ public class LocalWordItem {
         this.word = word.getWord();
         this.translation = word.getTranslation();
         this.note = word.getNote();
-
+        // ДОБАВЬ ЭТИ СТРОКИ:
+        this.reviewStage = word.getReviewStage();
+        this.nextReviewDate = word.getNextReviewDate();
+        this.consecutiveShows = word.getConsecutiveShows();
         // Используем правильные геттеры с префиксом get
         this.isFavorite = word.getIsFavorite(); // было: word.isFavorite()
         this.difficulty = String.valueOf(word.getDifficulty());

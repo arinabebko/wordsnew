@@ -5,7 +5,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,9 +20,14 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
     private OnCardActionListener listener;
     private int currentPosition = 0;
 
-    public StackCardAdapter(List<WordItem> wordList, OnCardActionListener listener) {
+    // ДОБАВЬ ЭТО ПОЛЕ:
+    private WordRepository wordRepository;
+
+    // ОБНОВИ КОНСТРУКТОР:
+    public StackCardAdapter(List<WordItem> wordList, OnCardActionListener listener, WordRepository wordRepository) {
         this.wordList = wordList;
         this.listener = listener;
+        this.wordRepository = wordRepository; // ДОБАВЬ ЭТУ СТРОКУ
     }
 
     @NonNull
@@ -48,32 +55,6 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
     public int getItemCount() {
         // Всегда показываем 3 карточки для анимаций, но только одна видима
         return Math.min(wordList.size() - currentPosition, 3);
-    }
-
-    /**
-     * Свайп вправо - слово выучено
-     */
-    public void swipeRight() {
-        if (currentPosition < wordList.size()) {
-            WordItem currentWord = wordList.get(currentPosition);
-            if (listener != null) {
-                listener.onCardLearned(currentWord);
-            }
-            moveToNextCard();
-        }
-    }
-
-    /**
-     * Свайп влево - слово не выучено
-     */
-    public void swipeLeft() {
-        if (currentPosition < wordList.size()) {
-            WordItem currentWord = wordList.get(currentPosition);
-            if (listener != null) {
-                listener.onCardNotLearned(currentWord);
-            }
-            moveToNextCard();
-        }
     }
 
     /**
@@ -112,12 +93,53 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         return wordList.size();
     }
 
+    /**
+     * Свайп вправо - выучил
+     */
+    public void swipeRight() {
+        if (currentPosition < wordList.size()) {
+            WordItem currentWord = wordList.get(currentPosition);
+
+            // Обрабатываем в системе повторений
+            SimpleRepetitionSystem.processAnswer(currentWord, true);
+
+            // Сохраняем в базу
+            wordRepository.updateWord(currentWord);
+
+            if (listener != null) {
+                listener.onCardLearned(currentWord);
+            }
+            moveToNextCard();
+        }
+    }
+
+    /**
+     * Свайп влево - не выучил
+     */
+    public void swipeLeft() {
+        if (currentPosition < wordList.size()) {
+            WordItem currentWord = wordList.get(currentPosition);
+
+            // Обрабатываем в системе повторений
+            SimpleRepetitionSystem.processAnswer(currentWord, false);
+
+            // Сохраняем в базу
+            wordRepository.updateWord(currentWord);
+
+            if (listener != null) {
+                listener.onCardNotLearned(currentWord);
+            }
+            moveToNextCard();
+        }
+    }
+
     // ViewHolder
     public class ViewHolder extends RecyclerView.ViewHolder {
         private TextView wordText;
         private TextView hintText;
+        private TextView statusText;
+        private TextView nextReviewText;
         private ImageButton starButton;
-        private View wordCard;
         private WordItem currentWordItem;
 
         public ViewHolder(@NonNull View itemView) {
@@ -125,9 +147,74 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
 
             wordText = itemView.findViewById(R.id.wordText);
             hintText = itemView.findViewById(R.id.hintText);
+            statusText = itemView.findViewById(R.id.statusText);
+            nextReviewText = itemView.findViewById(R.id.nextReviewText);
             starButton = itemView.findViewById(R.id.starButton);
-            wordCard = itemView.findViewById(R.id.wordCard);
 
+            setupClickListeners();
+        }
+
+        public void bind(WordItem wordItem) {
+            currentWordItem = wordItem;
+            wordText.setText(wordItem.getWord());
+            hintText.setText(wordItem.getTranslation());
+            hintText.setVisibility(View.GONE);
+
+            updateRepetitionUI(wordItem);
+
+            // Обновляем звезду избранного
+            if (wordItem.isFavorite()) {
+                starButton.setBackgroundColor(0x30FFD700);
+            } else {
+                starButton.setBackgroundColor(0x00000000);
+            }
+        }
+
+        private void updateRepetitionUI(WordItem word) {
+            if (statusText != null) {
+                statusText.setText(word.getStatusText());
+                statusText.setBackgroundColor(getStatusColor(word));
+            }
+            if (nextReviewText != null) {
+                nextReviewText.setText(SimpleRepetitionSystem.getNextReviewText(word));
+            }
+
+
+            // Отладочная информация
+            Log.d("CardDebug", "Слово: " + word.getWord() +
+                    ", этап: " + word.getReviewStage() +
+                    ", показов: " + word.getConsecutiveShows() +
+                    ", сложность: " + word.getDifficulty() +
+                    ", след. дата: " + word.getNextReviewDate());
+        }
+
+        // ВРЕМЕННЫЕ МЕТОДЫ (пока нет полноценной системы):
+        private String getStatusText(WordItem word) {
+            // Временная логика - используем difficulty
+            if (word.getDifficulty() == 3) return "НОВОЕ СЛОВО";
+            if (word.getDifficulty() == 2) return "ИЗУЧАЕТСЯ";
+            if (word.getDifficulty() == 1) return "ВЫУЧЕНО";
+            return "НЕИЗВЕСТНО";
+        }
+
+        private String getNextReviewText(WordItem word) {
+            // Временная заглушка
+            if (word.getDifficulty() == 3) return "Повторить: сегодня";
+            if (word.getDifficulty() == 2) return "Повторить: через 3 дня";
+            if (word.getDifficulty() == 1) return "Повторить: через 7 дней";
+            return "Следующее: скоро";
+        }
+
+        private int getStatusColor(WordItem word) {
+            // Цвета в твоей теме
+            if (word.getDifficulty() == 3) return 0xFF625fba; // Фиолетовый - новые
+            if (word.getDifficulty() == 2) return 0xFFbabba9; // Серый - изучается
+            if (word.getDifficulty() == 1) return 0xFF4CAF50; // Зеленый - выучено
+            return 0xFF625fba; // Фиолетовый по умолчанию
+        }
+
+        private void setupClickListeners() {
+            // Кнопка избранного
             starButton.setOnClickListener(v -> {
                 if (currentWordItem != null && listener != null) {
                     boolean newFavoriteState = !currentWordItem.isFavorite();
@@ -139,30 +226,21 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
                         starButton.setBackgroundColor(0x00000000);
                     }
 
+                    // Сохраняем в базу
+                    wordRepository.updateWord(currentWordItem);
+
                     listener.onCardFavoriteToggled(currentWordItem, newFavoriteState);
                 }
             });
 
-            wordCard.setOnClickListener(v -> {
+            // Клик по карточке - показать/скрыть перевод
+            itemView.findViewById(R.id.wordCard).setOnClickListener(v -> {
                 if (hintText.getVisibility() == View.VISIBLE) {
                     hintText.setVisibility(View.GONE);
                 } else {
                     hintText.setVisibility(View.VISIBLE);
                 }
             });
-        }
-
-        public void bind(WordItem wordItem) {
-            currentWordItem = wordItem;
-            wordText.setText(wordItem.getWord());
-            hintText.setText(wordItem.getTranslation());
-            hintText.setVisibility(View.GONE);
-
-            if (wordItem.isFavorite()) {
-                starButton.setBackgroundColor(0x30FFD700);
-            } else {
-                starButton.setBackgroundColor(0x00000000);
-            }
         }
     }
 

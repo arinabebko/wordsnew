@@ -7,6 +7,20 @@
     android:padding="24dp"
     android:background="#322b36">
 
+    <!-- Статус слова (НОВЫЙ ЭЛЕМЕНТ) -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Новое слово"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:background="@drawable/status_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
+
     <!-- Звезда в правом верхнем углу -->
     <ImageButton
         android:id="@+id/starButton"
@@ -16,8 +30,8 @@
         android:scaleType="center"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Избранное"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="8dp"/>
 
@@ -31,7 +45,9 @@
         android:gravity="center"
         android:elevation="4dp"
         android:layout_centerInParent="true"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:layout_below="@id/statusText"
+        android:layout_marginTop="16dp">
 
         <!-- Английское слово -->
         <TextView
@@ -58,5 +74,17 @@
             android:visibility="gone"/>
 
     </LinearLayout>
+
+    <!-- Следующее повторение (НОВЫЙ ЭЛЕМЕНТ) -->
+    <TextView
+        android:id="@+id/nextReviewText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Следующее: завтра"
+        android:textColor="#babba9"
+        android:textSize="12sp"
+        android:layout_below="@id/wordCard"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
 
 </RelativeLayout>

@@ -253,6 +253,10 @@ public class WordRepository {
             word.setNote(localWord.getNote());
             word.setIsFavorite(localWord.isFavorite());
 
+            // ДОБАВЬ ЭТИ СТРОКИ:
+            word.setReviewStage(localWord.getReviewStage());
+            word.setNextReviewDate(localWord.getNextReviewDate());
+            word.setConsecutiveShows(localWord.getConsecutiveShows());
             try {
                 word.setDifficulty(Integer.parseInt(localWord.getDifficulty()));
             } catch (NumberFormatException e) {
@@ -383,6 +387,8 @@ public class WordRepository {
                                                 word.setWordId(wordDoc.getId());
                                                 word.setLibraryId(libraryId);
                                                 word.setCustomWord(false);
+                                                // ДОБАВЬ ЗАГРУЗКУ ПОЛЕЙ СИСТЕМЫ ПОВТОРЕНИЙ
+                                                loadRepetitionFields(word, wordDoc);
                                                 libraryWords.add(word);
                                             }
                                         }
@@ -417,6 +423,8 @@ public class WordRepository {
                             word.setWordId(document.getId());
                             word.setCustomWord(true);
                             word.setUserId(userId);
+                            // ДОБАВЬ ЗАГРУЗКУ ПОЛЕЙ СИСТЕМЫ ПОВТОРЕНИЙ
+                            loadRepetitionFields(word, document);
                             customWords.add(word);
                         }
 
@@ -426,7 +434,48 @@ public class WordRepository {
                     }
                 });
     }
+    /**
+     * Загружает поля системы повторений из документа Firebase
+     */
+    private void loadRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+        if (document.contains("difficulty")) {
+            Object difficulty = document.get("difficulty");
+            if (difficulty instanceof Long) {
+                word.setDifficulty(((Long) difficulty).intValue());
+            } else if (difficulty instanceof Integer) {
+                word.setDifficulty((Integer) difficulty);
+            }
+        } else {
+            word.setDifficulty(3); // Значение по умолчанию для новых слов
+        }
 
+        if (document.contains("reviewStage")) {
+            Object reviewStage = document.get("reviewStage");
+            if (reviewStage instanceof Long) {
+                word.setReviewStage(((Long) reviewStage).intValue());
+            } else if (reviewStage instanceof Integer) {
+                word.setReviewStage((Integer) reviewStage);
+            }
+        }
+
+        if (document.contains("consecutiveShows")) {
+            Object consecutiveShows = document.get("consecutiveShows");
+            if (consecutiveShows instanceof Long) {
+                word.setConsecutiveShows(((Long) consecutiveShows).intValue());
+            } else if (consecutiveShows instanceof Integer) {
+                word.setConsecutiveShows((Integer) consecutiveShows);
+            }
+        }
+
+        if (document.contains("nextReviewDate")) {
+            word.setNextReviewDate(document.getDate("nextReviewDate"));
+        }
+
+        Log.d(TAG, "Загружены поля повторений для " + word.getWord() +
+                ": difficulty=" + word.getDifficulty() +
+                ", reviewStage=" + word.getReviewStage() +
+                ", consecutiveShows=" + word.getConsecutiveShows());
+    }
     /**
      * Получить все доступные библиотеки (публичные + пользовательские)
      */
@@ -679,6 +728,9 @@ public class WordRepository {
     /**
      * Обновить слово (например, при клике на звезду)
      */
+    /**
+     * Обновить слово (например, при клике на звезду)
+     */
     public void updateWord(WordItem word) {
         if (word.getWordId() == null) return;
 
@@ -686,6 +738,12 @@ public class WordRepository {
         updates.put("isFavorite", word.isFavorite());
         updates.put("lastReviewed", new Date());
         updates.put("reviewCount", word.getReviewCount() + 1);
+
+        // ДОБАВЬ ЭТИ ПОЛЯ ДЛЯ СИСТЕМЫ ПОВТОРЕНИЙ:
+        updates.put("difficulty", word.getDifficulty());
+        updates.put("reviewStage", word.getReviewStage());
+        updates.put("nextReviewDate", word.getNextReviewDate());
+        updates.put("consecutiveShows", word.getConsecutiveShows());
 
         if (word.isCustomWord()) {
             if (word.getLibraryId() != null && !word.getLibraryId().isEmpty()) {
@@ -709,6 +767,10 @@ public class WordRepository {
             // Для слов из библиотек сохраняем прогресс отдельно
             updateUserWordProgress(word, updates);
         }
+
+        Log.d(TAG, "Слово обновлено: " + word.getWord() +
+                ", этап=" + word.getReviewStage() +
+                ", показы=" + word.getConsecutiveShows());
     }
 
     /**
