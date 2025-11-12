@@ -68,7 +68,7 @@ public class LibraryWordsFragment extends Fragment {
         }
 
         // Инициализируем репозиторий
-        wordRepository = new WordRepository();
+        wordRepository = new WordRepository(getContext());
         Log.d(TAG, "onCreateView: репозиторий создан");
 
         // Находим View элементы

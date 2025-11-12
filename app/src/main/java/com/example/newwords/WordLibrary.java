@@ -11,13 +11,12 @@ public class WordLibrary {
     private String languageFrom;
     private String languageTo;
     private boolean isPublic;
+    private boolean isActive; // Добавляем поле isActive
     private Date createdAt;
     private String createdBy;
-    private boolean isActive; // ← ДОБАВЛЯЕМ ЭТО ПОЛЕ
 
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
-        this.isActive = false; // по умолчанию неактивна
     }
 
     // Конструктор с параметрами
@@ -30,8 +29,8 @@ public class WordLibrary {
         this.languageFrom = languageFrom;
         this.languageTo = languageTo;
         this.isPublic = true;
+        this.isActive = false; // По умолчанию неактивна
         this.createdAt = new Date();
-        this.isActive = false; // по умолчанию неактивна
     }
 
     // === ГЕТТЕРЫ ===
@@ -45,7 +44,15 @@ public class WordLibrary {
     public boolean isPublic() { return isPublic; }
     public Date getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
-    public boolean isActive() { return isActive; } // ← ДОБАВЛЯЕМ ГЕТТЕР
+
+    // Добавляем методы для активности
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 
     // === СЕТТЕРЫ ===
     public void setLibraryId(String libraryId) { this.libraryId = libraryId; }
@@ -58,7 +65,21 @@ public class WordLibrary {
     public void setPublic(boolean aPublic) { isPublic = aPublic; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
-    public void setActive(boolean active) { isActive = active; } // ← ДОБАВЛЯЕМ СЕТТЕР
+    // === ДОБАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ДЛЯ КЕША МЕТОДЫ ===
+
+    /**
+     * Для кеширования - проверка активности библиотеки
+     */
+    public boolean getIsActive() {
+        return isActive;
+    }
+
+    /**
+     * Для кеширования - установка активности
+     */
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
+    }
 
     @Override
     public String toString() {
@@ -69,4 +90,5 @@ public class WordLibrary {
                 ", isActive=" + isActive +
                 '}';
     }
+
 }

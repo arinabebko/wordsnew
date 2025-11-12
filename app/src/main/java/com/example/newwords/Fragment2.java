@@ -47,7 +47,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         View view = inflater.inflate(R.layout.fragment2, container, false);
 
         // Инициализируем репозиторий
-        wordRepository = new WordRepository();
+        wordRepository = new WordRepository(getContext());
 
         // Находим View элементы
         librariesRecyclerView = view.findViewById(R.id.librariesRecyclerView);

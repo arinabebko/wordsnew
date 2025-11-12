@@ -43,7 +43,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         View view = inflater.inflate(R.layout.fragment_words, container, false);
 
         // Инициализируем репозиторий
-        wordRepository = new WordRepository();
+        wordRepository = new WordRepository(getContext());
 
         // Находим View элементы
         viewPager2 = view.findViewById(R.id.viewPager2);

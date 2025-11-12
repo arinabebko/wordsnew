@@ -1,14 +1,23 @@
 package com.example.newwords;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
+import androidx.annotation.NonNull;
+
 import java.util.Date;
 
-public class WordItem {
+@Entity(tableName = "local_words")
+@TypeConverters(Converters.class)
+public class LocalWordItem {
+    @PrimaryKey
+    @NonNull
     private String wordId;
     private String word;
     private String translation;
     private String note;
     private boolean isFavorite;
-    private int difficulty;
+    private String difficulty;
     private int reviewCount;
     private int correctAnswers;
     private boolean isCustomWord;
@@ -16,30 +25,41 @@ public class WordItem {
     private String userId;
     private Date createdAt;
     private Date lastReviewed;
+    private Date lastSynced;
 
-    // Конструкторы
-    public WordItem() {
+    // Конструкторы, геттеры и сеттеры
+    public LocalWordItem() {
+        this.wordId = ""; // Инициализируем пустой строкой
     }
 
-    public WordItem(String word, String translation, String note) {
-        this.word = word;
-        this.translation = translation;
-        this.note = note;
-        this.isFavorite = false;
-        this.difficulty = 1;
-        this.reviewCount = 0;
-        this.correctAnswers = 0;
-        this.isCustomWord = true;
-        this.createdAt = new Date();
+    public LocalWordItem(WordItem word) {
+        this.wordId = word.getWordId() != null ? word.getWordId() : "";
+        this.word = word.getWord();
+        this.translation = word.getTranslation();
+        this.note = word.getNote();
+
+        // Используем правильные геттеры с префиксом get
+        this.isFavorite = word.getIsFavorite(); // было: word.isFavorite()
+        this.difficulty = String.valueOf(word.getDifficulty());
+        this.reviewCount = word.getReviewCount();
+        this.correctAnswers = word.getCorrectAnswers();
+        this.isCustomWord = word.getIsCustomWord(); // было: word.isCustomWord()
+
+        this.libraryId = word.getLibraryId();
+        this.userId = word.getUserId();
+        this.createdAt = word.getCreatedAt();
+        this.lastReviewed = word.getLastReviewed();
+        this.lastSynced = new Date();
     }
 
     // === ГЕТТЕРЫ ===
+    @NonNull
     public String getWordId() { return wordId; }
     public String getWord() { return word; }
     public String getTranslation() { return translation; }
     public String getNote() { return note; }
     public boolean isFavorite() { return isFavorite; }
-    public int getDifficulty() { return difficulty; }
+    public String getDifficulty() { return difficulty; }
     public int getReviewCount() { return reviewCount; }
     public int getCorrectAnswers() { return correctAnswers; }
     public boolean isCustomWord() { return isCustomWord; }
@@ -47,14 +67,15 @@ public class WordItem {
     public String getUserId() { return userId; }
     public Date getCreatedAt() { return createdAt; }
     public Date getLastReviewed() { return lastReviewed; }
+    public Date getLastSynced() { return lastSynced; }
 
     // === СЕТТЕРЫ ===
-    public void setWordId(String wordId) { this.wordId = wordId; }
+    public void setWordId(@NonNull String wordId) { this.wordId = wordId; }
     public void setWord(String word) { this.word = word; }
     public void setTranslation(String translation) { this.translation = translation; }
     public void setNote(String note) { this.note = note; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
-    public void setDifficulty(int difficulty) { this.difficulty = difficulty; }
+    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
     public void setReviewCount(int reviewCount) { this.reviewCount = reviewCount; }
     public void setCorrectAnswers(int correctAnswers) { this.correctAnswers = correctAnswers; }
     public void setCustomWord(boolean customWord) { isCustomWord = customWord; }
@@ -62,39 +83,5 @@ public class WordItem {
     public void setUserId(String userId) { this.userId = userId; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public void setLastReviewed(Date lastReviewed) { this.lastReviewed = lastReviewed; }
-
-    // === ДОБАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ДЛЯ КЕША МЕТОДЫ ===
-
-    /**
-     * Для кеширования - геттер с префиксом get
-     */
-    public boolean getIsFavorite() {
-        return isFavorite;
-    }
-
-    /**
-     * Для кеширования - сеттер с префиксом set
-     */
-    public void setIsFavorite(boolean isFavorite) {
-        this.isFavorite = isFavorite;
-    }
-
-    /**
-     * Для кеширования - геттер с префиксом get
-     */
-    public boolean getIsCustomWord() {
-        return isCustomWord;
-    }
-
-    /**
-     * Для кеширования - сеттер с префиксом set
-     */
-    public void setIsCustomWord(boolean isCustomWord) {
-        this.isCustomWord = isCustomWord;
-    }
-
-    @Override
-    public String toString() {
-        return word + " - " + translation;
-    }
+    public void setLastSynced(Date lastSynced) { this.lastSynced = lastSynced; }
 }
