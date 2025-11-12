@@ -33,14 +33,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private ProgressBar progressBar;
     private TextView emptyStateText;
     private Button startLearningButton;
-
+    private AppDatabase localDb;
     private static final String TAG = "Fragment2";
 
     @Nullable
     @Override
-
-
-
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -48,6 +45,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Инициализируем репозиторий
         wordRepository = new WordRepository(getContext());
+        // ДОБАВЬТЕ ЭТУ СТРОКУ:
+        localDb = AppDatabase.getInstance(getContext());
 
         // Находим View элементы
         librariesRecyclerView = view.findViewById(R.id.librariesRecyclerView);
@@ -55,8 +54,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         emptyStateText = view.findViewById(R.id.emptyStateText);
         startLearningButton = view.findViewById(R.id.startLearningButton);
 
-        // Настраиваем кнопку назад
-        setupBackButton(view);
+        // УДАЛИТЕ ЭТУ СТРОКУ:
+        // setupBackButton(view);
 
         // Настраиваем RecyclerView
         setupRecyclerView();
@@ -198,64 +197,90 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     /**
      * Начинает обучение с выбранными библиотеками
      */
-    private void startLearning() {
-        Log.d(TAG, "Начало обучения с " + getActiveLibrariesCount() + " активными библиотеками");
 
-        // Переходим к экрану обучения
-        if (getActivity() != null) {
-            getActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new WordsFragment())
-                    .addToBackStack(null)
-                    .commit();
-        }
+
+    private void saveActiveLibraries() {
+        Log.d(TAG, "💾 Сохранение активных библиотек в ЛОКАЛЬНОЕ хранилище");
+
+        // Сохраняем в локальную БД
+        new Thread(() -> {
+            try {
+                // Сначала деактивируем ВСЕ библиотеки
+                List<LocalWordLibrary> allLibraries = localDb.libraryDao().getAllLibraries();
+                for (LocalWordLibrary library : allLibraries) {
+                    localDb.libraryDao().updateLibraryActiveStatus(library.getLibraryId(), false);
+                }
+
+                // Затем активируем выбранные
+                int activatedCount = 0;
+                for (Map.Entry<String, Boolean> entry : activeLibrariesMap.entrySet()) {
+                    if (entry.getValue()) {
+                        localDb.libraryDao().updateLibraryActiveStatus(entry.getKey(), true);
+                        activatedCount++;
+                    }
+                }
+
+                Log.d(TAG, "✅ Локальное сохранение: активировано " + activatedCount + " библиотек");
+
+                // Теперь синхронизируем с Firebase (в фоне, не блокируем пользователя)
+                syncWithFirebase();
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка локального сохранения: " + e.getMessage());
+            }
+        }).start();
     }
 
-    /**
-     * Сохраняет активные библиотеки в Firebase
-     */
-    private void saveActiveLibraries() {
-        Log.d(TAG, "Сохранение активных библиотек: " + activeLibrariesMap.size());
-
-        final int[] savedCount = {0};
-        final int totalToSave = getActiveLibrariesCount();
-
-        if (totalToSave == 0) {
-            Log.d(TAG, "Нет библиотек для сохранения");
-            return;
-        }
-
-        // Активируем выбранные библиотеки
+    private void syncWithFirebase() {
+        // Это можно делать асинхронно, не блокируя пользователя
         for (Map.Entry<String, Boolean> entry : activeLibrariesMap.entrySet()) {
             if (entry.getValue()) {
                 wordRepository.activateLibrary(entry.getKey(),
-                        () -> {
-                            savedCount[0]++;
-                            Log.d(TAG, "Библиотека активирована: " + entry.getKey() + " (" + savedCount[0] + "/" + totalToSave + ")");
-
-                            if (savedCount[0] == totalToSave) {
-                                Log.d(TAG, "Все библиотеки успешно активированы!");
-                            }
-                        },
-                        e -> {
-                            Log.e(TAG, "Ошибка активации библиотеки " + entry.getKey() + ": " + e.getMessage());
-                            savedCount[0]++;
-                        }
+                        () -> Log.d(TAG, "Firebase: библиотека активирована: " + entry.getKey()),
+                        e -> Log.e(TAG, "Firebase: ошибка активации: " + entry.getKey())
                 );
-            }
-        }
-
-        // Деактивируем невыбранные библиотеки (из списка доступных)
-        for (WordLibrary library : availableLibraries) {
-            if (!activeLibrariesMap.containsKey(library.getLibraryId()) ||
-                    !activeLibrariesMap.get(library.getLibraryId())) {
-
-                wordRepository.deactivateLibrary(library.getLibraryId(),
-                        () -> Log.d(TAG, "Библиотека деактивирована: " + library.getLibraryId()),
-                        e -> Log.e(TAG, "Ошибка деактивации библиотеки: " + library.getLibraryId())
+            } else {
+                wordRepository.deactivateLibrary(entry.getKey(),
+                        () -> Log.d(TAG, "Firebase: библиотека деактивирована: " + entry.getKey()),
+                        e -> Log.e(TAG, "Firebase: ошибка деактивации: " + entry.getKey())
                 );
             }
         }
     }
+
+    private void startLearning() {
+        Log.d(TAG, "Начало обучения с " + getActiveLibrariesCount() + " активными библиотеками");
+
+        // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ КЕШ перед переходом
+        wordRepository.syncWordsFromFirebase(new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                Log.d(TAG, "Кеш обновлен, слов: " + words.size());
+
+                // Переходим к обучению
+                if (getActivity() != null) {
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(android.R.id.content, new WordsFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка обновления кеша", e);
+                // Все равно переходим, но с устаревшими данными
+                if (getActivity() != null) {
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(android.R.id.content, new WordsFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
+            }
+        });
+    }
+
+
 
     /**
      * Проверяет есть ли активные библиотеки
@@ -293,7 +318,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
     /**
      * Настраивает кнопку назад
-     */
+
     private void setupBackButton(View view) {
         ImageButton backButton = view.findViewById(R.id.backButton);
         if (backButton != null) {
@@ -304,7 +329,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             });
         }
     }
-
+ */
     /**
      * Показывает/скрывает индикатор загрузки
      */

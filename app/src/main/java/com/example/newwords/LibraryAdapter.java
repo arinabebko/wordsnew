@@ -66,7 +66,22 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         this.activeLibraries.putAll(activeLibraries);
         notifyDataSetChanged();
     }
+    /**
+     * Принудительно обновляет состояние переключателя для библиотеки
+     */
+    public void updateLibraryState(String libraryId, boolean isActive) {
+        if (activeLibraries.containsKey(libraryId)) {
+            activeLibraries.put(libraryId, isActive);
+        }
 
+        // Находим и обновляем соответствующий ViewHolder
+        for (int i = 0; i < libraries.size(); i++) {
+            if (libraries.get(i).getLibraryId().equals(libraryId)) {
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
     public class ViewHolder extends RecyclerView.ViewHolder {
         private TextView nameText;
         private TextView descriptionText;
@@ -78,6 +93,10 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         private WordLibrary currentLibrary;
 
         private boolean isUpdating = false; // Флаг чтобы избежать рекурсии
+
+
+
+
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -104,34 +123,40 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
                 }
             });
 
-            // Обработчик переключателя
             activeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isUpdating || currentLibrary == null || listener == null) {
                     return;
                 }
 
                 isUpdating = true;
-                boolean originalState = !isChecked; // Сохраняем исходное состояние
+
+                // Сохраняем ТЕКУЩЕЕ состояние до изменения
+                boolean originalState = activeSwitch.isChecked();
+                // Или более надежно:
+                // boolean originalState = activeLibraries.getOrDefault(currentLibrary.getLibraryId(), false);
 
                 Log.d("LibraryAdapter", "Переключение библиотеки: " + currentLibrary.getName() +
                         " с " + originalState + " на " + isChecked);
+
 
                 if (isChecked) {
                     // Активируем библиотеку
                     listener.getWordRepository().activateLibrary(
                             currentLibrary.getLibraryId(),
                             () -> {
-                                // Успех
                                 isUpdating = false;
                                 if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    // ОБНОВЛЯЕМ activeLibraries при успехе
+                                    activeLibraries.put(currentLibrary.getLibraryId(), true);
                                     listener.onLibraryToggleSuccess(currentLibrary.getLibraryId(), true);
                                 }
                                 Log.d("LibraryAdapter", "Библиотека активирована: " + currentLibrary.getName());
                             },
                             e -> {
-                                // Ошибка
                                 isUpdating = false;
                                 if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    // ВОССТАНАВЛИВАЕМ предыдущее состояние при ошибке
+                                    activeLibraries.put(currentLibrary.getLibraryId(), originalState);
                                     listener.onLibraryToggleError(currentLibrary.getLibraryId(), originalState);
                                 }
                                 Log.e("LibraryAdapter", "Ошибка активации библиотеки: " + currentLibrary.getName(), e);
@@ -142,17 +167,19 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
                     listener.getWordRepository().deactivateLibrary(
                             currentLibrary.getLibraryId(),
                             () -> {
-                                // Успех
                                 isUpdating = false;
                                 if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    // ОБНОВЛЯЕМ activeLibraries при успехе
+                                    activeLibraries.put(currentLibrary.getLibraryId(), false);
                                     listener.onLibraryToggleSuccess(currentLibrary.getLibraryId(), false);
                                 }
                                 Log.d("LibraryAdapter", "Библиотека деактивирована: " + currentLibrary.getName());
                             },
                             e -> {
-                                // Ошибка
                                 isUpdating = false;
                                 if (getAdapterPosition() != RecyclerView.NO_POSITION) {
+                                    // ВОССТАНАВЛИВАЕМ предыдущее состояние при ошибке
+                                    activeLibraries.put(currentLibrary.getLibraryId(), originalState);
                                     listener.onLibraryToggleError(currentLibrary.getLibraryId(), originalState);
                                 }
                                 Log.e("LibraryAdapter", "Ошибка деактивации библиотеки: " + currentLibrary.getName(), e);

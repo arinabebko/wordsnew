@@ -73,58 +73,40 @@ public class WordRepository {
 
     // === ОСНОВНЫЕ МЕТОДЫ ===
 
-    public void getWordsFromActiveLibraries(OnWordsLoadedListener listener) {
-        Log.d(TAG, "🔍 Поиск слов в кеше...");
-
-        // Сначала пробуем получить из кеша
-        new Thread(() -> {
-            try {
-                List<LocalWordItem> cachedWords = localDb.wordDao().getWordsFromActiveLibraries();
-                if (!cachedWords.isEmpty()) {
-                    Log.d(TAG, "✅ Найдены кешированные слова: " + cachedWords.size());
-
-                    List<WordItem> words = convertToWordItems(cachedWords);
-
-                    // Возвращаем кешированные данные
-                    if (listener != null) {
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                            listener.onWordsLoaded(words);
-                        });
-                    }
-
-                    // В фоне обновляем данные
-                    syncWordsFromFirebase(null);
-                    return;
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Ошибка чтения из кеша", e);
-            }
-
-            // Если кеша нет, загружаем из Firebase
-            syncWordsFromFirebase(listener);
-        }).start();
-    }
 
     /**
      * Синхронизация слов из Firebase
      */
-    private void syncWordsFromFirebase(OnWordsLoadedListener listener) {
+    public void syncWordsFromFirebase(OnWordsLoadedListener listener) {
         Log.d(TAG, "🔄 Синхронизация с Firebase...");
 
         getUserActiveLibraries(new OnLibrariesLoadedListener() {
             @Override
             public void onLibrariesLoaded(List<WordLibrary> activeLibraries) {
-                Log.d(TAG, "📚 Активных библиотек: " + activeLibraries.size());
+                Log.d(TAG, "📚 Активных библиотек для синхронизации: " + activeLibraries.size());
 
                 List<WordItem> allWords = new ArrayList<>();
                 List<Task<QuerySnapshot>> allTasks = new ArrayList<>();
 
+                // Загружаем слова ТОЛЬКО из активных библиотек
                 for (WordLibrary library : activeLibraries) {
-                    if (!library.getIsActive()) continue;
+                    if (!library.getIsActive()) {
+                        Log.d(TAG, "❌ Пропускаем неактивную библиотеку: " + library.getName());
+                        continue;
+                    }
 
                     boolean isCustom = library.getCreatedBy() != null && !library.getCreatedBy().equals("system");
                     Task<QuerySnapshot> task = getWordsFromSingleLibrary(library.getLibraryId(), isCustom);
                     allTasks.add(task);
+                    Log.d(TAG, "✅ Синхронизация библиотеки: " + library.getName());
+                }
+
+                if (allTasks.isEmpty()) {
+                    Log.d(TAG, "ℹ️ Нет активных библиотек для синхронизации");
+                    if (listener != null) {
+                        listener.onWordsLoaded(new ArrayList<>());
+                    }
+                    return;
                 }
 
                 Tasks.whenAllSuccess(allTasks).addOnSuccessListener(results -> {
@@ -140,7 +122,7 @@ public class WordRepository {
                         }
                     }
 
-                    Log.d(TAG, "📥 Загружено слов: " + allWords.size());
+                    Log.d(TAG, "📥 Синхронизировано слов: " + allWords.size());
 
                     // Сохраняем в кеш
                     saveWordsToCache(allWords);
@@ -151,7 +133,7 @@ public class WordRepository {
                     }
 
                 }).addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Ошибка загрузки", e);
+                    Log.e(TAG, "❌ Ошибка синхронизации", e);
                     if (listener != null) {
                         listener.onError(e);
                     }
@@ -160,7 +142,7 @@ public class WordRepository {
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "❌ Ошибка загрузки библиотек", e);
+                Log.e(TAG, "❌ Ошибка загрузки библиотек для синхронизации", e);
                 if (listener != null) {
                     listener.onError(e);
                 }
@@ -316,6 +298,102 @@ public class WordRepository {
     /**
      * Получить ВСЕ активные слова пользователя (из библиотек + кастомные)
      */
+
+
+    public void getWordsFromActiveLibraries(OnWordsLoadedListener listener) {
+        Log.d(TAG, "🔍 Получение слов из АКТИВНЫХ библиотек (ЛОКАЛЬНЫЙ СПОСОБ)");
+
+        new Thread(() -> {
+            try {
+                // Способ 1: Прямой запрос к БД с JOIN (самый надежный)
+                List<LocalWordItem> wordsFromActive = localDb.wordDao().getWordsFromActiveLibraries();
+                Log.d(TAG, "✅ Найдено слов через JOIN: " + wordsFromActive.size());
+
+                if (!wordsFromActive.isEmpty()) {
+                    List<WordItem> words = convertToWordItems(wordsFromActive);
+                    if (listener != null) {
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            listener.onWordsLoaded(words);
+                        });
+                    }
+                    return;
+                }
+
+                // Способ 2: Если JOIN не сработал, делаем вручную
+                Log.d(TAG, "🔄 JOIN не дал результатов, пробуем ручной способ...");
+                manualGetWordsFromActiveLibraries(listener);
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка локального получения слов: " + e.getMessage());
+                // Пробуем ручной способ при ошибке
+                manualGetWordsFromActiveLibraries(listener);
+            }
+        }).start();
+    }
+
+    /**
+     * Ручной способ получения слов из активных библиотек
+     */
+    private void manualGetWordsFromActiveLibraries(OnWordsLoadedListener listener) {
+        new Thread(() -> {
+            try {
+                // Получаем активные библиотеки
+                List<LocalWordLibrary> activeLibraries = localDb.libraryDao().getActiveLibraries();
+                Log.d(TAG, "📚 Активных библиотек найдено: " + activeLibraries.size());
+
+                List<WordItem> allWords = new ArrayList<>();
+
+                // Для каждой активной библиотеки получаем слова
+                for (LocalWordLibrary library : activeLibraries) {
+                    List<LocalWordItem> libraryWords = localDb.wordDao().getWordsByLibrary(library.getLibraryId());
+                    Log.d(TAG, "Библиотека " + library.getName() + ": " + libraryWords.size() + " слов");
+
+                    for (LocalWordItem localWord : libraryWords) {
+                        WordItem word = convertLocalWordToWordItem(localWord);
+                        allWords.add(word);
+                    }
+                }
+
+                Log.d(TAG, "✅ Ручной способ: всего слов " + allWords.size());
+
+                if (listener != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        listener.onWordsLoaded(allWords);
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка ручного способа: " + e.getMessage());
+                if (listener != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        listener.onError(e);
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private WordItem convertLocalWordToWordItem(LocalWordItem localWord) {
+        WordItem word = new WordItem();
+        word.setWordId(localWord.getWordId());
+        word.setWord(localWord.getWord());
+        word.setTranslation(localWord.getTranslation());
+        word.setNote(localWord.getNote());
+        word.setIsFavorite(localWord.isFavorite());
+
+        try {
+            word.setDifficulty(Integer.parseInt(localWord.getDifficulty()));
+        } catch (NumberFormatException e) {
+            word.setDifficulty(3);
+        }
+
+        word.setReviewStage(localWord.getReviewStage());
+        word.setNextReviewDate(localWord.getNextReviewDate());
+        word.setConsecutiveShows(localWord.getConsecutiveShows());
+        word.setLibraryId(localWord.getLibraryId());
+
+        return word;
+    }
     public void getUserActiveWords(OnWordsLoadedListener listener) {
         List<WordItem> allWords = new ArrayList<>();
 
@@ -353,57 +431,69 @@ public class WordRepository {
      * Получить слова из активных библиотек пользователя
      */
     private void getLibraryWords(OnWordsLoadedListener listener) {
-        // Временно: загружаем все слова из всех публичных библиотек
-        db.collection("word_libraries")
-                .whereEqualTo("isPublic", true)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        List<WordItem> libraryWords = new ArrayList<>();
-                        List<String> libraryIds = new ArrayList<>();
+        // Сначала получаем активные библиотеки пользователя
+        getUserActiveLibraries(new OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> activeLibraries) {
+                Log.d(TAG, "🔄 Загрузка слов из " + activeLibraries.size() + " активных библиотек");
 
-                        // Сначала собираем ID всех библиотек
-                        for (QueryDocumentSnapshot libraryDoc : task.getResult()) {
-                            libraryIds.add(libraryDoc.getId());
-                        }
+                if (activeLibraries.isEmpty()) {
+                    listener.onWordsLoaded(new ArrayList<>());
+                    return;
+                }
 
-                        // Если нет библиотек, возвращаем пустой список
-                        if (libraryIds.isEmpty()) {
-                            listener.onWordsLoaded(libraryWords);
-                            return;
-                        }
+                List<WordItem> libraryWords = new ArrayList<>();
+                List<Task<QuerySnapshot>> allTasks = new ArrayList<>();
 
-                        // Загружаем слова из каждой библиотеки
-                        final int[] librariesProcessed = {0};
-                        for (String libraryId : libraryIds) {
-                            db.collection("word_libraries")
-                                    .document(libraryId)
-                                    .collection("words")
-                                    .get()
-                                    .addOnCompleteListener(wordTask -> {
-                                        if (wordTask.isSuccessful() && wordTask.getResult() != null) {
-                                            for (QueryDocumentSnapshot wordDoc : wordTask.getResult()) {
-                                                WordItem word = wordDoc.toObject(WordItem.class);
-                                                word.setWordId(wordDoc.getId());
-                                                word.setLibraryId(libraryId);
-                                                word.setCustomWord(false);
-                                                // ДОБАВЬ ЗАГРУЗКУ ПОЛЕЙ СИСТЕМЫ ПОВТОРЕНИЙ
-                                                loadRepetitionFields(word, wordDoc);
-                                                libraryWords.add(word);
-                                            }
-                                        }
-
-                                        librariesProcessed[0]++;
-                                        // Когда все библиотеки обработаны
-                                        if (librariesProcessed[0] == libraryIds.size()) {
-                                            listener.onWordsLoaded(libraryWords);
-                                        }
-                                    });
-                        }
-                    } else {
-                        listener.onError(task.getException());
+                // Загружаем слова только из активных библиотек
+                for (WordLibrary library : activeLibraries) {
+                    if (!library.getIsActive()) {
+                        Log.d(TAG, "❌ Пропускаем неактивную библиотеку: " + library.getName());
+                        continue;
                     }
+
+                    boolean isCustom = library.getCreatedBy() != null && !library.getCreatedBy().equals("system");
+                    Task<QuerySnapshot> task = getWordsFromSingleLibrary(library.getLibraryId(), isCustom);
+                    allTasks.add(task);
+                    Log.d(TAG, "✅ Добавлена задача для библиотеки: " + library.getName());
+                }
+
+                if (allTasks.isEmpty()) {
+                    Log.d(TAG, "ℹ️ Нет активных библиотек для загрузки слов");
+                    listener.onWordsLoaded(new ArrayList<>());
+                    return;
+                }
+
+                Tasks.whenAllSuccess(allTasks).addOnSuccessListener(results -> {
+                    for (Object result : results) {
+                        if (result instanceof QuerySnapshot) {
+                            QuerySnapshot snapshot = (QuerySnapshot) result;
+                            for (QueryDocumentSnapshot document : snapshot) {
+                                WordItem word = document.toObject(WordItem.class);
+                                word.setWordId(document.getId());
+                                word.setLibraryId(document.getReference().getParent().getParent().getId());
+                                word.setCustomWord(false);
+                                loadRepetitionFields(word, document);
+                                libraryWords.add(word);
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "✅ Загружено " + libraryWords.size() + " слов из активных библиотек");
+                    listener.onWordsLoaded(libraryWords);
+
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка загрузки слов из библиотек", e);
+                    listener.onError(e);
                 });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки активных библиотек", e);
+                listener.onError(e);
+            }
+        });
     }
 
     /**
@@ -1051,6 +1141,7 @@ public class WordRepository {
         loadLibrariesInfo(libraryIds, listener);
     }
 
+
     /**
      * Получить активные библиотеки пользователя
      */
@@ -1062,33 +1153,40 @@ public class WordRepository {
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        List<WordLibrary> activeLibraries = new ArrayList<>();
+                        List<String> activeLibraryIds = new ArrayList<>();
 
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            // Пробуем получить информацию о библиотеке из документа
-                            if (document.contains("libraryInfo")) {
-                                WordLibrary library = document.get("libraryInfo", WordLibrary.class);
-                                if (library != null) {
-                                    library.setActive(true); // Устанавливаем флаг активности
-                                    activeLibraries.add(library);
-                                    continue;
-                                }
-                            }
-
-                            // Если нет полной информации, загружаем по ID
                             String libraryId = document.getId();
-                            WordLibrary library = new WordLibrary();
-                            library.setLibraryId(libraryId);
-                            library.setActive(true);
-                            activeLibraries.add(library);
+                            activeLibraryIds.add(libraryId);
+                            Log.d(TAG, "✅ Активная библиотека найдена: " + libraryId);
                         }
 
-                        Log.d(TAG, "Найдено активных библиотек: " + activeLibraries.size());
+                        Log.d(TAG, "📚 Всего активных библиотек: " + activeLibraryIds.size());
 
-                        // Если есть библиотеки без полной информации, загружаем её
-                        loadFullLibrariesInfo(activeLibraries, listener);
+                        if (activeLibraryIds.isEmpty()) {
+                            listener.onLibrariesLoaded(new ArrayList<>());
+                            return;
+                        }
+
+                        // Загружаем полную информацию о библиотеках
+                        loadLibrariesInfo(activeLibraryIds, new OnLibrariesLoadedListener() {
+                            @Override
+                            public void onLibrariesLoaded(List<WordLibrary> fullLibraries) {
+                                // Помечаем все загруженные библиотеки как активные
+                                for (WordLibrary library : fullLibraries) {
+                                    library.setActive(true);
+                                    library.setIsActive(true);
+                                }
+                                listener.onLibrariesLoaded(fullLibraries);
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                listener.onError(e);
+                            }
+                        });
                     } else {
-                        Log.e(TAG, "Ошибка загрузки активных библиотек", task.getException());
+                        Log.e(TAG, "❌ Ошибка загрузки активных библиотек", task.getException());
                         listener.onError(task.getException());
                     }
                 });

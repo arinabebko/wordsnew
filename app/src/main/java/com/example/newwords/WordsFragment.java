@@ -104,7 +104,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     private void loadWordsFromFirebase() {
         Log.d(TAG, "Начинаем загрузку слов из АКТИВНЫХ библиотек...");
         showLoading(true);
-
+        debugActiveLibraries();
         wordRepository.getWordsFromActiveLibraries(new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
@@ -419,7 +419,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      * Показывает сообщение о завершении сессии
      */
     private void showSessionCompleted() {
-        Toast.makeText(getContext(), "🎉 Сессия завершена! Отлично поработали!", Toast.LENGTH_LONG).show();
+       // Toast.makeText(getContext(), "🎉 Сессия завершена! Отлично поработали!", Toast.LENGTH_LONG).show();
 
         /**
         // Можно добавить автоматический возврат через 3 секунды
@@ -437,6 +437,39 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     /**
      * Настраивает колоду карточек
      */
+
+    private void debugActiveLibraries() {
+        wordRepository.getUserActiveLibraries(new WordRepository.OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> activeLibraries) {
+                Log.d(TAG, "=== ДЕБАГ АКТИВНЫХ БИБЛИОТЕК ===");
+                Log.d(TAG, "Всего активных библиотек: " + activeLibraries.size());
+
+                for (WordLibrary library : activeLibraries) {
+                    Log.d(TAG, "Библиотека: " + library.getName() +
+                            " | ID: " + library.getLibraryId() +
+                            " | Активна: " + library.getIsActive());
+                }
+
+                // Проверим кеш
+                wordRepository.checkCacheStatus(new WordRepository.OnCacheStatusListener() {
+                    @Override
+                    public void onStatusChecked(int libraryCount, int wordCount, int activeLibraryCount, int wordsFromActive) {
+                        Log.d(TAG, "=== СТАТУС КЕША ===");
+                        Log.d(TAG, "Библиотеки в кеше: " + libraryCount);
+                        Log.d(TAG, "Слова в кеше: " + wordCount);
+                        Log.d(TAG, "Активные библиотеки в кеше: " + activeLibraryCount);
+                        Log.d(TAG, "Слов из активных библиотек: " + wordsFromActive);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка дебага библиотек: " + e.getMessage());
+            }
+        });
+    }
     private void setupCardStack() {
         Log.d(TAG, "Настройка колоды с " + wordList.size() + " словами");
 
