@@ -1,7 +1,6 @@
 package com.example.newwords;
 
 import java.util.Date;
-
 public class WordLibrary {
     private String libraryId;
     private String name;
@@ -11,39 +10,46 @@ public class WordLibrary {
     private String languageFrom;
     private String languageTo;
     private boolean isPublic;
-    private boolean isActive; // Добавляем поле isActive
+    private boolean isActive;
     private Date createdAt;
     private String createdBy;
 
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
+        // Инициализируем поля пустыми строками по умолчанию
+        this.name = "";
+        this.description = "";
+        this.category = "custom";
+        this.languageFrom = "en";
+        this.languageTo = "ru";
     }
 
     // Конструктор с параметрами
     public WordLibrary(String name, String description, int wordCount,
                        String category, String languageFrom, String languageTo) {
-        this.name = name;
-        this.description = description;
+        // ЗАЩИТА ОТ NULL: инициализируем все строковые поля
+        this.name = name != null ? name : "";
+        this.description = description != null ? description : "";
         this.wordCount = wordCount;
-        this.category = category;
-        this.languageFrom = languageFrom;
-        this.languageTo = languageTo;
+        this.category = category != null ? category : "custom";
+        this.languageFrom = languageFrom != null ? languageFrom : "en";
+        this.languageTo = languageTo != null ? languageTo : "ru";
         this.isPublic = true;
-        this.isActive = false; // По умолчанию неактивна
+        this.isActive = false;
         this.createdAt = new Date();
     }
 
     // === ГЕТТЕРЫ ===
-    public String getLibraryId() { return libraryId; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
+    public String getLibraryId() { return libraryId != null ? libraryId : ""; }
+    public String getName() { return name != null ? name : ""; }
+    public String getDescription() { return description != null ? description : ""; }
     public int getWordCount() { return wordCount; }
-    public String getCategory() { return category; }
-    public String getLanguageFrom() { return languageFrom; }
-    public String getLanguageTo() { return languageTo; }
+    public String getCategory() { return category != null ? category : "custom"; }
+    public String getLanguageFrom() { return languageFrom != null ? languageFrom : "en"; }
+    public String getLanguageTo() { return languageTo != null ? languageTo : "ru"; }
     public boolean isPublic() { return isPublic; }
     public Date getCreatedAt() { return createdAt; }
-    public String getCreatedBy() { return createdBy; }
+    public String getCreatedBy() { return createdBy != null ? createdBy : ""; }
 
     // Добавляем методы для активности
     public boolean isActive() {
@@ -55,16 +61,17 @@ public class WordLibrary {
     }
 
     // === СЕТТЕРЫ ===
-    public void setLibraryId(String libraryId) { this.libraryId = libraryId; }
-    public void setName(String name) { this.name = name; }
-    public void setDescription(String description) { this.description = description; }
+    public void setLibraryId(String libraryId) { this.libraryId = libraryId != null ? libraryId : ""; }
+    public void setName(String name) { this.name = name != null ? name : ""; }
+    public void setDescription(String description) { this.description = description != null ? description : ""; }
     public void setWordCount(int wordCount) { this.wordCount = wordCount; }
-    public void setCategory(String category) { this.category = category; }
-    public void setLanguageFrom(String languageFrom) { this.languageFrom = languageFrom; }
-    public void setLanguageTo(String languageTo) { this.languageTo = languageTo; }
+    public void setCategory(String category) { this.category = category != null ? category : "custom"; }
+    public void setLanguageFrom(String languageFrom) { this.languageFrom = languageFrom != null ? languageFrom : "en"; }
+    public void setLanguageTo(String languageTo) { this.languageTo = languageTo != null ? languageTo : "ru"; }
     public void setPublic(boolean aPublic) { isPublic = aPublic; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy != null ? createdBy : ""; }
+
     // === ДОБАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ДЛЯ КЕША МЕТОДЫ ===
 
     /**
@@ -90,5 +97,4 @@ public class WordLibrary {
                 ", isActive=" + isActive +
                 '}';
     }
-
 }

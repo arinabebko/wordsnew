@@ -264,6 +264,25 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         }
     }
 
+    /**
+     * Фильтрует библиотеки по запросу
+     */
+    public void filterLibraries(String query, List<WordLibrary> allLibraries) {
+        if (query.isEmpty()) {
+            this.libraries.clear();
+            this.libraries.addAll(allLibraries);
+        } else {
+            this.libraries.clear();
+            for (WordLibrary library : allLibraries) {
+                if (library.getName().toLowerCase().contains(query.toLowerCase()) ||
+                        library.getDescription().toLowerCase().contains(query.toLowerCase())) {
+                    this.libraries.add(library);
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
+
     public interface OnLibraryActionListener {
         // Убрали старый метод onLibraryToggled - больше не нужен
 

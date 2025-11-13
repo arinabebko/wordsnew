@@ -1,12 +1,18 @@
 package com.example.newwords;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -29,13 +35,15 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private LibraryAdapter libraryAdapter;
     private WordRepository wordRepository;
     private List<WordLibrary> availableLibraries = new ArrayList<>();
+    private List<WordLibrary> filteredLibraries = new ArrayList<>(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
     private Map<String, Boolean> activeLibrariesMap = new HashMap<>();
     private ProgressBar progressBar;
     private TextView emptyStateText;
     private Button startLearningButton;
     private AppDatabase localDb;
-    private static final String TAG = "Fragment2";
 
+    private EditText searchEditText;
+    private static final String TAG = "Fragment2";
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -45,7 +53,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Инициализируем репозиторий
         wordRepository = new WordRepository(getContext());
-        // ДОБАВЬТЕ ЭТУ СТРОКУ:
         localDb = AppDatabase.getInstance(getContext());
 
         // Находим View элементы
@@ -54,8 +61,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         emptyStateText = view.findViewById(R.id.emptyStateText);
         startLearningButton = view.findViewById(R.id.startLearningButton);
 
-        // УДАЛИТЕ ЭТУ СТРОКУ:
-        // setupBackButton(view);
+        // ДОБАВИТЬ: находим поисковую строку
+        searchEditText = view.findViewById(R.id.searchEditText);
 
         // Настраиваем RecyclerView
         setupRecyclerView();
@@ -65,11 +72,130 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         setupAddLibraryButton(view);
         setupRefreshButton(view);
 
+        // ДОБАВИТЬ: настраиваем поиск
+        setupSearch();
+
         // Загружаем библиотеки
         loadLibraries();
 
         return view;
     }
+
+
+
+    /**
+     * Настраивает поисковую строку
+     */
+    private void setupSearch() {
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterLibraries(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Обработчик кнопки поиска на клавиатуре
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                // Скрываем клавиатуру
+                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Фильтрует библиотеки по поисковому запросу
+     */
+
+    private void filterLibraries(String query) {
+        if (query.isEmpty()) {
+            // Если запрос пустой, показываем все библиотеки
+            filteredLibraries.clear();
+            filteredLibraries.addAll(availableLibraries);
+        } else {
+            // Фильтруем библиотеки по названию и описанию
+            filteredLibraries.clear();
+            for (WordLibrary library : availableLibraries) {
+                // ЗАЩИТА ОТ NULL: проверяем каждое поле перед вызовом toLowerCase()
+                String name = library.getName() != null ? library.getName().toLowerCase() : "";
+                String description = library.getDescription() != null ? library.getDescription().toLowerCase() : "";
+                String category = library.getCategory() != null ? library.getCategory().toLowerCase() : "";
+
+                String queryLower = query.toLowerCase();
+
+                if (name.contains(queryLower) ||
+                        description.contains(queryLower) ||
+                        category.contains(queryLower)) {
+                    filteredLibraries.add(library);
+                }
+            }
+        }
+
+        // Обновляем адаптер
+        libraryAdapter.updateLibraries(filteredLibraries);
+
+        // Показываем/скрываем состояние пустого списка
+        if (filteredLibraries.isEmpty() && !query.isEmpty()) {
+            showEmptyState(true);
+            emptyStateText.setText("Библиотеки по запросу \"" + query + "\" не найдены");
+        } else if (filteredLibraries.isEmpty()) {
+            showEmptyState(true);
+            emptyStateText.setText("Библиотеки не найдены\nПопробуйте позже");
+        } else {
+            showEmptyState(false);
+        }
+    }
+
+    /**
+     * Загружает доступные библиотеки
+     */
+    private void loadLibraries() {
+        Log.d(TAG, "Загрузка библиотек...");
+        showLoading(true);
+
+        wordRepository.getAvailableLibraries(new WordRepository.OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> libraries) {
+                Log.d(TAG, "Успешно загружено библиотек: " + libraries.size());
+
+                availableLibraries.clear();
+                availableLibraries.addAll(libraries);
+
+                // Инициализируем filteredLibraries
+                filteredLibraries.clear();
+                filteredLibraries.addAll(availableLibraries);
+
+                if (availableLibraries.isEmpty()) {
+                    showEmptyState(true);
+                } else {
+                    showEmptyState(false);
+                    // Загружаем активные библиотеки пользователя
+                    loadUserActiveLibraries();
+                }
+
+                showLoading(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка загрузки библиотек: " + e.getMessage());
+                Toast.makeText(getContext(), "Ошибка загрузки библиотек", Toast.LENGTH_SHORT).show();
+                showEmptyState(true);
+                showLoading(false);
+            }
+        });
+    }
+
+
 
     /**
      * Настраивает RecyclerView для списка библиотек
@@ -90,42 +216,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         }
     }
 
-    /**
-     * Загружает доступные библиотеки
-     */
-    private void loadLibraries() {
-        Log.d(TAG, "Загрузка библиотек...");
-        showLoading(true);
-
-        wordRepository.getAvailableLibraries(new WordRepository.OnLibrariesLoadedListener() {
-            @Override
-            public void onLibrariesLoaded(List<WordLibrary> libraries) {
-                Log.d(TAG, "Успешно загружено библиотек: " + libraries.size());
-
-                availableLibraries.clear();
-                availableLibraries.addAll(libraries);
-
-                if (availableLibraries.isEmpty()) {
-                    showEmptyState(true);
-                } else {
-                    showEmptyState(false);
-
-                    // Загружаем активные библиотеки пользователя
-                    loadUserActiveLibraries();
-                }
-
-                showLoading(false);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки библиотек: " + e.getMessage());
-                Toast.makeText(getContext(), "Ошибка загрузки библиотек", Toast.LENGTH_SHORT).show();
-                showEmptyState(true);
-                showLoading(false);
-            }
-        });
-    }
 
     /**
      * Загружает активные библиотеки пользователя
@@ -155,7 +245,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 }
 
                 // Обновляем адаптер
-                libraryAdapter.updateLibraries(availableLibraries);
+               // libraryAdapter.updateLibraries(availableLibraries);
+                //libraryAdapter.updateActiveLibraries(activeLibrariesMap);
+
+
+                libraryAdapter.updateLibraries(filteredLibraries); // ← ИЗМЕНИТЬ
                 libraryAdapter.updateActiveLibraries(activeLibrariesMap);
 
                 // Обновляем состояние кнопки
