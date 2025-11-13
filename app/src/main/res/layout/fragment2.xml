@@ -20,6 +20,25 @@
         android:layout_marginTop="16dp"
         android:layout_marginStart="16dp" />
 
+    <!-- ПОИСКОВАЯ СТРОКА ПОСЕРЕДИНЕ -->
+    <EditText
+        android:id="@+id/searchEditText"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:hint="Поиск библиотек..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#BABBA9"
+        android:background="@drawable/search_background"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:singleLine="true"
+        android:imeOptions="actionSearch"
+        app:layout_constraintTop_toTopOf="@+id/refreshButton"
+        app:layout_constraintStart_toEndOf="@+id/refreshButton"
+        app:layout_constraintEnd_toStartOf="@+id/addLibraryButton"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp" />
+
     <!-- Кнопка добавления СПРАВА -->
     <ImageButton
         android:id="@+id/addLibraryButton"
