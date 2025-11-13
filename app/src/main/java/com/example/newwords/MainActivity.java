@@ -79,5 +79,17 @@ else
         });
     }
 
+    /**
+     * Переключает на вкладку библиотек (Fragment2)
+     */
+    public void switchToLibraryTab() {
+        if (viewPager != null) {
+            viewPager.setCurrentItem(1); // 1 - это индекс Fragment2
+        }
 
+        // Также можно добавить анимацию или дополнительную логику
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setSelectedItemId(R.id.navigation_page2);
+        }
+    }
 }

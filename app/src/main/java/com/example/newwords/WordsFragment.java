@@ -1,6 +1,7 @@
 package com.example.newwords;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -119,7 +120,8 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
                 if (sessionWords.isEmpty()) {
                     Log.d(TAG, "Нет слов для изучения в данный момент");
-                    showNoWordsForStudyState();
+                    // ЗАМЕНИТЕ ЭТУ СТРОКУ:
+                    showNoWordsState(); // было: showNoWordsForStudyState()
                 } else {
                     Log.d(TAG, "Настройка ViewPager с " + sessionWords.size() + " словами для сессии");
                     setupViewPagerWithWords(sessionWords);
@@ -137,7 +139,6 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             }
         });
     }
-
 
     /**
      * Выбирает слова для текущей сессии изучения
@@ -409,9 +410,9 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             }
 
             // Если все карточки пройдены
-            if (current >= total && total > 0) {
-                showSessionCompleted();
-            }
+           // if (current >= total && total > 0) {
+          //      showSessionCompleted();
+           // }
         }
     }
 
@@ -620,8 +621,225 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     @Override
     public void onAllCardsCompleted() {
         Log.d(TAG, "Все карточки пройдены!");
-        Toast.makeText(getContext(), "🎉 Все карточки пройдены! Молодец!", Toast.LENGTH_LONG).show();
 
-        // Можно добавить переход к результатам или повторение
+        // Минимальная задержка для плавности (100ms вместо 1000ms)
+        if (getActivity() != null) {
+          //  getActivity().getWindow().getDecorView().postDelayed(() -> {
+            //    showSessionCompletedState();
+          //  }, 100); // 0.1 секунды вместо 1 секунды
+            showSessionCompletedState();
+        }
+    }
+
+
+    /**
+     * Показывает экран завершения обучения (когда все карточки пройдены)
+     */
+    private void showSessionCompletedState() {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                ConstraintLayout completedLayout = new ConstraintLayout(getContext());
+                completedLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+                completedLayout.setBackgroundColor(0xFF322b36);
+
+                // Иконка праздника
+                TextView emojiIcon = new TextView(getContext());
+                emojiIcon.setId(View.generateViewId());
+                emojiIcon.setText("🎉");
+                emojiIcon.setTextSize(64f);
+                emojiIcon.setGravity(Gravity.CENTER);
+
+                // Заголовок
+                TextView titleText = new TextView(getContext());
+                titleText.setId(View.generateViewId());
+                titleText.setText("Молодец!");
+                titleText.setTextColor(Color.WHITE);
+                titleText.setTextSize(32f);
+                titleText.setTypeface(titleText.getTypeface(), Typeface.BOLD);
+                titleText.setGravity(Gravity.CENTER);
+
+                // Сообщение
+                TextView messageText = new TextView(getContext());
+                messageText.setId(View.generateViewId());
+                messageText.setText("Ты отлично поработал!\n\nПерейди в библиотеки и добавь новые слова для изучения.");
+                messageText.setTextColor(0xFFCCCCCC);
+                messageText.setTextSize(18f);
+                messageText.setGravity(Gravity.CENTER);
+                messageText.setLineSpacing(1.5f, 1.5f);
+
+                // Кнопка "В библиотеки"
+                Button librariesButton = new Button(getContext());
+                librariesButton.setId(View.generateViewId());
+                librariesButton.setText("Перейти в библиотеки");
+                librariesButton.setBackgroundResource(R.drawable.button_primary_bg);
+                librariesButton.setTextColor(Color.WHITE);
+                librariesButton.setTextSize(16f);
+                librariesButton.setPadding(32, 16, 32, 16);
+
+                // Добавляем элементы в layout
+                completedLayout.addView(emojiIcon);
+                completedLayout.addView(titleText);
+                completedLayout.addView(messageText);
+                completedLayout.addView(librariesButton);
+
+                // Настраиваем constraints
+                ConstraintSet constraintSet = new ConstraintSet();
+                constraintSet.clone(completedLayout);
+
+                // Emoji constraints
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 150);
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintSet.constrainHeight(emojiIcon.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Title constraints
+                constraintSet.connect(titleText.getId(), ConstraintSet.TOP, emojiIcon.getId(), ConstraintSet.BOTTOM, 16);
+                constraintSet.connect(titleText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintSet.connect(titleText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintSet.constrainHeight(titleText.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Message constraints
+                constraintSet.connect(messageText.getId(), ConstraintSet.TOP, titleText.getId(), ConstraintSet.BOTTOM, 32);
+                constraintSet.connect(messageText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 48);
+                constraintSet.connect(messageText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 48);
+                constraintSet.constrainHeight(messageText.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Button constraints
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.TOP, messageText.getId(), ConstraintSet.BOTTOM, 48);
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 50);
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 50);
+                constraintSet.constrainHeight(librariesButton.getId(), ConstraintSet.WRAP_CONTENT);
+
+                constraintSet.applyTo(completedLayout);
+
+                librariesButton.setOnClickListener(v -> {
+                    if (getActivity() instanceof MainActivity) {
+                        MainActivity mainActivity = (MainActivity) getActivity();
+
+                        // Сначала переключаем на библиотеки
+                        mainActivity.switchToLibraryTab();
+
+                        // Затем закрываем WordsFragment
+                        if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                            getParentFragmentManager().popBackStack();
+                        }
+                    }
+                });
+
+                // Заменяем текущий view
+                ViewGroup rootView = (ViewGroup) getView();
+                if (rootView != null) {
+                    rootView.removeAllViews();
+                    rootView.addView(completedLayout);
+                }
+            });
+        }
+    }
+    /**
+     * Показывает состояние когда нет слов для изучения (в начале)
+     */
+    private void showNoWordsState() {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                ConstraintLayout noWordsLayout = new ConstraintLayout(getContext());
+                noWordsLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+                noWordsLayout.setBackgroundColor(0xFF322b36);
+
+                // Иконка
+                TextView emojiIcon = new TextView(getContext());
+                emojiIcon.setId(View.generateViewId());
+                emojiIcon.setText("📚");
+                emojiIcon.setTextSize(64f);
+                emojiIcon.setGravity(Gravity.CENTER);
+
+                // Заголовок
+                TextView titleText = new TextView(getContext());
+                titleText.setId(View.generateViewId());
+                titleText.setText("Нет слов для изучения");
+                titleText.setTextColor(Color.WHITE);
+                titleText.setTextSize(28f);
+                titleText.setTypeface(titleText.getTypeface(), Typeface.BOLD);
+                titleText.setGravity(Gravity.CENTER);
+
+                // Сообщение
+                TextView messageText = new TextView(getContext());
+                messageText.setId(View.generateViewId());
+                messageText.setText("Все доступные слова изучены!\n\nДобавь новые слова в библиотеках или подожди до завтра.");
+                messageText.setTextColor(0xFFCCCCCC);
+                messageText.setTextSize(16f);
+                messageText.setGravity(Gravity.CENTER);
+                messageText.setLineSpacing(1.5f, 1.5f);
+
+                // Кнопка "В библиотеки"
+                Button librariesButton = new Button(getContext());
+                librariesButton.setId(View.generateViewId());
+                librariesButton.setText("Перейти в библиотеки");
+                librariesButton.setBackgroundResource(R.drawable.button_primary_bg);
+                librariesButton.setTextColor(Color.WHITE);
+
+                // Добавляем элементы в layout
+                noWordsLayout.addView(emojiIcon);
+                noWordsLayout.addView(titleText);
+                noWordsLayout.addView(messageText);
+                noWordsLayout.addView(librariesButton);
+
+                // Настраиваем constraints
+                ConstraintSet constraintSet = new ConstraintSet();
+                constraintSet.clone(noWordsLayout);
+
+                // Emoji constraints
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 150);
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintSet.connect(emojiIcon.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintSet.constrainHeight(emojiIcon.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Title constraints
+                constraintSet.connect(titleText.getId(), ConstraintSet.TOP, emojiIcon.getId(), ConstraintSet.BOTTOM, 16);
+                constraintSet.connect(titleText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintSet.connect(titleText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintSet.constrainHeight(titleText.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Message constraints
+                constraintSet.connect(messageText.getId(), ConstraintSet.TOP, titleText.getId(), ConstraintSet.BOTTOM, 32);
+                constraintSet.connect(messageText.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 48);
+                constraintSet.connect(messageText.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 48);
+                constraintSet.constrainHeight(messageText.getId(), ConstraintSet.WRAP_CONTENT);
+
+                // Button constraints
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.TOP, messageText.getId(), ConstraintSet.BOTTOM, 48);
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 50);
+                constraintSet.connect(librariesButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 50);
+                constraintSet.constrainHeight(librariesButton.getId(), ConstraintSet.WRAP_CONTENT);
+
+                constraintSet.applyTo(noWordsLayout);
+
+                // Обработчик кнопки
+                librariesButton.setOnClickListener(v -> {
+                    if (getActivity() instanceof MainActivity) {
+                        MainActivity mainActivity = (MainActivity) getActivity();
+
+                        // Сначала переключаем на библиотеки
+                        mainActivity.switchToLibraryTab();
+
+                        // Затем закрываем WordsFragment
+                        if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                            getParentFragmentManager().popBackStack();
+                        }
+                    }
+                });
+                // Заменяем текущий view
+                ViewGroup rootView = (ViewGroup) getView();
+                if (rootView != null) {
+                    rootView.removeAllViews();
+                    rootView.addView(noWordsLayout);
+                }
+            });
+        }
     }
 }

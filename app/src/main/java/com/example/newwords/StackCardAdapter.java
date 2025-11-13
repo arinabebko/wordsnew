@@ -64,7 +64,7 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         currentPosition++;
         notifyDataSetChanged();
 
-        // Если карточки закончились
+        // Если карточки закончились - уведомляем сразу
         if (currentPosition >= wordList.size()) {
             if (listener != null) {
                 listener.onAllCardsCompleted();
