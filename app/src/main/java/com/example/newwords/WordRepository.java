@@ -1085,6 +1085,8 @@ public class WordRepository {
      * Активировать библиотеку для пользователя
      */
     public void activateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
+        Log.d(TAG, "🔗 Активация библиотеки: " + libraryId);
+
         // Сначала загружаем информацию о библиотеке
         loadLibraryInfo(libraryId, new OnLibrariesLoadedListener() {
             @Override
@@ -1095,30 +1097,34 @@ public class WordRepository {
                 }
 
                 WordLibrary library = libraries.get(0);
-                library.setActive(true); // Устанавливаем флаг активности
+                library.setActive(true);
 
                 // Сохраняем в активные библиотеки пользователя
                 Map<String, Object> data = new HashMap<>();
                 data.put("active", true);
                 data.put("activatedAt", new Date());
                 data.put("libraryInfo", library); // Сохраняем полную информацию
+                data.put("libraryId", libraryId); // ← ДОБАВИТЬ ЭТУ СТРОКУ!
 
                 db.collection("users")
                         .document(userId)
                         .collection("active_libraries")
                         .document(libraryId)
                         .set(data)
-                        .addOnSuccessListener(aVoid -> success.onSuccess())
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d(TAG, "✅ Библиотека активирована: " + libraryId);
+                            success.onSuccess();
+                        })
                         .addOnFailureListener(error::onError);
             }
 
             @Override
             public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки информации о библиотеке: " + libraryId, e);
                 error.onError(e);
             }
         });
     }
-
     /**
      * Деактивировать библиотеку для пользователя
      */
@@ -1142,10 +1148,74 @@ public class WordRepository {
     }
 
 
+        /**
+         * Полностью очищает локальный кеш
+         */
+        public void clearLocalCache(OnSuccessListener success, OnErrorListener error) {
+            Log.d(TAG, "🧹 === НАЧАЛО ОЧИСТКИ ЛОКАЛЬНОГО КЕША ===");
+
+            new Thread(() -> {
+                try {
+                    Log.d(TAG, "🧹 Получаем текущее состояние БД...");
+
+                    // Получаем текущие данные ДО очистки
+                    int libCountBefore = localDb.libraryDao().getAllLibraries().size();
+                    int wordCountBefore = localDb.wordDao().getAllWords().size();
+                    int activeLibCountBefore = localDb.libraryDao().getActiveLibraries().size();
+
+                    Log.d(TAG, "🧹 Состояние ДО очистки:");
+                    Log.d(TAG, "   Библиотеки: " + libCountBefore);
+                    Log.d(TAG, "   Слова: " + wordCountBefore);
+                    Log.d(TAG, "   Активные библиотеки: " + activeLibCountBefore);
+
+                    // Очищаем таблицы
+                    Log.d(TAG, "🧹 Очищаем таблицу библиотек...");
+                    localDb.libraryDao().clearAllLibraries();
+
+                    Log.d(TAG, "🧹 Очищаем таблицу слов...");
+                    localDb.wordDao().clearAllWords();
+
+                    // Получаем данные ПОСЛЕ очистки
+                    int libCountAfter = localDb.libraryDao().getAllLibraries().size();
+                    int wordCountAfter = localDb.wordDao().getAllWords().size();
+                    int activeLibCountAfter = localDb.libraryDao().getActiveLibraries().size();
+
+                    Log.d(TAG, "✅ Состояние ПОСЛЕ очистки:");
+                    Log.d(TAG, "   Библиотеки: " + libCountAfter + " (было: " + libCountBefore + ")");
+                    Log.d(TAG, "   Слова: " + wordCountAfter + " (было: " + wordCountBefore + ")");
+                    Log.d(TAG, "   Активные библиотеки: " + activeLibCountAfter + " (было: " + activeLibCountBefore + ")");
+
+                    if (libCountAfter == 0 && wordCountAfter == 0) {
+                        Log.d(TAG, "✅ Локальный кеш полностью очищен!");
+                    } else {
+                        Log.w(TAG, "⚠️ Кеш очищен не полностью!");
+                    }
+
+                    // Вызываем колбэк в UI потоке
+                    if (success != null) {
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            Log.d(TAG, "✅ Колбэк успеха вызван");
+                            success.onSuccess();
+                        });
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Ошибка очистки кеша", e);
+                    if (error != null) {
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            Log.d(TAG, "❌ Колбэк ошибки вызван");
+                            error.onError(e);
+                        });
+                    }
+                }
+            }).start();
+        }
+
     /**
      * Получить активные библиотеки пользователя
      */
     public void getUserActiveLibraries(OnLibrariesLoadedListener listener) {
+        Log.d(TAG, "🔄 Загрузка активных библиотек для пользователя: " + userId);
+
         db.collection("users")
                 .document(userId)
                 .collection("active_libraries")
@@ -1155,15 +1225,36 @@ public class WordRepository {
                     if (task.isSuccessful() && task.getResult() != null) {
                         List<String> activeLibraryIds = new ArrayList<>();
 
+                        Log.d(TAG, "📄 Найдено документов в active_libraries: " + task.getResult().size());
+
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            String libraryId = document.getId();
-                            activeLibraryIds.add(libraryId);
-                            Log.d(TAG, "✅ Активная библиотека найдена: " + libraryId);
+                            // ПРОБУЕМ ОБА ВАРИАНТА:
+                            String libraryId = document.getString("libraryId");
+
+                            // Если libraryId нет в корне, пробуем взять из libraryInfo
+                            if (libraryId == null || libraryId.isEmpty()) {
+                                Map<String, Object> libraryInfo = (Map<String, Object>) document.get("libraryInfo");
+                                if (libraryInfo != null) {
+                                    libraryId = (String) libraryInfo.get("libraryId");
+                                }
+                            }
+
+                            // Если все еще нет, используем ID документа как запасной вариант
+                            if (libraryId == null || libraryId.isEmpty()) {
+                                libraryId = document.getId();
+                                Log.w(TAG, "⚠️ Используем ID документа как libraryId: " + libraryId);
+                            }
+
+                            if (libraryId != null && !libraryId.isEmpty()) {
+                                activeLibraryIds.add(libraryId);
+                                Log.d(TAG, "✅ Активная библиотека найдена: " + libraryId);
+                            }
                         }
 
                         Log.d(TAG, "📚 Всего активных библиотек: " + activeLibraryIds.size());
 
                         if (activeLibraryIds.isEmpty()) {
+                            Log.d(TAG, "ℹ️ Нет активных библиотек для загрузки");
                             listener.onLibrariesLoaded(new ArrayList<>());
                             return;
                         }
@@ -1172,7 +1263,8 @@ public class WordRepository {
                         loadLibrariesInfo(activeLibraryIds, new OnLibrariesLoadedListener() {
                             @Override
                             public void onLibrariesLoaded(List<WordLibrary> fullLibraries) {
-                                // Помечаем все загруженные библиотеки как активные
+                                Log.d(TAG, "✅ Загружено полной информации о библиотеках: " + fullLibraries.size());
+
                                 for (WordLibrary library : fullLibraries) {
                                     library.setActive(true);
                                     library.setIsActive(true);
@@ -1182,6 +1274,7 @@ public class WordRepository {
 
                             @Override
                             public void onError(Exception e) {
+                                Log.e(TAG, "❌ Ошибка загрузки полной информации", e);
                                 listener.onError(e);
                             }
                         });
