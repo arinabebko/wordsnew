@@ -128,6 +128,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 }
 
                 showLoading(false);
+
             }
 
             @Override

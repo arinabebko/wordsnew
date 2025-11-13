@@ -345,6 +345,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private void startLearning() {
         Log.d(TAG, "Начало обучения с " + getActiveLibrariesCount() + " активными библиотеками");
 
+        NotificationScheduler.resetInactivityTimer(getActivity());
+
         // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ КЕШ перед переходом
         wordRepository.syncWordsFromFirebase(new WordRepository.OnWordsLoadedListener() {
             @Override

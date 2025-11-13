@@ -1,22 +1,249 @@
 package com.example.newwords;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import java.util.Calendar;
+
 public class FragmentNotificationsOption extends Fragment {
 
+    private RadioGroup notificationOptionsGroup;
+    private RadioButton rbNone, rbOnceADay, rbAfterInactivity;
+    private EditText reminderTimeEditText;
+
+    private SharedPreferences preferences;
+    private static final String PREFS_NAME = "NotificationPrefs";
+    private static final String KEY_NOTIFICATION_TYPE = "notification_type";
+    private static final String KEY_NOTIFICATION_TIME = "notification_time";
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        // Замените R.layout.fragment_settings_option на ваш layout файл
-        return inflater.inflate(R.layout.fragment_notifications_option, container, false);
+        View view = inflater.inflate(R.layout.fragment_notifications_option, container, false);
+
+        initViews(view);
+        loadSavedPreferences();
+        setupListeners();
+
+        return view;
+    }
+
+    private void initViews(View view) {
+        notificationOptionsGroup = view.findViewById(R.id.notificationOptionsGroup);
+        rbNone = view.findViewById(R.id.rb_none);
+        rbOnceADay = view.findViewById(R.id.rb_onceADay);
+        rbAfterInactivity = view.findViewById(R.id.rb_afterInactivity);
+        reminderTimeEditText = view.findViewById(R.id.reminderTimeEditText);
+
+        preferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    }
+
+    private void loadSavedPreferences() {
+        String type = preferences.getString(KEY_NOTIFICATION_TYPE, "none");
+        String time = preferences.getString(KEY_NOTIFICATION_TIME, "19:00");
+
+        reminderTimeEditText.setText(time);
+
+        switch (type) {
+            case "none":
+                rbNone.setChecked(true);
+                break;
+            case "once_a_day":
+                rbOnceADay.setChecked(true);
+                break;
+            case "after_inactivity":
+                rbAfterInactivity.setChecked(true);
+                break;
+        }
+
+        Log.d("Notifications", "Загружены настройки: type=" + type + ", time=" + time);
+    }
+
+    private void setupListeners() {
+        notificationOptionsGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            savePreferences();
+            scheduleNotifications();
+        });
+
+        reminderTimeEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                savePreferences();
+                scheduleNotifications();
+            }
+        });
+    }
+
+    private void savePreferences() {
+        SharedPreferences.Editor editor = preferences.edit();
+
+        String time = reminderTimeEditText.getText().toString().trim();
+        if (TextUtils.isEmpty(time)) {
+            time = "19:00";
+            reminderTimeEditText.setText(time);
+        }
+        editor.putString(KEY_NOTIFICATION_TIME, time);
+
+        if (rbNone.isChecked()) {
+            editor.putString(KEY_NOTIFICATION_TYPE, "none");
+        } else if (rbOnceADay.isChecked()) {
+            editor.putString(KEY_NOTIFICATION_TYPE, "once_a_day");
+        } else if (rbAfterInactivity.isChecked()) {
+            editor.putString(KEY_NOTIFICATION_TYPE, "after_inactivity");
+        }
+
+        editor.apply();
+
+        Log.d("Notifications", "Сохранены настройки: type=" +
+                preferences.getString(KEY_NOTIFICATION_TYPE, "none") +
+                ", time=" + time);
+    }
+
+    private void scheduleNotifications() {
+        // Сначала отменяем все уведомления
+        cancelAllNotifications();
+
+        String type = preferences.getString(KEY_NOTIFICATION_TYPE, "none");
+        String time = preferences.getString(KEY_NOTIFICATION_TIME, "19:00");
+
+        switch (type) {
+            case "once_a_day":
+                scheduleDailyNotification(time);
+                Toast.makeText(requireContext(), "Ежедневное напоминание установлено на " + time, Toast.LENGTH_SHORT).show();
+                break;
+            case "after_inactivity":
+                scheduleInactivityNotification();
+                Toast.makeText(requireContext(), "Напоминание после бездействия установлено", Toast.LENGTH_SHORT).show();
+                break;
+            case "none":
+                Toast.makeText(requireContext(), "Уведомления отключены", Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    private void scheduleDailyNotification(String time) {
+        try {
+            String[] timeParts = time.split(":");
+            int hour = Integer.parseInt(timeParts[0]);
+            int minute = Integer.parseInt(timeParts[1]);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, minute);
+            calendar.set(Calendar.SECOND, 0);
+
+            // Если время уже прошло сегодня, установим на завтра
+            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+                calendar.add(Calendar.DAY_OF_YEAR, 1);
+            }
+
+            Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
+            notificationIntent.setAction("DAILY_REMINDER");
+            notificationIntent.putExtra("title", "Пора учить слова!");
+            notificationIntent.putExtra("message", "Не забудьте позаниматься сегодня ✨");
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    requireContext(),
+                    1001,
+                    notificationIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+
+            if (alarmManager != null) {
+                // Устанавливаем повторение каждый день
+                alarmManager.setRepeating(
+                        AlarmManager.RTC_WAKEUP,
+                        calendar.getTimeInMillis(),
+                        AlarmManager.INTERVAL_DAY,
+                        pendingIntent
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(requireContext(), "Ошибка установки напоминания", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void scheduleInactivityNotification() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, 1); // Через 1 день
+
+        Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
+        notificationIntent.setAction("INACTIVITY_REMINDER");
+        notificationIntent.putExtra("title", "Мы по вам скучаем!");
+        notificationIntent.putExtra("message", "Вы давно не занимались. Возвращайтесь! 📚");
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                requireContext(),
+                1002,
+                notificationIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+
+        if (alarmManager != null) {
+            alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    pendingIntent
+            );
+        }
+    }
+
+    private void cancelAllNotifications() {
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+
+        // Отменяем ежедневное уведомление
+        Intent dailyIntent = new Intent(requireContext(), NotificationReceiver.class);
+        PendingIntent dailyPending = PendingIntent.getBroadcast(
+                requireContext(),
+                1001,
+                dailyIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        if (alarmManager != null) {
+            alarmManager.cancel(dailyPending);
+        }
+
+        // Отменяем уведомление о бездействии
+        Intent inactivityIntent = new Intent(requireContext(), NotificationReceiver.class);
+        PendingIntent inactivityPending = PendingIntent.getBroadcast(
+                requireContext(),
+                1002,
+                inactivityIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        if (alarmManager != null) {
+            alarmManager.cancel(inactivityPending);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Сохраняем настройки при закрытии фрагмента
+        savePreferences();
     }
 }
-
