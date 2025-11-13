@@ -7,20 +7,19 @@
     android:padding="24dp"
     android:background="#322b36">
 
-    <!-- Статус слова (НОВЫЙ ЭЛЕМЕНТ) -->
+    <!-- Статус слова (УВЕЛИЧЕН ШРИФТ) -->
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Новое слово"
         android:textColor="#FFFFFF"
-        android:textSize="12sp"
-        android:background="@drawable/status_background"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"/>
-
+        android:textSize="14sp"
+    android:background="@drawable/status_background"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp"
+    android:layout_centerHorizontal="true"
+    android:layout_marginTop="32dp"/>
     <!-- Звезда в правом верхнем углу -->
     <ImageButton
         android:id="@+id/starButton"
@@ -29,25 +28,27 @@
         android:src="@drawable/ic_star"
         android:scaleType="center"
         android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="#FFFFFF"
         android:contentDescription="Избранное"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="8dp"/>
 
-    <!-- Основная карточка с словом -->
+    <!-- Основная карточка с словом (УМЕНЬШЕНА и СПУЩЕНА ВНИЗ) -->
     <LinearLayout
         android:id="@+id/wordCard"
-        android:layout_width="320dp"
-        android:layout_height="350dp"
-        android:orientation="vertical"
-        android:background="@drawable/card_pastel_bg"
-        android:gravity="center"
-        android:elevation="4dp"
-        android:layout_centerInParent="true"
-        android:padding="16dp"
-        android:layout_below="@id/statusText"
-        android:layout_marginTop="16dp">
+        android:layout_width="300dp"
+    android:layout_height="320dp"
+    android:orientation="vertical"
+    android:background="@drawable/card_pastel_bg"
+    android:gravity="center"
+    android:elevation="4dp"
+    android:layout_centerInParent="true"
+    android:padding="16dp"
+    android:layout_below="@id/statusText"
+    android:layout_marginTop="24dp">
+
 
         <!-- Английское слово -->
         <TextView
@@ -75,7 +76,7 @@
 
     </LinearLayout>
 
-    <!-- Следующее повторение (НОВЫЙ ЭЛЕМЕНТ) -->
+    <!-- Следующее повторение -->
     <TextView
         android:id="@+id/nextReviewText"
         android:layout_width="wrap_content"

@@ -25,13 +25,14 @@
             android:textSize="28sp"
             android:textColor="#fcb6b0"
             android:fontFamily="@font/jura_font_wght"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+        android:layout_marginTop="16dp" />
 
         <TextView
             android:id="@+id/wordsInProgressTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="слов в процессе: 15"
+            android:text="слов в процессе: 4"
             android:textSize="16sp"
             android:textColor="#e7b5a9"
             android:fontFamily="@font/jura_font_wght"
@@ -41,7 +42,7 @@
             android:id="@+id/wordsLearnedTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="выучено слов: 43"
+            android:text="выучено слов: 0"
             android:textSize="16sp"
             android:textColor="#fcb6b0"
             android:fontFamily="@font/jura_font_wght"

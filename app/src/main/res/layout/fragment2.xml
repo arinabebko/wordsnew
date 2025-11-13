@@ -6,20 +6,48 @@
     android:background="#322b36"
     android:padding="16dp">
 
-    <!-- Заголовок -->
+    <!-- Кнопка обновления СЛЕВА -->
+    <ImageButton
+        android:id="@+id/refreshButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_refresh"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="#FFFFFF"
+        android:contentDescription="Обновить"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp" />
+
+    <!-- Кнопка добавления СПРАВА -->
+    <ImageButton
+        android:id="@+id/addLibraryButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_add"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="#FFFFFF"
+        android:contentDescription="Добавить библиотеку"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp" />
+
+    <!-- Заголовок - теперь НИЖЕ кнопок и по центру -->
     <TextView
         android:id="@+id/titleText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Выбор библиотек"
         android:textColor="#FFFFFF"
-        android:textSize="24sp"
+        android:textSize="26sp"
         android:textStyle="bold"
         android:gravity="center"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/refreshButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="4dp" />
 
     <!-- Описание -->
     <TextView
@@ -83,7 +111,7 @@
         android:textSize="18sp"
         android:textStyle="bold"
         android:background="@drawable/button_primary_bg"
-        android:textColor="#FFFFFF"
+        android:textColor="#322b36"
         android:enabled="false"
         android:alpha="0.5"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -92,30 +120,4 @@
         android:layout_marginBottom="16dp"
         android:paddingVertical="12dp" />
 
-
-
-    <ImageButton
-        android:id="@+id/refreshButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_refresh"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Обновить"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/addLibraryButton"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp" />
-
-    <!-- Добавьте эту кнопку рядом с заголовком -->
-    <ImageButton
-        android:id="@+id/addLibraryButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_add"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Добавить библиотеку"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
