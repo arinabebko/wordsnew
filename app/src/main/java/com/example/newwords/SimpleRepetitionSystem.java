@@ -15,10 +15,7 @@ public class SimpleRepetitionSystem {
      * Обрабатывает ответ пользователя
      */
     public static void processAnswer(WordItem word, boolean isCorrect) {
-        Log.d(TAG, "Обработка: " + word.getWord() +
-                ", правильный: " + isCorrect +
-                ", этап: " + word.getReviewStage() +
-                ", показов: " + word.getConsecutiveShows());
+        Log.d(TAG, "Обработка: " + word.getWord() + ", правильный: " + isCorrect);
 
         word.setReviewCount(word.getReviewCount() + 1);
         word.setLastReviewed(new Date());
@@ -31,12 +28,9 @@ public class SimpleRepetitionSystem {
         }
 
         updateNextReviewDate(word);
-        updateDifficulty(word);
-
-        Log.d(TAG, "Результат: этап=" + word.getReviewStage() +
-                ", сложность=" + word.getDifficulty() +
-                ", след. дата=" + word.getNextReviewDate());
+        updateDifficulty(word); // Используем ЕДИНСТВЕННЫЙ метод
     }
+
 
     /**
      * Обрабатывает правильный ответ
@@ -46,7 +40,7 @@ public class SimpleRepetitionSystem {
             // Новое слово - увеличиваем счетчик показов
             word.setConsecutiveShows(word.getConsecutiveShows() + 1);
 
-            // Если показали 3 раза - переходим к этапу 1
+            // Если показали 3 раза (первый показ + еще два) - переходим к этапу 1
             if (word.getConsecutiveShows() >= 3) {
                 word.setReviewStage(1);
                 word.setConsecutiveShows(0);
@@ -58,14 +52,13 @@ public class SimpleRepetitionSystem {
             // Уже не новое слово - переходим к следующему этапу
             if (word.getReviewStage() < MAX_STAGE) {
                 word.setReviewStage(word.getReviewStage() + 1);
-                word.setConsecutiveShows(0);
+                word.setConsecutiveShows(0); // Сбрасываем счетчик показов для следующих этапов
                 Log.d(TAG, "✅ Переход к этапу " + word.getReviewStage());
             } else {
                 Log.d(TAG, "✅ Слово достигло максимального этапа");
             }
         }
     }
-
     /**
      * Обрабатывает неправильный ответ
      */
@@ -84,11 +77,10 @@ public class SimpleRepetitionSystem {
         Calendar calendar = Calendar.getInstance();
 
         if (word.getReviewStage() == 0 && word.getConsecutiveShows() < 3) {
-            // Новое слово, которое нужно показать еще раз в ЭТОЙ ЖЕ сессии
-            // Устанавливаем дату в прошлом, чтобы слово было готово к повторению сразу
+            // Новое слово - показать сразу (устанавливаем прошедшую дату)
             calendar.add(Calendar.MINUTE, -1);
+            Log.d(TAG, "🔄 Новое слово - показать сразу в сессии");
         } else {
-            // Устанавливаем интервал по этапу
             int intervalDays = REVIEW_INTERVALS[word.getReviewStage()];
             calendar.add(Calendar.DAY_OF_YEAR, intervalDays);
             Log.d(TAG, "📅 Следующее повторение через " + intervalDays + " дней");
@@ -100,18 +92,20 @@ public class SimpleRepetitionSystem {
     /**
      * Обновляет сложность слова на основе этапа
      */
+
     private static void updateDifficulty(WordItem word) {
         int stage = word.getReviewStage();
 
         if (stage >= 6) {
-            word.setDifficulty(1); // Выучено
-        } else if (stage >= 3) {
-            word.setDifficulty(2); // Изучается
+            word.setDifficulty(1); // Выучено (после 30 дней)
+        } else if (stage >= 2) {
+            word.setDifficulty(2); // Изучается (после 1 дня)
         } else {
             word.setDifficulty(3); // Новое
         }
-    }
 
+        Log.d(TAG, "Сложность слова " + word.getWord() + " установлена: " + word.getDifficulty());
+    }
     /**
      * Нужно ли показывать слово в текущей сессии
      */

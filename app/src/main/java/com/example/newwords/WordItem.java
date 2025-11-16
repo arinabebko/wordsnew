@@ -19,6 +19,9 @@ public class WordItem {
     private Date createdAt;
     private Date lastReviewed;
 
+
+
+
     // === ПОЛЯ ДЛЯ СИСТЕМЫ ПОВТОРЕНИЙ ===
     private int reviewStage = 0; // текущий этап: 0,1,2,3,4,5,6 (соответствует интервалам)
     private Date nextReviewDate;
@@ -37,7 +40,7 @@ public class WordItem {
         this.difficulty = 3; // ИЗМЕНИТЬ: новые слова должны быть сложности 3
         this.reviewCount = 0;
         this.correctAnswers = 0;
-        this.isCustomWord = true;
+        this.isCustomWord = false;
         this.createdAt = new Date();
         this.reviewStage = 0; // Начинаем с этапа 0
         this.consecutiveShows = 0; // Еще не показывали
@@ -121,39 +124,22 @@ public class WordItem {
 
     // === МЕТОДЫ ДЛЯ СИСТЕМЫ ПОВТОРЕНИЙ ===
 
-
-
-
-
-
     /**
      * Обновляет сложность на основе этапа (по твоей логике)
-     */
+
     public void updateDifficultyBasedOnStage() {
-        // Сначала сбрасываем сложность
-        if (this.reviewStage == 0) {
-            this.difficulty = 3; // Новые слова - сложность 3
+        if (this.reviewStage >= 6) { // после 30 дней
+            this.difficulty = 1; // Выучено
+        } else if (this.reviewStage >= 2) { // после 1 дня
+            this.difficulty = 2; // Изучается
+        } else {
+            this.difficulty = 3; // Новое
         }
 
-        // На 4 этапе (14 дней) - средняя сложность
-        if (this.reviewStage >= 4) {
-            this.difficulty = 2; // Средняя сложность
-        }
-
-        // На 6 этапе (60 дней) - выученное
-        if (this.reviewStage >= 6) {
-            this.difficulty = 1; // Выученное
-        }
 
         Log.d("WordItem", "Слово " + word + ": этап=" + reviewStage + ", сложность=" + difficulty);
     }
-
-
-
-
-
-
-
+     */
 
 
     /**
@@ -207,12 +193,5 @@ public class WordItem {
         if (difficulty == 1) return 0xFF4CAF50; // Зеленый
         return 0xFF625fba;
     }
-
-
-
-
-
-
-
 
 }

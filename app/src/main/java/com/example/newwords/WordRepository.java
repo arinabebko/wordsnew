@@ -26,6 +26,7 @@ public class WordRepository {
     private final FirebaseFirestore db;
     private final String userId;
     private final AppDatabase localDb;
+
     public WordRepository() {
         db = FirebaseFirestore.getInstance();
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -36,7 +37,16 @@ public class WordRepository {
     public WordRepository(Context context) {
         db = FirebaseFirestore.getInstance();
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        this.userId = user != null ? user.getUid() : "anonymous";
+
+        // ПРОВЕРКА, что пользователь залогинен
+        if (user != null) {
+            this.userId = user.getUid();
+            Log.d(TAG, "✅ Пользователь аутентифицирован: " + this.userId);
+        } else {
+            this.userId = "anonymous";
+            Log.e(TAG, "❌ Пользователь НЕ аутентифицирован!");
+        }
+
         this.localDb = AppDatabase.getInstance(context);
     }
 
@@ -45,16 +55,19 @@ public class WordRepository {
 
     public interface OnWordsLoadedListener {
         void onWordsLoaded(List<WordItem> words);
+
         void onError(Exception e);
     }
 
     public interface OnWordAddedListener {
         void onWordAdded(WordItem word);
+
         void onError(Exception e);
     }
 
     public interface OnLibrariesLoadedListener {
         void onLibrariesLoaded(List<WordLibrary> libraries);
+
         void onError(Exception e);
     }
 
@@ -68,6 +81,7 @@ public class WordRepository {
 
     public interface OnLibraryCreatedListener {
         void onLibraryCreated(WordLibrary library);
+
         void onError(Exception e);
     }
 
@@ -189,8 +203,6 @@ public class WordRepository {
     }
 
 
-
-
     /**
      * Проверяет статус кеша
      */
@@ -222,6 +234,7 @@ public class WordRepository {
     public interface OnCacheStatusListener {
         void onStatusChecked(int libraryCount, int wordCount, int activeLibraryCount, int wordsFromActiveLibraries);
     }
+
     /**
      * Конвертирует LocalWordItem в WordItem
      */
@@ -256,43 +269,6 @@ public class WordRepository {
         }
         return words;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     /**
@@ -358,6 +334,7 @@ public class WordRepository {
             }
         });
     }
+
     /**
      * Ручной способ получения слов из активных библиотек
      */
@@ -421,6 +398,7 @@ public class WordRepository {
 
         return word;
     }
+
     public void getUserActiveWords(OnWordsLoadedListener listener) {
         List<WordItem> allWords = new ArrayList<>();
 
@@ -496,10 +474,18 @@ public class WordRepository {
                         if (result instanceof QuerySnapshot) {
                             QuerySnapshot snapshot = (QuerySnapshot) result;
                             for (QueryDocumentSnapshot document : snapshot) {
-                                WordItem word = document.toObject(WordItem.class);
+                                //WordItem word = document.toObject(WordItem.class);
+
+// НОВОЕ (ПРАВИЛЬНОЕ):
+                                WordItem word = new WordItem(); // Создаем пустой объект
+                                word.setWord(document.getString("word"));
+                                word.setTranslation(document.getString("translation"));
+                                word.setNote(document.getString("note"));
                                 word.setWordId(document.getId());
                                 word.setLibraryId(document.getReference().getParent().getParent().getId());
                                 word.setCustomWord(false);
+
+
                                 loadRepetitionFields(word, document);
                                 libraryWords.add(word);
                             }
@@ -521,6 +507,50 @@ public class WordRepository {
                 listener.onError(e);
             }
         });
+    }
+
+    // WordRepository.java
+    private void loadUserProgressSynchronously(String userId, String wordId, LoadProgressCallback callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // ПРОВЕРКА userId
+        if (userId == null || userId.equals("anonymous")) {
+            Log.e(TAG, "❌ Нельзя загрузить прогресс: userId = " + userId);
+            callback.onProgressNotFound();
+            return;
+        }
+
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress") // ТА ЖЕ КОЛЛЕКЦИЯ!
+                .document(wordId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document != null && document.exists()) {
+                            // Обработка данных
+                            Map<String, Object> progressData = document.getData();
+                            Log.d(TAG, "✅ Прогресс загружен для слова: " + wordId);
+                            callback.onProgressLoaded(progressData);
+                        } else {
+                            Log.d(TAG, "ℹ️ Прогресс не найден для слова: " + wordId);
+                            callback.onProgressNotFound();
+                        }
+                    } else {
+                        Log.e(TAG, "❌ Ошибка загрузки прогресса: " + wordId, task.getException());
+                        callback.onError(task.getException());
+                    }
+                });
+    }
+
+    // Интерфейс callback
+    public interface LoadProgressCallback {
+        void onProgressLoaded(Map<String, Object> progressData);
+
+        void onProgressNotFound();
+
+        void onError(Exception e);
     }
 
     /**
@@ -553,8 +583,343 @@ public class WordRepository {
     }
     /**
      * Загружает поля системы повторений из документа Firebase
+
+     private void loadRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+     // difficulty
+     if (document.contains("difficulty")) {
+     Object difficulty = document.get("difficulty");
+     if (difficulty instanceof Long) {
+     word.setDifficulty(((Long) difficulty).intValue());
+     } else if (difficulty instanceof Integer) {
+     word.setDifficulty((Integer) difficulty);
+     }
+     } else {
+     word.setDifficulty(3); // По умолчанию для новых слов
+     }
+
+     // reviewStage - УСТАНАВЛИВАЕМ ПО УМОЛЧАНИЮ 0
+     if (document.contains("reviewStage")) {
+     Object reviewStage = document.get("reviewStage");
+     if (reviewStage instanceof Long) {
+     word.setReviewStage(((Long) reviewStage).intValue());
+     } else if (reviewStage instanceof Integer) {
+     word.setReviewStage((Integer) reviewStage);
+     }
+     } else {
+     word.setReviewStage(0); // По умолчанию для новых слов
+     }
+
+     // consecutiveShows - УСТАНАВЛИВАЕМ ПО УМОЛЧАНИЮ 0
+     if (document.contains("consecutiveShows")) {
+     Object consecutiveShows = document.get("consecutiveShows");
+     if (consecutiveShows instanceof Long) {
+     word.setConsecutiveShows(((Long) consecutiveShows).intValue());
+     } else if (consecutiveShows instanceof Integer) {
+     word.setConsecutiveShows((Integer) consecutiveShows);
+     }
+     } else {
+     word.setConsecutiveShows(0); // По умолчанию для новых слов
+     }
+
+     // nextReviewDate - УСТАНАВЛИВАЕМ ПО УМОЛЧАНИЮ текущую дату
+     if (document.contains("nextReviewDate")) {
+     word.setNextReviewDate(document.getDate("nextReviewDate"));
+     } else {
+     word.setNextReviewDate(new Date()); // По умолчанию готово к изучению
+     }
+
+     Log.d(TAG, "Загружены поля повторений для " + word.getWord() +
+     ": difficulty=" + word.getDifficulty() +
+     ", reviewStage=" + word.getReviewStage() +
+     ", consecutiveShows=" + word.getConsecutiveShows());
+     }
+     /**
+     * Получить все доступные библиотеки (публичные + пользовательские)
+     */
+
+    /**
+     * Применяет данные прогресса к объекту WordItem
+     */
+    private void applyProgressDataToWord(WordItem word, Map<String, Object> progressData) {
+        if (progressData != null) {
+            // difficulty
+            if (progressData.containsKey("difficulty")) {
+                Object difficulty = progressData.get("difficulty");
+                if (difficulty instanceof Long) {
+                    word.setDifficulty(((Long) difficulty).intValue());
+                } else if (difficulty instanceof Integer) {
+                    word.setDifficulty((Integer) difficulty);
+                }
+            }
+
+            // reviewStage
+            if (progressData.containsKey("reviewStage")) {
+                Object reviewStage = progressData.get("reviewStage");
+                if (reviewStage instanceof Long) {
+                    word.setReviewStage(((Long) reviewStage).intValue());
+                } else if (reviewStage instanceof Integer) {
+                    word.setReviewStage((Integer) reviewStage);
+                }
+            }
+
+            // consecutiveShows
+            if (progressData.containsKey("consecutiveShows")) {
+                Object consecutiveShows = progressData.get("consecutiveShows");
+                if (consecutiveShows instanceof Long) {
+                    word.setConsecutiveShows(((Long) consecutiveShows).intValue());
+                } else if (consecutiveShows instanceof Integer) {
+                    word.setConsecutiveShows((Integer) consecutiveShows);
+                }
+            }
+
+            // nextReviewDate
+            if (progressData.containsKey("nextReviewDate")) {
+                Object nextReviewDate = progressData.get("nextReviewDate");
+                if (nextReviewDate instanceof Date) {
+                    word.setNextReviewDate((Date) nextReviewDate);
+                }
+            }
+
+            // reviewCount
+            if (progressData.containsKey("reviewCount")) {
+                Object reviewCount = progressData.get("reviewCount");
+                if (reviewCount instanceof Long) {
+                    word.setReviewCount(((Long) reviewCount).intValue());
+                } else if (reviewCount instanceof Integer) {
+                    word.setReviewCount((Integer) reviewCount);
+                }
+            }
+
+            // correctAnswers
+            if (progressData.containsKey("correctAnswers")) {
+                Object correctAnswers = progressData.get("correctAnswers");
+                if (correctAnswers instanceof Long) {
+                    word.setCorrectAnswers(((Long) correctAnswers).intValue());
+                } else if (correctAnswers instanceof Integer) {
+                    word.setCorrectAnswers((Integer) correctAnswers);
+                }
+            }
+
+            Log.d(TAG, "✅ Загружен прогресс для " + word.getWord() +
+                    ": stage=" + word.getReviewStage() +
+                    ", difficulty=" + word.getDifficulty());
+        }
+    }
+    /**
+    private void loadRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+        // Сначала загружаем базовые поля
+        loadBasicRepetitionFields(word, document);
+
+        // ДЛЯ ВСЕХ СЛОВ загружаем прогресс из word_progress АСИНХРОННО
+        loadUserProgressSynchronously(userId, word.getWordId(), new LoadProgressCallback() {
+            @Override
+            public void onProgressLoaded(Map<String, Object> progressData) {
+                // Применяем загруженные данные прогресса к слову
+                applyProgressDataToWord(word, progressData);
+            }
+
+            @Override
+            public void onProgressNotFound() {
+                // Если прогресс не найден, устанавливаем значения по умолчанию
+                initializeDefaultProgress(word);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки прогресса для: " + word.getWord(), e);
+                initializeDefaultProgress(word);
+            }
+        });
+    }
      */
     private void loadRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+        // Сначала загружаем базовые поля
+        loadBasicRepetitionFields(word, document);
+
+        // ВРЕМЕННО: ОТКЛЮЧИТЕ асинхронную загрузку прогресса
+        // Вместо этого загружаем прогресс СИНХРОННО
+        loadUserProgressSync(word);
+    }
+    /**
+     * СИНХРОННАЯ загрузка прогресса
+     */
+    private void loadUserProgressSync(WordItem word) {
+        if (userId.equals("anonymous")) {
+            initializeDefaultProgress(word);
+            return;
+        }
+
+        try {
+            // СИНХРОННАЯ загрузка с Tasks.await
+            DocumentSnapshot progressDoc = Tasks.await(
+                    db.collection("users")
+                            .document(userId)
+                            .collection("word_progress")
+                            .document(word.getWordId())
+                            .get()
+            );
+
+            if (progressDoc != null && progressDoc.exists()) {
+                // Загружаем ВСЕ поля прогресса
+                if (progressDoc.contains("difficulty")) {
+                    Long difficulty = progressDoc.getLong("difficulty");
+                    if (difficulty != null) word.setDifficulty(difficulty.intValue());
+                }
+                if (progressDoc.contains("reviewStage")) {
+                    Long reviewStage = progressDoc.getLong("reviewStage");
+                    if (reviewStage != null) word.setReviewStage(reviewStage.intValue());
+                }
+                if (progressDoc.contains("consecutiveShows")) {
+                    Long consecutiveShows = progressDoc.getLong("consecutiveShows");
+                    if (consecutiveShows != null) word.setConsecutiveShows(consecutiveShows.intValue());
+                }
+                if (progressDoc.contains("nextReviewDate")) {
+                    word.setNextReviewDate(progressDoc.getDate("nextReviewDate"));
+                }
+
+                Log.d(TAG, "✅ СИНХРОННО загружен прогресс для: " + word.getWord() +
+                        ", stage=" + word.getReviewStage());
+            } else {
+                initializeDefaultProgress(word);
+                Log.d(TAG, "ℹ️ Прогресс не найден, установлены значения по умолчанию: " + word.getWord());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Ошибка синхронной загрузки прогресса: " + word.getWord(), e);
+            initializeDefaultProgress(word);
+        }
+    }
+
+
+    /**
+     * СИНХРОННАЯ загрузка прогресса пользователя
+
+     private void loadUserProgressSynchronously(WordItem word) {
+     try {
+     DocumentSnapshot progressDoc = Tasks.await(
+     db.collection("users")
+     .document(userId)
+     .collection("word_progress")
+     .document(word.getWordId())
+     .get()
+     );
+
+     if (progressDoc != null && progressDoc.exists()) {
+     // Загружаем ВСЕ поля прогресса
+     word.setDifficulty(progressDoc.getLong("difficulty").intValue());
+     word.setReviewStage(progressDoc.getLong("reviewStage").intValue());
+     word.setConsecutiveShows(progressDoc.getLong("consecutiveShows").intValue());
+     word.setNextReviewDate(progressDoc.getDate("nextReviewDate"));
+     word.setReviewCount(progressDoc.getLong("reviewCount").intValue());
+     word.setCorrectAnswers(progressDoc.getLong("correctAnswers").intValue());
+
+     Log.d(TAG, "✅ Загружен прогресс для: " + word.getWord());
+     } else {
+     // Если прогресса нет - инициализируем дефолтными значениями
+     initializeDefaultProgress(word);
+     }
+     } catch (Exception e) {
+     Log.e(TAG, "❌ Ошибка загрузки прогресса: " + word.getWord(), e);
+     initializeDefaultProgress(word);
+     }
+     }
+     */
+    /**
+     * Обновляет основной документ кастомного слова
+     */
+    private void updateCustomWordDocument(WordItem word) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("isFavorite", word.isFavorite());
+        updates.put("difficulty", word.getDifficulty());
+        updates.put("reviewStage", word.getReviewStage());
+        updates.put("nextReviewDate", word.getNextReviewDate());
+        updates.put("consecutiveShows", word.getConsecutiveShows());
+        updates.put("reviewCount", word.getReviewCount());
+        updates.put("correctAnswers", word.getCorrectAnswers());
+        updates.put("lastReviewed", new Date());
+
+        if (word.getLibraryId() != null && !word.getLibraryId().isEmpty()) {
+            // Слово из пользовательской библиотеки
+            db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(word.getLibraryId())
+                    .collection("words")
+                    .document(word.getWordId())
+                    .update(updates);
+        } else {
+            // Обычное кастомное слово
+            db.collection("users")
+                    .document(userId)
+                    .collection("custom_words")
+                    .document(word.getWordId())
+                    .update(updates);
+        }
+
+        Log.d(TAG, "✅ Основной документ кастомного слова обновлен: " + word.getWord());
+    }
+
+    private void initializeDefaultProgress(WordItem word) {
+        word.setDifficulty(3);
+        word.setReviewStage(0);
+        word.setConsecutiveShows(0);
+        word.setNextReviewDate(new Date());
+        word.setReviewCount(0);
+        word.setCorrectAnswers(0);
+    }
+
+    private void loadUserProgressFromFirebase(WordItem word) {
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress")
+                .document(word.getWordId())
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                        DocumentSnapshot progressDoc = task.getResult();
+
+                        // Перезаписываем поля прогрессом пользователя
+                        if (progressDoc.contains("difficulty")) {
+                            Object difficulty = progressDoc.get("difficulty");
+                            if (difficulty instanceof Long) {
+                                word.setDifficulty(((Long) difficulty).intValue());
+                            } else if (difficulty instanceof Integer) {
+                                word.setDifficulty((Integer) difficulty);
+                            }
+                        }
+
+                        if (progressDoc.contains("reviewStage")) {
+                            Object reviewStage = progressDoc.get("reviewStage");
+                            if (reviewStage instanceof Long) {
+                                word.setReviewStage(((Long) reviewStage).intValue());
+                            } else if (reviewStage instanceof Integer) {
+                                word.setReviewStage((Integer) reviewStage);
+                            }
+                        }
+
+                        if (progressDoc.contains("consecutiveShows")) {
+                            Object consecutiveShows = progressDoc.get("consecutiveShows");
+                            if (consecutiveShows instanceof Long) {
+                                word.setConsecutiveShows(((Long) consecutiveShows).intValue());
+                            } else if (consecutiveShows instanceof Integer) {
+                                word.setConsecutiveShows((Integer) consecutiveShows);
+                            }
+                        }
+
+                        if (progressDoc.contains("nextReviewDate")) {
+                            word.setNextReviewDate(progressDoc.getDate("nextReviewDate"));
+                        }
+
+                        Log.d(TAG, "✅ Загружен прогресс для " + word.getWord() +
+                                ": stage=" + word.getReviewStage() +
+                                ", shows=" + word.getConsecutiveShows());
+                    } else {
+                        Log.d(TAG, "ℹ️ Прогресс для " + word.getWord() + " не найден, используем базовые значения");
+                    }
+                });
+    }
+
+    private void loadBasicRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+        // difficulty
         if (document.contains("difficulty")) {
             Object difficulty = document.get("difficulty");
             if (difficulty instanceof Long) {
@@ -563,39 +928,10 @@ public class WordRepository {
                 word.setDifficulty((Integer) difficulty);
             }
         } else {
-            word.setDifficulty(3); // Значение по умолчанию для новых слов
+            word.setDifficulty(3);
         }
-
-        if (document.contains("reviewStage")) {
-            Object reviewStage = document.get("reviewStage");
-            if (reviewStage instanceof Long) {
-                word.setReviewStage(((Long) reviewStage).intValue());
-            } else if (reviewStage instanceof Integer) {
-                word.setReviewStage((Integer) reviewStage);
-            }
-        }
-
-        if (document.contains("consecutiveShows")) {
-            Object consecutiveShows = document.get("consecutiveShows");
-            if (consecutiveShows instanceof Long) {
-                word.setConsecutiveShows(((Long) consecutiveShows).intValue());
-            } else if (consecutiveShows instanceof Integer) {
-                word.setConsecutiveShows((Integer) consecutiveShows);
-            }
-        }
-
-        if (document.contains("nextReviewDate")) {
-            word.setNextReviewDate(document.getDate("nextReviewDate"));
-        }
-
-        Log.d(TAG, "Загружены поля повторений для " + word.getWord() +
-                ": difficulty=" + word.getDifficulty() +
-                ", reviewStage=" + word.getReviewStage() +
-                ", consecutiveShows=" + word.getConsecutiveShows());
     }
-    /**
-     * Получить все доступные библиотеки (публичные + пользовательские)
-     */
+
     public void getAvailableLibraries(OnLibrariesLoadedListener listener) {
         List<WordLibrary> allLibraries = new ArrayList<>();
 
@@ -851,57 +1187,18 @@ public class WordRepository {
     public void updateWord(WordItem word) {
         if (word.getWordId() == null) return;
 
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("isFavorite", word.isFavorite());
-        updates.put("lastReviewed", new Date());
-        updates.put("reviewCount", word.getReviewCount() + 1);
+        Log.d(TAG, "🔄 Обновление слова: " + word.getWord() +
+                ", этап: " + word.getReviewStage() +
+                ", сложность: " + word.getDifficulty());
 
-        // ДОБАВЬ ЭТИ ПОЛЯ ДЛЯ СИСТЕМЫ ПОВТОРЕНИЙ:
-        updates.put("difficulty", word.getDifficulty());
-        updates.put("reviewStage", word.getReviewStage());
-        updates.put("nextReviewDate", word.getNextReviewDate());
-        updates.put("consecutiveShows", word.getConsecutiveShows());
+        // ДЛЯ ВСЕХ СЛОВ сохраняем прогресс в word_progress
+        updateUserWordProgress(word);
 
+        // ТОЛЬКО для кастомных слов обновляем еще и основной документ
         if (word.isCustomWord()) {
-            if (word.getLibraryId() != null && !word.getLibraryId().isEmpty()) {
-                // Слово из пользовательской библиотеки
-                db.collection("users")
-                        .document(userId)
-                        .collection("custom_libraries")
-                        .document(word.getLibraryId())
-                        .collection("words")
-                        .document(word.getWordId())
-                        .update(updates);
-            } else {
-                // Обычное кастомное слово
-                db.collection("users")
-                        .document(userId)
-                        .collection("custom_words")
-                        .document(word.getWordId())
-                        .update(updates);
-            }
-        } else {
-            // Для слов из библиотек сохраняем прогресс отдельно
-            updateUserWordProgress(word, updates);
+            updateCustomWordDocument(word);
         }
-
-        Log.d(TAG, "Слово обновлено: " + word.getWord() +
-                ", этап=" + word.getReviewStage() +
-                ", показы=" + word.getConsecutiveShows());
     }
-
-    /**
-     * Сохранить прогресс изучения слова из библиотеки
-     */
-    private void updateUserWordProgress(WordItem word, Map<String, Object> updates) {
-        db.collection("users")
-                .document(userId)
-                .collection("word_progress")
-                .document(word.getWordId())
-                .set(updates, SetOptions.merge());
-    }
-
-
 
     /**
      * Получить слова для текущей сессии обучения
@@ -941,7 +1238,6 @@ public class WordRepository {
                     }
                 });
     }
-
 
 
     /**
@@ -1138,6 +1434,7 @@ public class WordRepository {
                     error.onError(e);
                 });
     }
+
     /**
      * Деактивировать библиотеку для пользователя
      */
@@ -1161,67 +1458,67 @@ public class WordRepository {
     }
 
 
-        /**
-         * Полностью очищает локальный кеш
-         */
-        public void clearLocalCache(OnSuccessListener success, OnErrorListener error) {
-            Log.d(TAG, "🧹 === НАЧАЛО ОЧИСТКИ ЛОКАЛЬНОГО КЕША ===");
+    /**
+     * Полностью очищает локальный кеш
+     */
+    public void clearLocalCache(OnSuccessListener success, OnErrorListener error) {
+        Log.d(TAG, "🧹 === НАЧАЛО ОЧИСТКИ ЛОКАЛЬНОГО КЕША ===");
 
-            new Thread(() -> {
-                try {
-                    Log.d(TAG, "🧹 Получаем текущее состояние БД...");
+        new Thread(() -> {
+            try {
+                Log.d(TAG, "🧹 Получаем текущее состояние БД...");
 
-                    // Получаем текущие данные ДО очистки
-                    int libCountBefore = localDb.libraryDao().getAllLibraries().size();
-                    int wordCountBefore = localDb.wordDao().getAllWords().size();
-                    int activeLibCountBefore = localDb.libraryDao().getActiveLibraries().size();
+                // Получаем текущие данные ДО очистки
+                int libCountBefore = localDb.libraryDao().getAllLibraries().size();
+                int wordCountBefore = localDb.wordDao().getAllWords().size();
+                int activeLibCountBefore = localDb.libraryDao().getActiveLibraries().size();
 
-                    Log.d(TAG, "🧹 Состояние ДО очистки:");
-                    Log.d(TAG, "   Библиотеки: " + libCountBefore);
-                    Log.d(TAG, "   Слова: " + wordCountBefore);
-                    Log.d(TAG, "   Активные библиотеки: " + activeLibCountBefore);
+                Log.d(TAG, "🧹 Состояние ДО очистки:");
+                Log.d(TAG, "   Библиотеки: " + libCountBefore);
+                Log.d(TAG, "   Слова: " + wordCountBefore);
+                Log.d(TAG, "   Активные библиотеки: " + activeLibCountBefore);
 
-                    // Очищаем таблицы
-                    Log.d(TAG, "🧹 Очищаем таблицу библиотек...");
-                    localDb.libraryDao().clearAllLibraries();
+                // Очищаем таблицы
+                Log.d(TAG, "🧹 Очищаем таблицу библиотек...");
+                localDb.libraryDao().clearAllLibraries();
 
-                    Log.d(TAG, "🧹 Очищаем таблицу слов...");
-                    localDb.wordDao().clearAllWords();
+                Log.d(TAG, "🧹 Очищаем таблицу слов...");
+                localDb.wordDao().clearAllWords();
 
-                    // Получаем данные ПОСЛЕ очистки
-                    int libCountAfter = localDb.libraryDao().getAllLibraries().size();
-                    int wordCountAfter = localDb.wordDao().getAllWords().size();
-                    int activeLibCountAfter = localDb.libraryDao().getActiveLibraries().size();
+                // Получаем данные ПОСЛЕ очистки
+                int libCountAfter = localDb.libraryDao().getAllLibraries().size();
+                int wordCountAfter = localDb.wordDao().getAllWords().size();
+                int activeLibCountAfter = localDb.libraryDao().getActiveLibraries().size();
 
-                    Log.d(TAG, "✅ Состояние ПОСЛЕ очистки:");
-                    Log.d(TAG, "   Библиотеки: " + libCountAfter + " (было: " + libCountBefore + ")");
-                    Log.d(TAG, "   Слова: " + wordCountAfter + " (было: " + wordCountBefore + ")");
-                    Log.d(TAG, "   Активные библиотеки: " + activeLibCountAfter + " (было: " + activeLibCountBefore + ")");
+                Log.d(TAG, "✅ Состояние ПОСЛЕ очистки:");
+                Log.d(TAG, "   Библиотеки: " + libCountAfter + " (было: " + libCountBefore + ")");
+                Log.d(TAG, "   Слова: " + wordCountAfter + " (было: " + wordCountBefore + ")");
+                Log.d(TAG, "   Активные библиотеки: " + activeLibCountAfter + " (было: " + activeLibCountBefore + ")");
 
-                    if (libCountAfter == 0 && wordCountAfter == 0) {
-                        Log.d(TAG, "✅ Локальный кеш полностью очищен!");
-                    } else {
-                        Log.w(TAG, "⚠️ Кеш очищен не полностью!");
-                    }
-
-                    // Вызываем колбэк в UI потоке
-                    if (success != null) {
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                            Log.d(TAG, "✅ Колбэк успеха вызван");
-                            success.onSuccess();
-                        });
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "❌ Ошибка очистки кеша", e);
-                    if (error != null) {
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                            Log.d(TAG, "❌ Колбэк ошибки вызван");
-                            error.onError(e);
-                        });
-                    }
+                if (libCountAfter == 0 && wordCountAfter == 0) {
+                    Log.d(TAG, "✅ Локальный кеш полностью очищен!");
+                } else {
+                    Log.w(TAG, "⚠️ Кеш очищен не полностью!");
                 }
-            }).start();
-        }
+
+                // Вызываем колбэк в UI потоке
+                if (success != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        Log.d(TAG, "✅ Колбэк успеха вызван");
+                        success.onSuccess();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка очистки кеша", e);
+                if (error != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        Log.d(TAG, "❌ Колбэк ошибки вызван");
+                        error.onError(e);
+                    });
+                }
+            }
+        }).start();
+    }
 
     /**
      * Получить активные библиотеки пользователя
@@ -1262,6 +1559,7 @@ public class WordRepository {
                     }
                 });
     }
+
     /**
      * Загружает полную информацию о библиотеках
      */
@@ -1292,6 +1590,7 @@ public class WordRepository {
             }
         });
     }
+
     /**
      * Получить слова из одной библиотеки
      */
@@ -1309,5 +1608,83 @@ public class WordRepository {
                     .collection("words")
                     .get();
         }
+    }
+    /**
+     * Сохраняет прогресс изучения слова - СОЗДАЕТ АВТОМАТИЧЕСКИ
+     */
+    private void updateUserWordProgress(WordItem word) {
+        // ПРОВЕРКА 1: userId
+        Log.d(TAG, "=== ОТЛАДКА СОХРАНЕНИЯ ПРОГРЕССА ===");
+        Log.d(TAG, "userId: " + userId);
+
+        if (userId == null || userId.equals("anonymous")) {
+            Log.e(TAG, "❌ ОШИБКА: userId = " + userId + " - прогресс не сохранится!");
+            return;
+        }
+
+        // ПРОВЕРКА 2: wordId
+        Log.d(TAG, "wordId: " + word.getWordId());
+        if (word.getWordId() == null) {
+            Log.e(TAG, "❌ ОШИБКА: wordId = null - прогресс не сохранится!");
+            return;
+        }
+
+        // ПРОВЕРКА 3: Данные прогресса
+        Log.d(TAG, "Данные прогресса:");
+        Log.d(TAG, " - difficulty: " + word.getDifficulty());
+        Log.d(TAG, " - reviewStage: " + word.getReviewStage());
+        Log.d(TAG, " - consecutiveShows: " + word.getConsecutiveShows());
+
+        Map<String, Object> progress = new HashMap<>();
+        progress.put("difficulty", word.getDifficulty());
+        progress.put("reviewStage", word.getReviewStage());
+        progress.put("consecutiveShows", word.getConsecutiveShows());
+        progress.put("nextReviewDate", word.getNextReviewDate());
+        progress.put("reviewCount", word.getReviewCount());
+        progress.put("correctAnswers", word.getCorrectAnswers());
+        progress.put("libraryId", word.getLibraryId());
+        progress.put("word", word.getWord());
+        progress.put("translation", word.getTranslation());
+        progress.put("lastReviewed", new Date());
+        progress.put("updatedAt", new Date());
+        progress.put("createdAt", new Date());
+
+        Log.d(TAG, "💾 Попытка сохранения в: users/" + userId + "/word_progress/" + word.getWordId());
+
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress")
+                .document(word.getWordId())
+                .set(progress, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ УСПЕХ: Прогресс сохранен для: " + word.getWord());
+                    Log.d(TAG, "✅ Коллекция word_progress должна быть создана!");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ ОШИБКА сохранения прогресса: " + word.getWord(), e);
+                    Log.e(TAG, "❌ Коллекция word_progress НЕ создана из-за ошибки!");
+                });
+    }
+
+    /**
+     * Гарантирует создание структуры word_progress
+     */
+    public void ensureWordProgressStructure(OnSuccessListener listener) {
+        Map<String, Object> initialData = new HashMap<>();
+        initialData.put("_createdAt", new Date());
+        initialData.put("_initialized", true);
+
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress")
+                .document("_initialization")
+                .set(initialData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Коллекция word_progress создана!");
+                    listener.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка создания word_progress", e);
+                });
     }
 }

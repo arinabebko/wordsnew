@@ -101,7 +101,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      */
     /**
      * Загружает слова из АКТИВНЫХ библиотек Firebase
-     */
+
     private void loadWordsFromFirebase() {
         Log.d(TAG, "Начинаем загрузку слов из Firebase...");
         showLoading(true);
@@ -111,7 +111,16 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             @Override
             public void onWordsLoaded(List<WordItem> words) {
                 Log.d(TAG, "Успешно загружено слов: " + words.size());
+                Log.d(TAG, "Загружено слов: " + words.size());
 
+                for (WordItem word : words) {
+                    Log.d(TAG, "=== СЛОВО ИЗ " + (word.isCustomWord() ? "КАСТОМНОЙ" : "БИБЛИОТЕКИ") + " ===");
+                    Log.d(TAG, "Слово: " + word.getWord());
+                    Log.d(TAG, "Stage: " + word.getReviewStage());
+                    Log.d(TAG, "Shows: " + word.getConsecutiveShows());
+                    Log.d(TAG, "Difficulty: " + word.getDifficulty());
+                    Log.d(TAG, "Next Review: " + word.getNextReviewDate());
+                }
                 wordList.clear();
                 wordList.addAll(words);
 
@@ -140,25 +149,96 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             }
         });
     }
+     */
+    /**
+     * Загружает слова из Firebase с предварительной проверкой структуры
+     */
+    private void loadWordsFromFirebase() {
+        Log.d(TAG, "Начинаем загрузку слов из Firebase...");
+        showLoading(true);
 
+        // СНАЧАЛА проверяем/создаем структуру word_progress
+        wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "✅ Структура word_progress готова, загружаем слова...");
+
+                // ТЕПЕРЬ загружаем слова
+                wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
+                    @Override
+                    public void onWordsLoaded(List<WordItem> words) {
+                        Log.d(TAG, "Успешно загружено слов: " + words.size());
+                        processLoadedWords(words);
+                        showLoading(false);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
+                        loadWordsFromLocalCache();
+                        showLoading(false);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Обрабатывает загруженные слова (вынес в отдельный метод для чистоты)
+     */
+    private void processLoadedWords(List<WordItem> words) {
+        Log.d(TAG, "Загружено слов: " + words.size());
+
+        for (WordItem word : words) {
+            Log.d(TAG, "=== СЛОВО ИЗ " + (word.isCustomWord() ? "КАСТОМНОЙ" : "БИБЛИОТЕКИ") + " ===");
+            Log.d(TAG, "Слово: " + word.getWord());
+            Log.d(TAG, "Stage: " + word.getReviewStage());
+            Log.d(TAG, "Shows: " + word.getConsecutiveShows());
+            Log.d(TAG, "Difficulty: " + word.getDifficulty());
+            Log.d(TAG, "Next Review: " + word.getNextReviewDate());
+        }
+
+        wordList.clear();
+        wordList.addAll(words);
+
+        if (wordList.isEmpty()) {
+            Log.d(TAG, "Нет слов для изучения");
+            showNoWordsState();
+        } else {
+            List<WordItem> sessionWords = getWordsForSession(wordList);
+            Log.d(TAG, "Слов для сессии: " + sessionWords.size());
+
+            if (sessionWords.isEmpty()) {
+                showNoWordsState();
+            } else {
+                setupViewPagerWithWords(sessionWords);
+            }
+        }
+    }
     private void loadWordsFromLocalCache() {
         Log.d(TAG, "Пробуем загрузить слова из локального кеша...");
-        wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener()
-        {
-            @Override
-            public void onWordsLoaded(List<WordItem> words) {
-                if (words.isEmpty()) {
-                    showNoWordsState();
-                } else {
-                    List<WordItem> sessionWords = getWordsForSession(words);
-                    setupViewPagerWithWords(sessionWords);
-                }
-            }
 
+        // Тоже проверяем структуру перед загрузкой
+        wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
             @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Ошибка локальной загрузки: " + e.getMessage());
-                showNoWordsState();
+            public void onSuccess() {
+                wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
+                    @Override
+                    public void onWordsLoaded(List<WordItem> words) {
+                        if (words.isEmpty()) {
+                            showNoWordsState();
+                        } else {
+                            List<WordItem> sessionWords = getWordsForSession(words);
+                            setupViewPagerWithWords(sessionWords);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "Ошибка локальной загрузки: " + e.getMessage());
+                        showNoWordsState();
+                    }
+                });
             }
         });
     }
@@ -607,13 +687,19 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     @Override
     public void onCardLearned(WordItem word) {
-        Log.d(TAG, "Слово выучено: " + word.getWord());
+        Log.d(TAG, "=== ОБРАБОТКА: onCardLearned ===");
+        Log.d(TAG, "Слово: " + word.getWord());
+        Log.d(TAG, "Библиотека: " + word.getLibraryId());
+        Log.d(TAG, "Custom: " + word.isCustomWord());
 
-        // Сохраняем в базу
-        wordRepository.markWordAsLearned(word.getWordId(),
-                () -> Log.d(TAG, "Слово помечено как выучено"),
-                e -> Log.e(TAG, "Ошибка сохранения: " + e.getMessage())
-        );
+        SimpleRepetitionSystem.processAnswer(word, true);
+
+        Log.d(TAG, "После обработки:");
+        Log.d(TAG, " - difficulty: " + word.getDifficulty());
+        Log.d(TAG, " - reviewStage: " + word.getReviewStage());
+        Log.d(TAG, " - consecutiveShows: " + word.getConsecutiveShows());
+
+        wordRepository.updateWord(word);
 
         Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
     }
@@ -622,11 +708,11 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     public void onCardNotLearned(WordItem word) {
         Log.d(TAG, "Слово не выучено: " + word.getWord());
 
-        // Сохраняем в базу для повторения
-        wordRepository.markWordForReview(word.getWordId(),
-                () -> Log.d(TAG, "Слово отложено для повторения"),
-                e -> Log.e(TAG, "Ошибка сохранения: " + e.getMessage())
-        );
+        // ВЫЗЫВАЕМ СИСТЕМУ ПОВТОРЕНИЙ!
+        SimpleRepetitionSystem.processAnswer(word, false);
+
+        // СОХРАНЯЕМ обновленный прогресс
+        wordRepository.updateWord(word);
 
         Toast.makeText(getContext(), "🔄 " + word.getWord() + " - повторим позже", Toast.LENGTH_SHORT).show();
     }
@@ -760,6 +846,8 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             });
         }
     }
+
+
     /**
      * Показывает состояние когда нет слов для изучения (в начале)
      */
