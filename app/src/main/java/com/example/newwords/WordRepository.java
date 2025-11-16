@@ -21,6 +21,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class WordRepository {
     private final FirebaseFirestore db;
@@ -733,16 +736,62 @@ public class WordRepository {
     }
      */
     private void loadRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
-        // Сначала загружаем базовые поля
-        loadBasicRepetitionFields(word, document);
+        Log.d(TAG, "=== ЗАГРУЗКА ПРОГРЕССА ДЛЯ: " + word.getWord() + " ===");
 
-        // ВРЕМЕННО: ОТКЛЮЧИТЕ асинхронную загрузку прогресса
-        // Вместо этого загружаем прогресс СИНХРОННО
-        loadUserProgressSync(word);
+        loadBasicRepetitionFields(word, document);
+        Log.d(TAG, "ДО прогресса - stage: " + word.getReviewStage() + ", shows: " + word.getConsecutiveShows());
+
+        // Загружаем прогресс в фоновом потоке
+        loadUserProgressInBackground(word);
+
+        Log.d(TAG, "ПОСЛЕ прогресса - stage: " + word.getReviewStage() + ", shows: " + word.getConsecutiveShows());
+    }
+    /**
+     * Упрощенная загрузка прогресса - синхронно но в фоновом потоке
+     */
+    private void loadUserProgressInBackground(WordItem word) {
+        if (userId.equals("anonymous")) {
+            return;
+        }
+
+        try {
+            // Используем Executor для фонового потока
+            Future<DocumentSnapshot> future = Executors.newSingleThreadExecutor().submit(() ->
+                    Tasks.await(db.collection("users")
+                            .document(userId)
+                            .collection("word_progress")
+                            .document(word.getWordId())
+                            .get())
+            );
+
+            DocumentSnapshot progressDoc = future.get(5, TimeUnit.SECONDS); // таймаут 5 секунд
+
+            if (progressDoc != null && progressDoc.exists()) {
+                Log.d(TAG, "✅ Прогресс загружен для: " + word.getWord());
+
+                if (progressDoc.contains("difficulty")) {
+                    Long difficulty = progressDoc.getLong("difficulty");
+                    if (difficulty != null) word.setDifficulty(difficulty.intValue());
+                }
+                if (progressDoc.contains("reviewStage")) {
+                    Long reviewStage = progressDoc.getLong("reviewStage");
+                    if (reviewStage != null) word.setReviewStage(reviewStage.intValue());
+                }
+                if (progressDoc.contains("consecutiveShows")) {
+                    Long shows = progressDoc.getLong("consecutiveShows");
+                    if (shows != null) word.setConsecutiveShows(shows.intValue());
+                }
+                if (progressDoc.contains("nextReviewDate")) {
+                    word.setNextReviewDate(progressDoc.getDate("nextReviewDate"));
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Ошибка загрузки прогресса: " + word.getWord(), e);
+        }
     }
     /**
      * СИНХРОННАЯ загрузка прогресса
-     */
+
     private void loadUserProgressSync(WordItem word) {
         if (userId.equals("anonymous")) {
             initializeDefaultProgress(word);
@@ -789,7 +838,78 @@ public class WordRepository {
         }
     }
 
+     */
+    /**
+     * АСИНХРОННАЯ загрузка прогресса пользователя
+     */
+    private void loadUserProgressAsync(WordItem word, OnProgressLoadedListener listener) {
+        if (userId.equals("anonymous")) {
+            Log.d(TAG, "❌ Анонимный пользователь - пропускаем загрузку прогресса");
+            listener.onProgressLoaded(false);
+            return;
+        }
 
+        Log.d(TAG, "🔄 Асинхронная загрузка прогресса для: " + word.getWord());
+
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress")
+                .document(word.getWordId())
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                        DocumentSnapshot progressDoc = task.getResult();
+                        Log.d(TAG, "✅ Документ прогресса найден для: " + word.getWord());
+
+                        // ЗАГРУЖАЕМ ВСЕ ПОЛЯ ПРОГРЕССА
+                        if (progressDoc.contains("difficulty")) {
+                            Long difficulty = progressDoc.getLong("difficulty");
+                            if (difficulty != null) {
+                                word.setDifficulty(difficulty.intValue());
+                                Log.d(TAG, "✅ Загружена difficulty: " + difficulty);
+                            }
+                        }
+
+                        if (progressDoc.contains("reviewStage")) {
+                            Long reviewStage = progressDoc.getLong("reviewStage");
+                            if (reviewStage != null) {
+                                word.setReviewStage(reviewStage.intValue());
+                                Log.d(TAG, "✅ Загружен reviewStage: " + reviewStage);
+                            }
+                        }
+
+                        if (progressDoc.contains("consecutiveShows")) {
+                            Long consecutiveShows = progressDoc.getLong("consecutiveShows");
+                            if (consecutiveShows != null) {
+                                word.setConsecutiveShows(consecutiveShows.intValue());
+                                Log.d(TAG, "✅ Загружены consecutiveShows: " + consecutiveShows);
+                            }
+                        }
+
+                        if (progressDoc.contains("nextReviewDate")) {
+                            Date nextReview = progressDoc.getDate("nextReviewDate");
+                            word.setNextReviewDate(nextReview);
+                            Log.d(TAG, "✅ Загружен nextReviewDate: " + nextReview);
+                        }
+
+                        listener.onProgressLoaded(true);
+                    } else {
+                        Log.d(TAG, "ℹ️ Прогресс не найден для: " + word.getWord());
+                        initializeDefaultProgress(word);
+                        listener.onProgressLoaded(false);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка загрузки прогресса для: " + word.getWord(), e);
+                    initializeDefaultProgress(word);
+                    listener.onProgressLoaded(false);
+                });
+    }
+
+    // Интерфейс для колбэка
+    private interface OnProgressLoadedListener {
+        void onProgressLoaded(boolean success);
+    }
     /**
      * СИНХРОННАЯ загрузка прогресса пользователя
 
