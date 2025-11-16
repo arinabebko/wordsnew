@@ -103,40 +103,62 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      * Загружает слова из АКТИВНЫХ библиотек Firebase
      */
     private void loadWordsFromFirebase() {
-        Log.d(TAG, "Начинаем загрузку слов из АКТИВНЫХ библиотек...");
+        Log.d(TAG, "Начинаем загрузку слов из Firebase...");
         showLoading(true);
-        debugActiveLibraries();
-        wordRepository.getWordsFromActiveLibraries(new WordRepository.OnWordsLoadedListener() {
+
+        // ИСПОЛЬЗУЙТЕ НОВЫЙ МЕТОД:
+        wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Успешно загружено слов из активных библиотек: " + words.size());
+                Log.d(TAG, "Успешно загружено слов: " + words.size());
 
                 wordList.clear();
                 wordList.addAll(words);
 
-                logWordDetails(wordList);
-                // Фильтруем слова для сессии
-                List<WordItem> sessionWords = getWordsForSession(wordList);
-
-                if (sessionWords.isEmpty()) {
-                    Log.d(TAG, "Нет слов для изучения в данный момент");
-                    // ЗАМЕНИТЕ ЭТУ СТРОКУ:
-                    showNoWordsState(); // было: showNoWordsForStudyState()
+                if (wordList.isEmpty()) {
+                    Log.d(TAG, "Нет слов для изучения");
+                    showNoWordsState();
                 } else {
-                    Log.d(TAG, "Настройка ViewPager с " + sessionWords.size() + " словами для сессии");
-                    setupViewPagerWithWords(sessionWords);
+                    List<WordItem> sessionWords = getWordsForSession(wordList);
+                    Log.d(TAG, "Слов для сессии: " + sessionWords.size());
+
+                    if (sessionWords.isEmpty()) {
+                        showNoWordsState();
+                    } else {
+                        setupViewPagerWithWords(sessionWords);
+                    }
                 }
-
                 showLoading(false);
-
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки слов из активных библиотек: " + e.getMessage());
-                Toast.makeText(getContext(), "Ошибка загрузки. Используем локальные слова", Toast.LENGTH_SHORT).show();
-                setupViewPagerWithLocalWords();
+                Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
+                // Пробуем локальный способ как запасной вариант
+                loadWordsFromLocalCache();
                 showLoading(false);
+            }
+        });
+    }
+
+    private void loadWordsFromLocalCache() {
+        Log.d(TAG, "Пробуем загрузить слова из локального кеша...");
+        wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener()
+        {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                if (words.isEmpty()) {
+                    showNoWordsState();
+                } else {
+                    List<WordItem> sessionWords = getWordsForSession(words);
+                    setupViewPagerWithWords(sessionWords);
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка локальной загрузки: " + e.getMessage());
+                showNoWordsState();
             }
         });
     }
@@ -166,7 +188,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 sessionWords.add(word);
 
                 // Логируем тип слова
-                if (word.isNew() && word.needsMoreShows()) {
+                if (word.isNew()) {
                     newWordsCount++;
                 } else {
                     dueWordsCount++;
@@ -186,7 +208,6 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
         return sessionWords;
     }
-
     /**
      * Получает слова, готовые к повторению
      */
@@ -286,7 +307,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         Log.d(TAG, "Используем локальные слова");
 
         wordList.clear();
-        wordList.addAll(createDemoWordList());
+       // wordList.addAll(createDemoWordList());
 
         // Используем ту же логику выбора слов для сессии
         List<WordItem> sessionWords = getWordsForSession(wordList);
@@ -498,7 +519,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     /**
      * Использует локальные слова при ошибке
-     */
+
     private void setupWithLocalWords() {
         wordList.clear();
         wordList.addAll(createDemoWordList());
@@ -507,7 +528,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     /**
      * Добавляет демо-слова если база пустая
-     */
+
     private void addDemoWords() {
         Log.d(TAG, "Добавляем демо-слова...");
 
@@ -541,7 +562,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     /**
      * Создает список демо-слов
-     */
+
     private List<WordItem> createDemoWordList() {
         List<WordItem> demoWords = new ArrayList<>();
         demoWords.add(new WordItem("hello", "привет", "Основное приветствие"));
@@ -553,7 +574,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         demoWords.add(new WordItem("book", "книга", "Для чтения"));
         return demoWords;
     }
-
+     */
     /**
      * Настраивает кнопку назад
      */

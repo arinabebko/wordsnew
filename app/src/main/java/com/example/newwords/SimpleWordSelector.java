@@ -15,7 +15,7 @@ public class SimpleWordSelector {
      */
     /**
      * Выбирает слова для текущей сессии изучения
-     */
+
     private List<WordItem> getWordsForSession(List<WordItem> allWords) {
         List<WordItem> sessionWords = new ArrayList<>();
         int maxWords = 20;
@@ -49,7 +49,7 @@ public class SimpleWordSelector {
         Log.d(TAG, "Итог сессии: " + sessionWords.size() + " слов");
         return sessionWords;
     }
-
+     */
     private static List<WordItem> getDueWords(List<WordItem> allWords) {
         List<WordItem> dueWords = new ArrayList<>();
         for (WordItem word : allWords) {

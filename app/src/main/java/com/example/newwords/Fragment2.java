@@ -345,35 +345,19 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private void startLearning() {
         Log.d(TAG, "Начало обучения с " + getActiveLibrariesCount() + " активными библиотеками");
 
-        NotificationScheduler.resetInactivityTimer(getActivity());
+        // Сохраняем в локальную БД
+        saveActiveLibraries();
 
-        // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ КЕШ перед переходом
-        wordRepository.syncWordsFromFirebase(new WordRepository.OnWordsLoadedListener() {
-            @Override
-            public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Кеш обновлен, слов: " + words.size());
+        // Сразу переходим к обучению, не дожидаясь синхронизации
+        if (getActivity() != null) {
+            getActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(android.R.id.content, new WordsFragment())
+                    .addToBackStack(null)
+                    .commit();
+        }
 
-                // Переходим к обучению
-                if (getActivity() != null) {
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(android.R.id.content, new WordsFragment())
-                            .addToBackStack(null)
-                            .commit();
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Ошибка обновления кеша", e);
-                // Все равно переходим, но с устаревшими данными
-                if (getActivity() != null) {
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(android.R.id.content, new WordsFragment())
-                            .addToBackStack(null)
-                            .commit();
-                }
-            }
-        });
+        // Синхронизируем с Firebase в фоне
+        syncWithFirebase();
     }
 
 

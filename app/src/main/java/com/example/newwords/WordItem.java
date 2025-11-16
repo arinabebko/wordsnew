@@ -121,37 +121,10 @@ public class WordItem {
 
     // === МЕТОДЫ ДЛЯ СИСТЕМЫ ПОВТОРЕНИЙ ===
 
-    /**
-     * Проверяет, готово ли слово к повторению
-     */
-    public boolean isDueForReview() {
-        if (nextReviewDate == null) {
-            Log.d("WordItem", "Слово " + word + ": nextReviewDate is null - готово к повторению");
-            return true;
-        }
 
-        boolean isDue = new Date().after(nextReviewDate);
-        Log.d("WordItem", "Слово " + word + ": nextReviewDate=" + nextReviewDate + ", isDue=" + isDue);
-        return isDue;
-    }
 
-    /**
-     * Проверяет, является ли слово новым
-     */
-    public boolean isNew() {
-        return reviewStage == 0 && consecutiveShows == 0;
-    }
 
-    /**
-     * Нужно ли показывать слово еще раз в текущей сессии
-     */
-    public boolean needsMoreShows() {
-        // Новые слова показываем 3 раза подряд
-        if (reviewStage == 0) {
-            return consecutiveShows < 3;
-        }
-        return false;
-    }
+
 
     /**
      * Обновляет сложность на основе этапа (по твоей логике)
@@ -175,6 +148,49 @@ public class WordItem {
         Log.d("WordItem", "Слово " + word + ": этап=" + reviewStage + ", сложность=" + difficulty);
     }
 
+
+
+
+
+
+
+
+
+    /**
+     * Проверяет, готово ли слово к повторению
+     */
+    public boolean isDueForReview() {
+        if (nextReviewDate == null) {
+            Log.d("WordItem", "Слово " + word + ": nextReviewDate is null - готово к повторению");
+            return true;
+        }
+
+        boolean isDue = new Date().after(nextReviewDate);
+        Log.d("WordItem", "Слово " + word + ": nextReviewDate=" + nextReviewDate + ", isDue=" + isDue);
+        return isDue;
+    }
+
+    /**
+     * Проверяет, является ли слово новым
+     */
+    public boolean isNew() {
+        return SimpleRepetitionSystem.isNewWord(this);
+    }
+
+    /**
+     * Проверяет, является ли слово выученным
+     */
+    public boolean isLearned() {
+        return SimpleRepetitionSystem.isLearnedWord(this);
+    }
+
+    /**
+     * Нужно ли показывать слово еще раз в текущей сессии
+     */
+    public boolean needsMoreShows() {
+        return reviewStage == 0 && consecutiveShows < 3;
+    }
+
     /**
      * Получает текстовое описание статуса
      */
@@ -192,10 +208,11 @@ public class WordItem {
         return 0xFF625fba;
     }
 
-    /**
-     * Проверяет, выучено ли слово
-     */
-    public boolean isLearned() {
-        return difficulty == 1;
-    }
+
+
+
+
+
+
+
 }

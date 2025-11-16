@@ -1,68 +1,85 @@
 package com.example.newwords;
 
 import android.util.Log;
-
 import java.util.Calendar;
 import java.util.Date;
+
 public class SimpleRepetitionSystem {
     private static final String TAG = "RepetitionSystem";
 
-    // Интервалы в днях: 0,1,3,7,14,30,60
+    // Интервалы в днях для каждого этапа: [0, 1, 3, 7, 14, 30, 60]
     private static final int[] REVIEW_INTERVALS = {0, 1, 3, 7, 14, 30, 60};
+    private static final int MAX_STAGE = REVIEW_INTERVALS.length - 1;
 
-    public static void processAnswer(WordItem word, boolean isLearned) {
+    /**
+     * Обрабатывает ответ пользователя
+     */
+    public static void processAnswer(WordItem word, boolean isCorrect) {
         Log.d(TAG, "Обработка: " + word.getWord() +
-                ", выучил: " + isLearned +
+                ", правильный: " + isCorrect +
                 ", этап: " + word.getReviewStage() +
-                ", показов: " + word.getConsecutiveShows() +
-                ", текущая сложность: " + word.getDifficulty());
+                ", показов: " + word.getConsecutiveShows());
 
-        if (isLearned) {
-            handleLearnedAnswer(word);
+        word.setReviewCount(word.getReviewCount() + 1);
+        word.setLastReviewed(new Date());
+
+        if (isCorrect) {
+            word.setCorrectAnswers(word.getCorrectAnswers() + 1);
+            handleCorrectAnswer(word);
         } else {
-            handleNotLearnedAnswer(word);
+            handleIncorrectAnswer(word);
         }
 
         updateNextReviewDate(word);
-        word.updateDifficultyBasedOnStage(); // Обновляем сложность ПОСЛЕ изменения этапа
+        updateDifficulty(word);
 
         Log.d(TAG, "Результат: этап=" + word.getReviewStage() +
-                ", показов=" + word.getConsecutiveShows() +
-                ", сложность=" + word.getDifficulty());
+                ", сложность=" + word.getDifficulty() +
+                ", след. дата=" + word.getNextReviewDate());
     }
 
-    private static void handleLearnedAnswer(WordItem word) {
-        if (word.getReviewStage() == 0 && word.getConsecutiveShows() < 3) {
+    /**
+     * Обрабатывает правильный ответ
+     */
+    private static void handleCorrectAnswer(WordItem word) {
+        if (word.getReviewStage() == 0) {
             // Новое слово - увеличиваем счетчик показов
             word.setConsecutiveShows(word.getConsecutiveShows() + 1);
-            Log.d(TAG, "✅ Новое слово показано " + word.getConsecutiveShows() + "/3 раз");
 
-            // Если показали 3 раза - переходим к первому интервалу
+            // Если показали 3 раза - переходим к этапу 1
             if (word.getConsecutiveShows() >= 3) {
-                word.setReviewStage(1); // Переходим к этапу 1 (1 день)
-                word.setConsecutiveShows(0); // Сбрасываем счетчик
+                word.setReviewStage(1);
+                word.setConsecutiveShows(0);
                 Log.d(TAG, "✅ Слово показано 3 раза, переходим к этапу 1");
+            } else {
+                Log.d(TAG, "✅ Новое слово показано " + word.getConsecutiveShows() + "/3 раз");
             }
         } else {
             // Уже не новое слово - переходим к следующему этапу
-            if (word.getReviewStage() < REVIEW_INTERVALS.length - 1) {
+            if (word.getReviewStage() < MAX_STAGE) {
                 word.setReviewStage(word.getReviewStage() + 1);
-                word.setConsecutiveShows(0); // Сбрасываем для следующего этапа
+                word.setConsecutiveShows(0);
                 Log.d(TAG, "✅ Переход к этапу " + word.getReviewStage());
             } else {
-                Log.d(TAG, "✅ Слово полностью освоено!");
+                Log.d(TAG, "✅ Слово достигло максимального этапа");
             }
         }
     }
 
-    private static void handleNotLearnedAnswer(WordItem word) {
-        // Полный сброс к началу
-        word.setReviewStage(0);
+    /**
+     * Обрабатывает неправильный ответ
+     */
+    private static void handleIncorrectAnswer(WordItem word) {
+        // Сбрасываем на предыдущий этап, но не ниже 0
+        int newStage = Math.max(0, word.getReviewStage() - 2);
+        word.setReviewStage(newStage);
         word.setConsecutiveShows(0);
-        word.setDifficulty(3); // Возвращаем в "новые"
-        Log.d(TAG, "❌ Полный сброс слова к началу");
+        Log.d(TAG, "❌ Сброс к этапу " + newStage);
     }
 
+    /**
+     * Обновляет дату следующего повторения
+     */
     private static void updateNextReviewDate(WordItem word) {
         Calendar calendar = Calendar.getInstance();
 
@@ -70,14 +87,28 @@ public class SimpleRepetitionSystem {
             // Новое слово, которое нужно показать еще раз в ЭТОЙ ЖЕ сессии
             // Устанавливаем дату в прошлом, чтобы слово было готово к повторению сразу
             calendar.add(Calendar.MINUTE, -1);
-            word.setNextReviewDate(calendar.getTime());
-            Log.d(TAG, "📝 Покажем слово еще раз в этой сессии");
         } else {
             // Устанавливаем интервал по этапу
             int intervalDays = REVIEW_INTERVALS[word.getReviewStage()];
             calendar.add(Calendar.DAY_OF_YEAR, intervalDays);
-            word.setNextReviewDate(calendar.getTime());
             Log.d(TAG, "📅 Следующее повторение через " + intervalDays + " дней");
+        }
+
+        word.setNextReviewDate(calendar.getTime());
+    }
+
+    /**
+     * Обновляет сложность слова на основе этапа
+     */
+    private static void updateDifficulty(WordItem word) {
+        int stage = word.getReviewStage();
+
+        if (stage >= 6) {
+            word.setDifficulty(1); // Выучено
+        } else if (stage >= 3) {
+            word.setDifficulty(2); // Изучается
+        } else {
+            word.setDifficulty(3); // Новое
         }
     }
 
@@ -85,24 +116,23 @@ public class SimpleRepetitionSystem {
      * Нужно ли показывать слово в текущей сессии
      */
     public static boolean shouldShowInSession(WordItem word) {
-        // НЕ показываем если слово уже выучено (сложность 1)
-        if (word.getDifficulty() == 1) {
-            Log.d(TAG, "❌ Слово " + word.getWord() + " выучено, не показываем");
-            return false;
-        }
-
-        // Показываем если слово готово к повторению по дате
+        // Показываем если слово готово к повторению И не достигло максимального этапа
         boolean isDue = word.isDueForReview();
+        boolean isNotFullyLearned = word.getReviewStage() < MAX_STAGE;
 
-        if (isDue) {
-            Log.d(TAG, "✅ Слово " + word.getWord() + " готово к повторению");
-            return true;
-        } else {
-            Log.d(TAG, "❌ Слово " + word.getWord() + " не готово к повторению, след. дата: " + word.getNextReviewDate());
-            return false;
-        }
+        boolean shouldShow = isDue && isNotFullyLearned;
+
+        Log.d(TAG, "Проверка показа: " + word.getWord() +
+                ", готово: " + isDue +
+                ", не выучено: " + isNotFullyLearned +
+                ", показывать: " + shouldShow);
+
+        return shouldShow;
     }
 
+    /**
+     * Получает текст для отображения следующего повторения
+     */
     public static String getNextReviewText(WordItem word) {
         if (word.getReviewStage() == 0 && word.getConsecutiveShows() < 3) {
             int remainingShows = 3 - word.getConsecutiveShows();
@@ -111,7 +141,7 @@ public class SimpleRepetitionSystem {
 
         if (word.getNextReviewDate() == null) return "Сейчас";
 
-        if (word.getDifficulty() == 1) {
+        if (word.getReviewStage() >= MAX_STAGE) {
             return "Выучено!";
         }
 
@@ -121,5 +151,19 @@ public class SimpleRepetitionSystem {
         if (days <= 0) return "Сейчас";
         if (days == 1) return "Повторить: через 1 день";
         return "Повторить: через " + days + " дней";
+    }
+
+    /**
+     * Проверяет, является ли слово новым
+     */
+    public static boolean isNewWord(WordItem word) {
+        return word.getReviewStage() == 0 && word.getConsecutiveShows() == 0;
+    }
+
+    /**
+     * Проверяет, является ли слово выученным
+     */
+    public static boolean isLearnedWord(WordItem word) {
+        return word.getReviewStage() >= MAX_STAGE;
     }
 }
