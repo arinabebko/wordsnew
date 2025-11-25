@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -96,7 +97,7 @@ public class FragmentNotificationsOption extends Fragment {
         SharedPreferences.Editor editor = preferences.edit();
 
         String time = reminderTimeEditText.getText().toString().trim();
-        if (TextUtils.isEmpty(time)) {
+        if (TextUtils.isEmpty(time) || !isValidTimeFormat(time)) {
             time = "19:00";
             reminderTimeEditText.setText(time);
         }
@@ -117,12 +118,18 @@ public class FragmentNotificationsOption extends Fragment {
                 ", time=" + time);
     }
 
+    private boolean isValidTimeFormat(String time) {
+        return time.matches("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$");
+    }
+
     private void scheduleNotifications() {
         // Сначала отменяем все уведомления
         cancelAllNotifications();
 
         String type = preferences.getString(KEY_NOTIFICATION_TYPE, "none");
         String time = preferences.getString(KEY_NOTIFICATION_TIME, "19:00");
+
+        Log.d("Notifications", "Планируем уведомления: type=" + type + ", time=" + time);
 
         switch (type) {
             case "once_a_day":
@@ -149,10 +156,14 @@ public class FragmentNotificationsOption extends Fragment {
             calendar.set(Calendar.HOUR_OF_DAY, hour);
             calendar.set(Calendar.MINUTE, minute);
             calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            Log.d("Notifications", "Устанавливаем уведомление на: " + calendar.getTime());
 
             // Если время уже прошло сегодня, установим на завтра
             if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
                 calendar.add(Calendar.DAY_OF_YEAR, 1);
+                Log.d("Notifications", "Время прошло, устанавливаем на завтра: " + calendar.getTime());
             }
 
             Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
@@ -170,73 +181,104 @@ public class FragmentNotificationsOption extends Fragment {
             AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
 
             if (alarmManager != null) {
-                // Устанавливаем повторение каждый день
-                alarmManager.setRepeating(
-                        AlarmManager.RTC_WAKEUP,
-                        calendar.getTimeInMillis(),
-                        AlarmManager.INTERVAL_DAY,
-                        pendingIntent
-                );
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                } else {
+                    alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                }
+
+                Log.d("Notifications", "Ежедневное уведомление установлено на: " + calendar.getTime());
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(requireContext(), "Ошибка установки напоминания", Toast.LENGTH_SHORT).show();
+            Log.e("Notifications", "Ошибка установки напоминания", e);
+            Toast.makeText(requireContext(), "Ошибка установки напоминания: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-
     private void scheduleInactivityNotification() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_YEAR, 1); // Через 1 день
+        try {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_YEAR, 1); // Через 1 день
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
 
-        Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
-        notificationIntent.setAction("INACTIVITY_REMINDER");
-        notificationIntent.putExtra("title", "Мы по вам скучаем!");
-        notificationIntent.putExtra("message", "Вы давно не занимались. Возвращайтесь! 📚");
+            Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
+            notificationIntent.setAction("INACTIVITY_REMINDER");
+            notificationIntent.putExtra("title", "Мы по вам скучаем!");
+            notificationIntent.putExtra("message", "Вы давно не занимались. Возвращайтесь! 📚");
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                requireContext(),
-                1002,
-                notificationIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
-
-        if (alarmManager != null) {
-            alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    pendingIntent
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    requireContext(),
+                    1002,
+                    notificationIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
+
+            AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+
+            if (alarmManager != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                } else {
+                    alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                }
+                Log.d("Notifications", "Уведомление о бездействии установлено на: " + calendar.getTime());
+            }
+        } catch (Exception e) {
+            Log.e("Notifications", "Ошибка установки уведомления о бездействии", e);
+            Toast.makeText(requireContext(), "Ошибка установки напоминания: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
     private void cancelAllNotifications() {
-        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        try {
+            AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
 
-        // Отменяем ежедневное уведомление
-        Intent dailyIntent = new Intent(requireContext(), NotificationReceiver.class);
-        PendingIntent dailyPending = PendingIntent.getBroadcast(
-                requireContext(),
-                1001,
-                dailyIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        if (alarmManager != null) {
-            alarmManager.cancel(dailyPending);
-        }
+            // Отменяем ежедневное уведомление
+            Intent dailyIntent = new Intent(requireContext(), NotificationReceiver.class);
+            PendingIntent dailyPending = PendingIntent.getBroadcast(
+                    requireContext(),
+                    1001,
+                    dailyIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            if (alarmManager != null && dailyPending != null) {
+                alarmManager.cancel(dailyPending);
+                dailyPending.cancel();
+            }
 
-        // Отменяем уведомление о бездействии
-        Intent inactivityIntent = new Intent(requireContext(), NotificationReceiver.class);
-        PendingIntent inactivityPending = PendingIntent.getBroadcast(
-                requireContext(),
-                1002,
-                inactivityIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        if (alarmManager != null) {
-            alarmManager.cancel(inactivityPending);
+            // Отменяем уведомление о бездействии
+            Intent inactivityIntent = new Intent(requireContext(), NotificationReceiver.class);
+            PendingIntent inactivityPending = PendingIntent.getBroadcast(
+                    requireContext(),
+                    1002,
+                    inactivityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            if (alarmManager != null && inactivityPending != null) {
+                alarmManager.cancel(inactivityPending);
+                inactivityPending.cancel();
+            }
+
+            Log.d("Notifications", "Все уведомления отменены");
+        } catch (Exception e) {
+            Log.e("Notifications", "Ошибка отмены уведомлений", e);
         }
     }
 

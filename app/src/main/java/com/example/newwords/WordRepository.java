@@ -1311,10 +1311,10 @@ public class WordRepository {
                 ", этап: " + word.getReviewStage() +
                 ", сложность: " + word.getDifficulty());
 
-        // ДЛЯ ВСЕХ СЛОВ сохраняем прогресс в word_progress
+        // ДЛЯ ВСЕХ СЛОВ сохраняем прогресс в word_progress  ← ПЕРВЫЙ РАЗ
         updateUserWordProgress(word);
 
-        // ТОЛЬКО для кастомных слов обновляем еще и основной документ
+        // ТОЛЬКО для кастомных слов обновляем еще и основной документ ← ВТОРОЙ РАЗ для кастомных слов
         if (word.isCustomWord()) {
             updateCustomWordDocument(word);
         }
