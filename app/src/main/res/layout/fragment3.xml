@@ -5,7 +5,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#322b36"
+    android:background="#232224"
     android:padding="16dp">
 
 
@@ -16,6 +16,7 @@
         android:layout_height="wrap_content"
         android:background="#3C374A"
         android:padding="24dp"
+     android:radius="10dp"
         android:layout_marginBottom="24dp"
         android:gravity="center"
         android:clipToOutline="true"
@@ -37,7 +38,7 @@
             android:id="@+id/userNameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ИМЯ"
+            android:text="имя пользователя"
             android:textColor="#8CA0FF"
             android:textSize="24sp"
             android:layout_marginTop="16dp"
@@ -48,7 +49,7 @@
             android:id="@+id/userEmailTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="почта.com должна еще сабака быть"
+            android:text="почта.com"
             android:textColor="#8CA0FF"
             android:textSize="14sp"
             android:layout_marginTop="4dp"

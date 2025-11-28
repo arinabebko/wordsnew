@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
     <menu xmlns:android="http://schemas.android.com/apk/res/android">
+
     <item
         android:id="@+id/navigation_page1"
-        android:title="Главная"
+        android:title="главная"
         android:icon="@drawable/ic_page1" />
     <item
         android:id="@+id/navigation_page2"
-        android:title="Страница 2"
+        android:title="библиотеки"
         android:icon="@drawable/ic_page2" />
     <item
         android:id="@+id/navigation_page3"
-        android:title="Страница 3"
+        android:title="профиль"
         android:icon="@drawable/ic_page3" />
 </menu>

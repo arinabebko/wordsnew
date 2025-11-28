@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#322b36"
+    android:background="#232224"
     android:padding="24dp">
 
     <!-- Главный контент занимает всю доступную высоту, кроме нижней панели -->
@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:text="5 дней подряд"
             android:textSize="28sp"
-            android:textColor="#fcb6b0"
+            android:textColor="#8CA0FF"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="16dp"
         android:layout_marginTop="16dp" />
@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:text="слов в процессе: 4"
             android:textSize="16sp"
-            android:textColor="#e7b5a9"
+            android:textColor="#8CA0FF"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="4dp" />
 
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:text="выучено слов: 0"
             android:textSize="16sp"
-            android:textColor="#fcb6b0"
+            android:textColor="#8CA0FF"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="36dp" />
 
@@ -60,21 +60,24 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="36dp" />
 
+
+
+        <!--  <androidx.appcompat.widget.AppCompatButton-->
         <Button
-            android:id="@+id/startButton"
-            android:layout_width="200dp"
-            android:layout_height="60dp"
-            android:text="start"
-            android:textSize="24sp"
-            android:textColor="#322b36"
-            android:background="#e7b5a9"
-            android:fontFamily="@font/jura_font_wght"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp" />
+           android:id="@+id/startButton"
+           android:layout_width="200dp"
+           android:layout_height="60dp"
+           android:text="start"
+           android:textSize="24sp"
+           android:textColor="#322b36"
+           android:background="@drawable/custom_library_badge"
+           android:fontFamily="@font/jura_font_wght"
+           android:layout_gravity="center_horizontal"
+           android:layout_marginBottom="32dp" />
 
-    </LinearLayout>
+   </LinearLayout>
 
-    <!-- Нижняя панель с полем поиска и кнопками будет прижата к низу -->
+   <!-- Нижняя панель с полем поиска и кнопками будет прижата к низу -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
