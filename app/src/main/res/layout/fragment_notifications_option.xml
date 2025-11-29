@@ -81,7 +81,9 @@
                 android:fontFamily="@font/jura_font_wght"
                 android:imeOptions="actionDone"
                 android:maxLength="5"
+
                 android:digits="0123456789:"/>
+
 
         </LinearLayout>
 

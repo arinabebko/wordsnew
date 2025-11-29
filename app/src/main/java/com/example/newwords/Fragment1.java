@@ -161,11 +161,22 @@ public class Fragment1 extends Fragment {
 
         searchButton.setOnClickListener(v -> {
             String query = searchEditText.getText().toString().trim();
+
+            // Создаем фрагмент поиска
+            SearchWordsFragment searchFragment = new SearchWordsFragment();
+
+            // Передаем поисковый запрос если есть
             if (!query.isEmpty()) {
-                performSearch(query);
-            } else {
-                Toast.makeText(getContext(), "Введите поисковый запрос", Toast.LENGTH_SHORT).show();
+                Bundle args = new Bundle();
+                args.putString("initial_query", query);
+                searchFragment.setArguments(args);
             }
+
+            // Открываем фрагмент поиска
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(android.R.id.content, searchFragment)
+                    .addToBackStack("search_navigation")
+                    .commit();
         });
 
         addButton.setOnClickListener(v -> {
@@ -178,15 +189,37 @@ public class Fragment1 extends Fragment {
         Toast.makeText(getContext(), "Поиск: " + query, Toast.LENGTH_SHORT).show();
     }
 
-    private void showAddWordDialog() {
-        // TODO: Реализовать диалог добавления слова
-        Toast.makeText(getContext(), "Добавление слова", Toast.LENGTH_SHORT).show();
-    }
-
     @Override
     public void onResume() {
         super.onResume();
         // Обновляем статистику при возвращении на фрагмент
         loadUserStats();
+    }
+
+    private void showAddWordDialog() {
+        // ИСПРАВЛЕНИЕ: используем новый диалог с выбором библиотеки
+        AddWordWithLibraryDialog dialog = AddWordWithLibraryDialog.newInstance();
+        dialog.setOnWordAddedListener(new AddWordWithLibraryDialog.OnWordAddedListener() {
+            @Override
+            public void onWordAdded(String word, String translation, String note, String libraryId) {
+                // Создаем новое слово
+                WordItem newWord = new WordItem(word, translation, note);
+
+                // Добавляем слово в выбранную библиотеку
+                wordRepository.addWordToCustomLibrary(libraryId, newWord, new WordRepository.OnWordAddedListener() {
+                    @Override
+                    public void onWordAdded(WordItem addedWord) {
+                        Toast.makeText(getContext(), "Слово добавлено в библиотеку!", Toast.LENGTH_SHORT).show();
+                        // Можно обновить статистику или показать уведомление
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Toast.makeText(getContext(), "Ошибка добавления слова: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+        dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
     }
 }

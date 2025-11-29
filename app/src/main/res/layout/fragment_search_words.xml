@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#232224">
+
+    <!-- Шапка с поиском -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="#322b36">
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="#FFFFFF"
+            android:contentDescription="Назад" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/ic_back"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp">
+
+            <EditText
+                android:id="@+id/searchEditText"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:hint="Поиск по словам..."
+                android:textColor="#FFFFFF"
+                android:textColorHint="#B0B0B0"
+                android:background="@android:color/transparent"
+                android:padding="0dp"
+                android:singleLine="true"
+                android:imeOptions="actionSearch"
+                android:fontFamily="@font/jura_font_wght" />
+
+            <ImageButton
+                android:id="@+id/clearButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_back"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="#B0B0B0"
+                android:visibility="gone"
+                android:contentDescription="Очистить" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Прогресс бар -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="32dp"
+        android:visibility="gone" />
+
+    <!-- Состояние пустого списка -->
+    <TextView
+        android:id="@+id/emptyStateText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:padding="32dp"
+        android:text="У вас пока нет слов для изучения"
+        android:textColor="#B0B0B0"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:visibility="gone"
+        android:fontFamily="@font/jura_font_wght" />
+
+    <!-- Список слов -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/wordsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp" />
+
+</LinearLayout>

@@ -72,6 +72,8 @@
             android:layout_width="200dp"
             android:layout_height="60dp"
             android:text="start"
+
+
             android:textSize="24sp"
             android:textColor="#322b36"
             android:background="@drawable/custom_library_badge"

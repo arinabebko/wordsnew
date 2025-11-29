@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Слово -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Слово (английский)"
+        android:textColor="#322b36"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/wordEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Например: computer"
+        android:maxLines="1"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Перевод -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Перевод (русский)"
+        android:textColor="#322b36"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/translationEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Например: компьютер"
+        android:maxLines="1"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Примечание -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Примечание (опционально)"
+        android:textColor="#322b36"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/noteEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Например: Электронное устройство"
+        android:maxLines="2"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Выбор библиотеки -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Библиотека"
+        android:textColor="#322b36"
+        android:textSize="16sp"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Спиннер для выбора библиотеки -->
+    <Spinner
+        android:id="@+id/librarySpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone" />
+
+    <!-- Сообщение когда нет библиотек -->
+    <TextView
+        android:id="@+id/noLibrariesText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        android:text="У вас нет созданных библиотек"
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="gone" />
+
+    <!-- Кнопка перехода к библиотекам -->
+    <Button
+        android:id="@+id/goToLibrariesButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Создать библиотеку"
+        android:backgroundTint="@color/black"
+        android:textColor="@android:color/white"
+        android:visibility="gone" />
+
+    <!-- Кнопки -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Отмена"
+            android:textColor="#625fba"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginEnd="16dp" />
+
+        <Button
+            android:id="@+id/addButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Добавить"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/button_primary_bg"
+            android:paddingHorizontal="24dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
