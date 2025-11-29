@@ -70,16 +70,18 @@
                 android:id="@+id/reminderTimeEditText"
                 android:layout_width="72dp"
                 android:layout_height="48dp"
-            android:minHeight="48dp"
-            android:inputType="time"
-            android:text="19:00"
-            android:textColor="#322b36"
-            android:background="#fcb6b0"
-            android:gravity="center"
-            android:padding="8dp"
-            android:layout_marginStart="8dp"
-            android:fontFamily="@font/jura_font_wght"
-            />
+                android:minHeight="48dp"
+                android:inputType="time"
+                android:text="19:00"
+                android:textColor="#322b36"
+                android:background="#fcb6b0"
+                android:gravity="center"
+                android:padding="8dp"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/jura_font_wght"
+                android:imeOptions="actionDone"
+                android:maxLength="5"
+                android:digits="0123456789:"/>
 
         </LinearLayout>
 

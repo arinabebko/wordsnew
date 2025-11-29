@@ -55,6 +55,14 @@ public class WordRepository {
 
 
     // === ИНТЕРФЕЙСЫ ДЛЯ КОЛБЭКОВ ===
+    public interface OnStatsLoadedListener {
+        void onStatsLoaded(UserStats stats);
+        void onError(Exception e);
+    }
+
+    public interface StatsUpdater {
+        UserStats update(UserStats stats);
+    }
 
     public interface OnWordsLoadedListener {
         void onWordsLoaded(List<WordItem> words);
@@ -94,6 +102,9 @@ public class WordRepository {
     /**
      * Синхронизация слов из Firebase
      */
+    /**
+     * Синхронизация слов из Firebase
+     */
     public void syncWordsFromFirebase(OnWordsLoadedListener listener) {
         Log.d(TAG, "🔄 Синхронизация с Firebase...");
 
@@ -105,7 +116,6 @@ public class WordRepository {
                 List<WordItem> allWords = new ArrayList<>();
                 List<Task<QuerySnapshot>> allTasks = new ArrayList<>();
 
-                // Загружаем слова ТОЛЬКО из активных библиотек
                 for (WordLibrary library : activeLibraries) {
                     if (!library.getIsActive()) {
                         Log.d(TAG, "❌ Пропускаем неактивную библиотеку: " + library.getName());
@@ -140,8 +150,6 @@ public class WordRepository {
                     }
 
                     Log.d(TAG, "📥 Синхронизировано слов: " + allWords.size());
-
-                    // Сохраняем в кеш
                     saveWordsToCache(allWords);
                     saveActiveLibrariesToCache(activeLibraries);
 
@@ -156,6 +164,8 @@ public class WordRepository {
                     }
                 });
             }
+
+
 
             @Override
             public void onError(Exception e) {
@@ -1807,4 +1817,251 @@ public class WordRepository {
                     Log.e(TAG, "❌ Ошибка создания word_progress", e);
                 });
     }
+
+
+
+    // === МЕТОДЫ СТАТИСТИКИ ===
+
+    /**
+     * Получить статистику пользователя
+     */
+    public void getUserStats(OnStatsLoadedListener listener) {
+        new Thread(() -> {
+            try {
+                String userId = getCurrentUserId();
+                if (userId == null) {
+                    if (listener != null) {
+                        listener.onError(new Exception("User not authenticated"));
+                    }
+                    return;
+                }
+
+                UserStats localStats = localDb.getOrCreateStats(userId);
+
+                if (needsDailyReset(localStats)) {
+                    updateStreakForNewDay(localStats, listener);
+                    return;
+                }
+
+                if (isStatsOutdated(localStats)) {
+                    syncStatsFromFirebase(userId, listener);
+                } else {
+                    if (listener != null) {
+                        listener.onStatsLoaded(localStats);
+                    }
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading local stats: " + e.getMessage());
+                if (listener != null) {
+                    listener.onError(e);
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Вызывается когда слово успешно изучено
+     */
+    public void onWordLearned(String wordId) {
+        updateStatsAsync(stats -> {
+            stats.setWordsLearned(stats.getWordsLearned() + 1);
+            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            stats.setLastSessionDate(new Date());
+
+            int currentInProgress = Math.max(0, stats.getWordsInProgress() - 1);
+            stats.setWordsInProgress(currentInProgress);
+
+            Log.d(TAG, "✅ Слово изучено! Выучено: " + stats.getWordsLearned() +
+                    ", сегодня: " + stats.getTodayProgress());
+            return stats;
+        });
+    }
+
+    /**
+     * Вызывается при простом повторении слова
+     */
+    public void onWordReviewed() {
+        updateStatsAsync(stats -> {
+            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            stats.setLastSessionDate(new Date());
+
+            Log.d(TAG, "📖 Слово повторено! Сегодня: " + stats.getTodayProgress());
+            return stats;
+        });
+    }
+
+    /**
+     * Вызывается когда новое слово добавлено в изучение
+     */
+    public void onWordAddedToLearning() {
+        updateStatsAsync(stats -> {
+            stats.setWordsInProgress(stats.getWordsInProgress() + 1);
+            Log.d(TAG, "➕ Новое слово добавлено! В процессе: " + stats.getWordsInProgress());
+            return stats;
+        });
+    }
+
+    /**
+     * Обновляет статистику асинхронно
+     */
+    public void updateStatsAsync(StatsUpdater updater) {
+        new Thread(() -> {
+            try {
+                String userId = getCurrentUserId();
+                if (userId == null) return;
+
+                UserStats stats = localDb.getOrCreateStats(userId);
+                stats = updater.update(stats);
+                stats.setLastUpdated(new Date());
+
+                localDb.statsDao().insertStats(stats);
+                syncStatsToFirebase(stats);
+
+                Log.d(TAG, "📊 Статистика обновлена");
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка обновления статистики", e);
+            }
+        }).start();
+    }
+
+    /**
+     * Синхронизирует статистику с Firebase
+     */
+    private void syncStatsToFirebase(UserStats stats) {
+        db.collection("userStats")
+                .document(stats.getUserId())
+                .set(stats)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Статистика синхронизирована с Firebase");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка синхронизации статистики", e);
+                });
+    }
+
+    /**
+     * Синхронизирует статистику из Firebase
+     */
+    private void syncStatsFromFirebase(String userId, OnStatsLoadedListener listener) {
+        db.collection("userStats")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        UserStats firebaseStats = documentSnapshot.toObject(UserStats.class);
+                        if (firebaseStats != null) {
+                            saveStatsToLocal(firebaseStats);
+                            if (listener != null) {
+                                listener.onStatsLoaded(firebaseStats);
+                            }
+                        } else {
+                            createDefaultStats(userId, listener);
+                        }
+                    } else {
+                        createDefaultStats(userId, listener);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка синхронизации из Firebase", e);
+                    UserStats localStats = localDb.getOrCreateStats(userId);
+                    if (listener != null) {
+                        listener.onStatsLoaded(localStats);
+                    }
+                });
+    }
+
+    /**
+     * Создает статистику по умолчанию
+     */
+    private void createDefaultStats(String userId, OnStatsLoadedListener listener) {
+        UserStats defaultStats = new UserStats(userId);
+        saveStatsToLocal(defaultStats);
+        syncStatsToFirebase(defaultStats);
+        if (listener != null) {
+            listener.onStatsLoaded(defaultStats);
+        }
+    }
+
+    /**
+     * Сохраняет статистику в локальную БД
+     */
+    private void saveStatsToLocal(UserStats stats) {
+        new Thread(() -> {
+            localDb.statsDao().insertStats(stats);
+        }).start();
+    }
+
+    /**
+     * Проверяет нужно ли обновить streak (новый день)
+     */
+    private boolean needsDailyReset(UserStats stats) {
+        if (stats.getLastSessionDate() == null) return false;
+
+        Date today = new Date();
+        long diff = today.getTime() - stats.getLastSessionDate().getTime();
+        long daysDiff = diff / (24 * 60 * 60 * 1000);
+
+        return daysDiff >= 1;
+    }
+
+    /**
+     * Обновляет streak для нового дня
+     */
+    private void updateStreakForNewDay(UserStats stats, OnStatsLoadedListener listener) {
+        new Thread(() -> {
+            try {
+                Date today = new Date();
+
+                if (stats.getTodayProgress() > 0) {
+                    stats.setStreakDays(stats.getStreakDays() + 1);
+                    Log.d(TAG, "🔥 Streak увеличен: " + stats.getStreakDays() + " дней");
+                } else {
+                    stats.setStreakDays(0);
+                    Log.d(TAG, "💔 Streak сброшен");
+                }
+
+                stats.setTodayProgress(0);
+                stats.setLastSessionDate(today);
+                stats.setLastUpdated(today);
+
+                localDb.statsDao().insertStats(stats);
+                syncStatsToFirebase(stats);
+
+                if (listener != null) {
+                    listener.onStatsLoaded(stats);
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка обновления streak", e);
+                if (listener != null) {
+                    listener.onError(e);
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Проверяет устарели ли данные
+     */
+    private boolean isStatsOutdated(UserStats stats) {
+        if (stats.getLastUpdated() == null) return true;
+
+        long now = System.currentTimeMillis();
+        long lastUpdate = stats.getLastUpdated().getTime();
+        long oneHour = 60 * 60 * 1000;
+
+        return (now - lastUpdate) > oneHour;
+    }
+
+    /**
+     * Получает текущий userId
+     */
+    private String getCurrentUserId() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        return user != null ? user.getUid() : null;
+    }
+
+
 }

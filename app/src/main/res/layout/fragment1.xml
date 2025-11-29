@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -15,8 +15,15 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- Здесь ваш основной контент — текстовые элементы -->
+        <!-- Прогресс бар загрузки (добавить) -->
+        <ProgressBar
+            android:id="@+id/loadingProgressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
 
+        <!-- Существующие текстовые элементы -->
         <TextView
             android:id="@+id/daysTextView"
             android:layout_width="wrap_content"
@@ -26,7 +33,7 @@
             android:textColor="#8CA0FF"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="16dp"
-        android:layout_marginTop="16dp" />
+            android:layout_marginTop="16dp" />
 
         <TextView
             android:id="@+id/wordsInProgressTextView"
@@ -60,24 +67,21 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="36dp" />
 
-
-
-        <!--  <androidx.appcompat.widget.AppCompatButton-->
         <Button
-           android:id="@+id/startButton"
-           android:layout_width="200dp"
-           android:layout_height="60dp"
-           android:text="start"
-           android:textSize="24sp"
-           android:textColor="#322b36"
-           android:background="@drawable/custom_library_badge"
-           android:fontFamily="@font/jura_font_wght"
-           android:layout_gravity="center_horizontal"
-           android:layout_marginBottom="32dp" />
+            android:id="@+id/startButton"
+            android:layout_width="200dp"
+            android:layout_height="60dp"
+            android:text="start"
+            android:textSize="24sp"
+            android:textColor="#322b36"
+            android:background="@drawable/custom_library_badge"
+            android:fontFamily="@font/jura_font_wght"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="32dp" />
 
-   </LinearLayout>
+    </LinearLayout>
 
-   <!-- Нижняя панель с полем поиска и кнопками будет прижата к низу -->
+    <!-- Нижняя панель с полем поиска и кнопками -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

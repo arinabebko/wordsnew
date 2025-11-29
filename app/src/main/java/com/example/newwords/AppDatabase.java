@@ -6,12 +6,13 @@ import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 import android.content.Context;
 
-@Database(entities = {LocalWordLibrary.class, LocalWordItem.class}, version = 1, exportSchema = false)
+@Database(entities = {LocalWordLibrary.class, LocalWordItem.class, UserStats.class}, version = 3, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract LocalLibraryDao libraryDao();
     public abstract LocalWordDao wordDao();
+    public abstract UserStatsDao statsDao(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
 
     private static volatile AppDatabase INSTANCE;
 
@@ -20,13 +21,25 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(
-                            context.getApplicationContext(),
-                            AppDatabase.class,
-                            "newwords_database"
-                    ).build();
+                                    context.getApplicationContext(),
+                                    AppDatabase.class,
+                                    "newwords_database"
+                            )
+                            .fallbackToDestructiveMigration() // Пересоздаем при изменении версии
+                            .build();
                 }
             }
         }
         return INSTANCE;
+    }
+
+    // Вспомогательный метод для получения или создания статистики
+    public UserStats getOrCreateStats(String userId) {
+        UserStats stats = statsDao().getStats(userId);
+        if (stats == null) {
+            stats = new UserStats(userId);
+            statsDao().insertStats(stats);
+        }
+        return stats;
     }
 }

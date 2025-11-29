@@ -201,6 +201,9 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         wordList.clear();
         wordList.addAll(words);
 
+        // ✅ ДОБАВИТЬ: Обновляем статистику "слов в процессе"
+        updateWordsInProgressStats(wordList);
+
         if (wordList.isEmpty()) {
             Log.d(TAG, "Нет слов для изучения");
             showNoWordsState();
@@ -214,6 +217,38 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 setupViewPagerWithWords(sessionWords);
             }
         }
+    }
+    /**
+     * Обновляет статистику "слов в процессе изучения"
+     */
+    /**
+     * Обновляет статистику "слов в процессе изучения"
+     */
+    private void updateWordsInProgressStats(List<WordItem> allWords) {
+        // Создаем final переменную для использования в лямбде
+        final int wordsInProgress = countWordsInProgress(allWords);
+
+        Log.d(TAG, "📊 Слов в процессе изучения: " + wordsInProgress);
+
+        // Используем публичный метод
+        wordRepository.updateStatsAsync(stats -> {
+            stats.setWordsInProgress(wordsInProgress);
+            Log.d(TAG, "✅ Статистика обновлена: " + wordsInProgress + " слов в процессе");
+            return stats;
+        });
+    }
+
+    /**
+     * Считает слова в процессе изучения
+     */
+    private int countWordsInProgress(List<WordItem> allWords) {
+        int count = 0;
+        for (WordItem word : allWords) {
+            if (!word.isLearned()) {
+                count++;
+            }
+        }
+        return count;
     }
     private void loadWordsFromLocalCache() {
         Log.d(TAG, "Пробуем загрузить слова из локального кеша...");
@@ -253,14 +288,13 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      */
     private List<WordItem> getWordsForSession(List<WordItem> allWords) {
         List<WordItem> sessionWords = new ArrayList<>();
-        int maxWords = 20;
+        final int maxWords = 20; // ← СДЕЛАТЬ final
 
         Log.d(TAG, "=== ВЫБОР СЛОВ ДЛЯ СЕССИИ ===");
         Log.d(TAG, "Всего слов доступно: " + allWords.size());
 
-        int newWordsCount = 0;
-        int dueWordsCount = 0;
-        int learnedWordsCount = 0;
+        // Используем final переменные для счетчиков
+        final int[] counters = {0, 0, 0, 0}; // [new, due, learned, inProgress]
 
         // 1. Собираем слова которые нужно показать СЕЙЧАС
         for (WordItem word : allWords) {
@@ -269,21 +303,27 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
                 // Логируем тип слова
                 if (word.isNew()) {
-                    newWordsCount++;
+                    counters[0]++;
                 } else {
-                    dueWordsCount++;
+                    counters[1]++;
                 }
 
                 if (sessionWords.size() >= maxWords) break;
             } else if (word.isLearned()) {
-                learnedWordsCount++;
+                counters[2]++;
+            }
+
+            // Считаем слова в процессе
+            if (!word.isLearned()) {
+                counters[3]++;
             }
         }
 
         Log.d(TAG, "Статистика сессии:");
-        Log.d(TAG, " - Новые слова: " + newWordsCount);
-        Log.d(TAG, " - Для повторения: " + dueWordsCount);
-        Log.d(TAG, " - Выученные (не показываем): " + learnedWordsCount);
+        Log.d(TAG, " - Новые слова: " + counters[0]);
+        Log.d(TAG, " - Для повторения: " + counters[1]);
+        Log.d(TAG, " - Выученные (не показываем): " + counters[2]);
+        Log.d(TAG, " - Слов в процессе: " + counters[3]);
         Log.d(TAG, " - Всего для сессии: " + sessionWords.size());
 
         return sessionWords;
@@ -700,11 +740,14 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         Log.d(TAG, " - consecutiveShows: " + word.getConsecutiveShows());
 
         wordRepository.updateWord(word);
-
+        // ✅ ДОБАВИТЬ ВЫЗОВЫ СТАТИСТИКИ
+        wordRepository.onWordLearned(word.getWordId()); // Слово полностью выучено
+        wordRepository.onWordReviewed(); // Также считаем как повторение
         Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
     }
 
     @Override
+
     public void onCardNotLearned(WordItem word) {
         Log.d(TAG, "Слово не выучено: " + word.getWord());
 
@@ -713,6 +756,9 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
         // СОХРАНЯЕМ обновленный прогресс
         wordRepository.updateWord(word);
+
+        // ✅ ДОБАВИТЬ ВЫЗОВ СТАТИСТИКИ
+        wordRepository.onWordReviewed(); // Слово повторено (но не выучено)
 
         Toast.makeText(getContext(), "🔄 " + word.getWord() + " - повторим позже", Toast.LENGTH_SHORT).show();
     }
@@ -727,18 +773,45 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     }
 
     @Override
+
     public void onAllCardsCompleted() {
         Log.d(TAG, "Все карточки пройдены!");
 
-        // Минимальная задержка для плавности (100ms вместо 1000ms)
+        // ✅ ДОБАВИТЬ: Обновляем статистику после завершения сессии
+        updateSessionCompletionStats();
+
+        // Минимальная задержка для плавности
         if (getActivity() != null) {
-          //  getActivity().getWindow().getDecorView().postDelayed(() -> {
-            //    showSessionCompletedState();
-          //  }, 100); // 0.1 секунды вместо 1 секунды
             showSessionCompletedState();
         }
     }
+    /**
+     * Обновляет статистику после завершения сессии обучения
+     */
+    private void updateSessionCompletionStats() {
+        // Можно добавить дополнительную логику, например:
+        // - Увеличить счетчик завершенных сессий
+        // - Обновить время последней сессии
+        // - Проверить достижение дневной цели
 
+        Log.d(TAG, "📊 Сессия обучения завершена - статистика обновлена");
+
+        // Просто обновляем общую статистику
+        wordRepository.getUserStats(new WordRepository.OnStatsLoadedListener() {
+            @Override
+            public void onStatsLoaded(UserStats stats) {
+                Log.d(TAG, "✅ Статистика после сессии: " +
+                        "Streak: " + stats.getStreakDays() + " дней, " +
+                        "Сегодня: " + stats.getTodayProgress() + " слов, " +
+                        "Всего выучено: " + stats.getWordsLearned());
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки статистики после сессии", e);
+            }
+        });
+    }
 
     /**
      * Показывает экран завершения обучения (когда все карточки пройдены)

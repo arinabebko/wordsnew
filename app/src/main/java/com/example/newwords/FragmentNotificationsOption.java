@@ -85,12 +85,86 @@ public class FragmentNotificationsOption extends Fragment {
             scheduleNotifications();
         });
 
-        reminderTimeEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                savePreferences();
-                scheduleNotifications();
+
+        setupTimeInputListeners();
+        // reminderTimeEditText.setOnFocusChangeListener((v, hasFocus) -> {
+          //  if (!hasFocus) {
+          //      savePreferences();
+         //       scheduleNotifications();
+         //   }
+       // });
+    }
+
+
+    private void setupTimeInputListeners() {
+        // Сохраняем при изменении текста (когда введено полное время)
+        reminderTimeEditText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (s.length() == 5 && isValidTimeFormat(s.toString())) {
+                    // Автоматически сохраняем когда введено полное время "HH:MM"
+                    saveTimeImmediately(s.toString());
+                }
             }
         });
+
+        // Сохраняем при потере фокуса (когда уходим с поля)
+        reminderTimeEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String time = reminderTimeEditText.getText().toString().trim();
+                if (isValidTimeFormat(time)) {
+                    saveTimeImmediately(time);
+                }
+            }
+        });
+
+        // Сохраняем при нажатии "Готово" на клавиатуре
+        reminderTimeEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                String time = reminderTimeEditText.getText().toString().trim();
+                if (isValidTimeFormat(time)) {
+                    saveTimeImmediately(time);
+                }
+                // Скрываем клавиатуру
+                android.view.inputmethod.InputMethodManager imm =
+                        (android.view.inputmethod.InputMethodManager) requireContext()
+                                .getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(reminderTimeEditText.getWindowToken(), 0);
+                reminderTimeEditText.clearFocus();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // ⬇️⬇️⬇️ ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МГНОВЕННОГО СОХРАНЕНИЯ ⬇️⬇️⬇️
+    private void saveTimeImmediately(String time) {
+        if (isValidTimeFormat(time)) {
+            // Сохраняем в SharedPreferences
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString(KEY_NOTIFICATION_TIME, time);
+            editor.apply();
+
+            // Если активен режим "раз в день", сразу перепланируем уведомления
+            String currentType = preferences.getString(KEY_NOTIFICATION_TYPE, "none");
+            if ("once_a_day".equals(currentType)) {
+                cancelAllNotifications();
+                scheduleDailyNotification(time);
+
+                // Показываем сообщение пользователю
+                Toast.makeText(requireContext(),
+                        "Время напоминания изменено на " + time,
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            Log.d("Notifications", "Время сразу сохранено: " + time);
+        }
     }
 
     private void savePreferences() {
