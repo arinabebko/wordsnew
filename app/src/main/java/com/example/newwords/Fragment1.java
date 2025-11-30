@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.LinearLayout; // ДОБАВЬ ЭТОТ ИМПОРТ
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -77,11 +78,11 @@ public class Fragment1 extends Fragment {
             daysTextView.setText(daysText);
 
             // Слова в процессе
-            String inProgressText = "слов в процессе: " + stats.getWordsInProgress();
+            String inProgressText = " " + stats.getWordsInProgress();
             wordsInProgressTextView.setText(inProgressText);
 
             // Выучено слов
-            String learnedText = "выучено слов: " + stats.getWordsLearned();
+            String learnedText = " " + stats.getWordsLearned();
             wordsLearnedTextView.setText(learnedText);
 
             // Мотивационное сообщение
@@ -154,17 +155,24 @@ public class Fragment1 extends Fragment {
     }
 
     private void setupBottomButtons(View view) {
-        ImageButton searchButton = view.findViewById(R.id.searchButton);
-        ImageButton addButton = view.findViewById(R.id.addButton);
+        // Находим новые кнопки по правильным ID
+        LinearLayout searchButtonLayout = view.findViewById(R.id.searchButtonLayout);
+        LinearLayout addButtonLayout = view.findViewById(R.id.addButtonLayout);
 
-        // Обработчик кнопки поиска (лупа)
-        searchButton.setOnClickListener(v -> {
-            // Просто открываем фрагмент поиска без начального запроса
-            openSearchFragment();
+        // Обработчик кнопки поиска
+        searchButtonLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openSearchFragment();
+            }
         });
 
-        addButton.setOnClickListener(v -> {
-            showAddWordDialog();
+        // Обработчик кнопки добавления
+        addButtonLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAddWordDialog();
+            }
         });
     }
 

@@ -50,11 +50,12 @@ public class AddWordWithLibraryDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+
         LayoutInflater inflater = requireActivity().getLayoutInflater();
 
         // ВАЖНО: используем правильный layout файл
         View view = inflater.inflate(R.layout.dialog_add_word_with_library, null);
-
+        view.setBackgroundColor(0xFF322b36); // HEX в формате ARGB
         // Инициализируем репозиторий
         wordRepository = new WordRepository(getContext());
 

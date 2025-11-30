@@ -13,7 +13,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:gravity="center">
 
         <!-- Прогресс бар загрузки -->
         <ProgressBar
@@ -23,38 +24,96 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <!-- Существующие текстовые элементы -->
-        <TextView
-            android:id="@+id/daysTextView"
-            android:layout_width="wrap_content"
+        <!-- Контейнер для статистики -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="5 дней подряд"
-            android:textSize="28sp"
-            android:textColor="#8CA0FF"
-            android:fontFamily="@font/jura_font_wght"
-            android:layout_marginBottom="16dp"
-            android:layout_marginTop="16dp" />
+            android:orientation="vertical"
+            android:gravity="left"
+            android:layout_marginBottom="48dp">
 
-        <TextView
-            android:id="@+id/wordsInProgressTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="слов в процессе: 4"
-            android:textSize="16sp"
-            android:textColor="#8CA0FF"
-            android:fontFamily="@font/jura_font_wght"
-            android:layout_marginBottom="4dp" />
+            <!-- Дни подряд -->
+            <TextView
+                android:id="@+id/daysTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="5 дней подряд"
+                android:textSize="32sp"
+                android:textColor="#fcb6b0"
+                android:fontFamily="@font/jura_font_wght"
+                android:textStyle="bold"
+                android:layout_marginBottom="24dp" />
 
-        <TextView
-            android:id="@+id/wordsLearnedTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="выучено слов: 0"
-            android:textSize="16sp"
-            android:textColor="#8CA0FF"
-            android:fontFamily="@font/jura_font_wght"
-            android:layout_marginBottom="36dp" />
+            <!-- Контейнер для двух строк статистики -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
 
+                android:paddingVertical="16dp"
+                android:paddingHorizontal="24dp">
+
+                <!-- Слова в процессе -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="слов в процессе:"
+                        android:textSize="16sp"
+                        android:textColor="#A2B2FF"
+                        android:fontFamily="@font/jura_font_wght" />
+
+                    <TextView
+                        android:id="@+id/wordsInProgressTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" 15"
+                        android:textSize="16sp"
+                        android:textColor="#fcb6b0"
+                        android:fontFamily="@font/jura_font_wght"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- Выучено слов -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="выучено слов:"
+                        android:textSize="16sp"
+                        android:textColor="#A2B2FF"
+                        android:fontFamily="@font/jura_font_wght" />
+
+                    <TextView
+                        android:id="@+id/wordsLearnedTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" 43"
+                        android:textSize="16sp"
+                        android:textColor="#fcb6b0"
+                        android:fontFamily="@font/jura_font_wght"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Мотивационное сообщение -->
         <TextView
             android:id="@+id/goodJobTextView"
             android:layout_width="wrap_content"
@@ -64,9 +123,10 @@
             android:textColor="#fcb6b0"
             android:fontFamily="@font/jura_font_wght"
             android:textAlignment="center"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="36dp" />
+            android:textStyle="bold"
+            android:layout_marginBottom="48dp" />
 
+        <!-- Кнопка Start -->
         <Button
             android:id="@+id/startButton"
             android:layout_width="200dp"
@@ -76,35 +136,88 @@
             android:textColor="#322b36"
             android:background="@drawable/custom_library_badge"
             android:fontFamily="@font/jura_font_wght"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp" />
+            android:textStyle="bold" />
 
     </LinearLayout>
 
-    <!-- Нижняя панель только с кнопками -->
+
+
+
+    <!-- Нижняя панель с кнопками как на скриншоте -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="center"
+        android:padding="16dp"
+      >
 
-        <ImageButton
-            android:id="@+id/searchButton"
-            android:layout_width="60dp"
+        <!-- Кнопка поиска -->
+        <LinearLayout
+            android:id="@+id/searchButtonLayout"
+            android:layout_width="0dp"
             android:layout_height="60dp"
-            android:src="@drawable/ic_search"
-            android:background="@android:color/transparent"
-            android:layout_marginEnd="32dp"
-            android:contentDescription="поиск" />
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
 
-        <ImageButton
-            android:id="@+id/addButton"
-            android:layout_width="60dp"
+            android:padding="12dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_search"
+                app:tint="#8CA0FF"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Поиск"
+                android:textSize="16sp"
+                android:textColor="#A2B2FF"
+                android:fontFamily="@font/jura_font_wght" />
+
+        </LinearLayout>
+
+        <!-- Кнопка добавления -->
+        <LinearLayout
+            android:id="@+id/addButtonLayout"
+            android:layout_width="0dp"
             android:layout_height="60dp"
-            android:src="@drawable/ic_add"
-            android:background="@android:color/transparent"
-            android:contentDescription="Добавить" />
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+
+            android:padding="12dp"
+            android:layout_marginStart="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_add"
+                app:tint="#8CA0FF"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Добавить"
+                android:textSize="16sp"
+                android:textColor="#A2B2FF"
+                android:fontFamily="@font/jura_font_wght" />
+
+        </LinearLayout>
 
     </LinearLayout>
+
+        <!-- Нижняя панель только с кнопками -->
 
 </LinearLayout>
