@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -23,11 +24,11 @@ import com.example.newwords.ViewPagerAdapter;
 
 public class MainActivity extends AppCompatActivity {
 
-
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigationView;
     private FirebaseAuth mAuth;
     private static final int PERMISSION_REQUEST_CODE = 100;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,17 +50,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // если пользователь авторизован — остаёмся в MainActivity и показываем основной контент
-
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
-
         viewPager.setAdapter(new ViewPagerAdapter(this));
 
-
-
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
-
             int id = item.getItemId();
             if (id == R.id.navigation_page1) {
                 viewPager.setCurrentItem(0);
@@ -68,12 +64,11 @@ public class MainActivity extends AppCompatActivity {
                 viewPager.setCurrentItem(1);
                 return true;
             } else if (id == R.id.navigation_page3) {
-
                 viewPager.setCurrentItem(2);
                 return true;
-            }
-else
+            } else {
                 return false;
+            }
         });
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -83,9 +78,47 @@ else
             }
         });
 
+        // ⬇️⬇️⬇️ ОБРАБАТЫВАЕМ INTENT ПРИ ЗАПУСКЕ ИЗ УВЕДОМЛЕНИЯ ⬇️⬇️⬇️
+        handleNotificationIntent(getIntent());
 
         requestNotificationPermission();
     }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // ⬇️⬇️⬇️ ОБРАБАТЫВАЕМ, ЕСЛИ ПРИЛОЖЕНИЕ УЖЕ БЫЛО ЗАПУЩЕНО ⬇️⬇️⬇️
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent != null && intent.hasExtra("OPEN_FRAGMENT")) {
+            String fragmentToOpen = intent.getStringExtra("OPEN_FRAGMENT");
+
+            if ("FRAGMENT_1".equals(fragmentToOpen)) {
+                // Открываем фрагмент 1 (первую вкладку)
+                openFragment1();
+
+                // Показываем сообщение (опционально)
+                Toast.makeText(this, "Добро пожаловать! Пора учить слова! 📚", Toast.LENGTH_SHORT).show();
+
+                Log.d("MainActivity", "Приложение открыто из уведомления, переходим на фрагмент 1");
+            }
+        }
+    }
+
+    private void openFragment1() {
+        // Устанавливаем первую вкладку (индекс 0)
+        if (viewPager != null) {
+            viewPager.setCurrentItem(0, false); // false - без анимации
+
+            // Также обновляем bottom navigation
+            if (bottomNavigationView != null) {
+                bottomNavigationView.setSelectedItemId(R.id.navigation_page1);
+            }
+        }
+    }
+
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this,
@@ -128,7 +161,4 @@ else
             bottomNavigationView.setSelectedItemId(R.id.navigation_page2);
         }
     }
-
-
-
 }

@@ -2,6 +2,7 @@ package com.example.newwords;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -127,13 +128,26 @@ public class NotificationReceiver extends BroadcastReceiver {
                 notificationIcon = android.R.drawable.ic_dialog_info;
             }
 
+            // ⬇️⬇️⬇️ СОЗДАЕМ INTENT ДЛЯ ОТКРЫТИЯ ПРИЛОЖЕНИЯ ⬇️⬇️⬇️
+            Intent openAppIntent = new Intent(context, MainActivity.class);
+            openAppIntent.putExtra("OPEN_FRAGMENT", "FRAGMENT_1"); // Флаг для открытия фрагмента 1
+            openAppIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+            PendingIntent pendingOpenAppIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    openAppIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
             // Создаем уведомление
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(notificationIcon)
                     .setContentTitle(title)
                     .setContentText(message)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(true)
+                    .setAutoCancel(true) // Уведомление исчезает при нажатии
+                    .setContentIntent(pendingOpenAppIntent) // Действие при нажатии на уведомление
                     .setVibrate(new long[]{0, 500, 200, 500})
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(message));
 
