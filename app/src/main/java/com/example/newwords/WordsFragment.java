@@ -81,7 +81,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             learnedButton.setOnClickListener(v -> {
                 if (adapter != null) {
                     adapter.swipeRight();
-                    updateProgress();
+                  //  updateProgress();
                 }
             });
         }
@@ -90,7 +90,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             reviewButton.setOnClickListener(v -> {
                 if (adapter != null) {
                     adapter.swipeLeft();
-                    updateProgress();
+                  //  updateProgress();
                 }
             });
         }
@@ -189,6 +189,15 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     private void processLoadedWords(List<WordItem> words) {
         Log.d(TAG, "Загружено слов: " + words.size());
 
+        wordList.clear();
+        wordList.addAll(words);
+
+        // ✅ ПРАВИЛЬНЫЙ ПЕРЕСЧЕТ статистики
+        wordRepository.recalculateAllStats(wordList, () -> {
+            Log.d(TAG, "✅ Статистика полностью пересчитана");
+        });
+
+
         for (WordItem word : words) {
             Log.d(TAG, "=== СЛОВО ИЗ " + (word.isCustomWord() ? "КАСТОМНОЙ" : "БИБЛИОТЕКИ") + " ===");
             Log.d(TAG, "Слово: " + word.getWord());
@@ -241,13 +250,19 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     /**
      * Считает слова в процессе изучения
      */
+    /**
+     * Правильно считает слова в процессе изучения
+     */
     private int countWordsInProgress(List<WordItem> allWords) {
         int count = 0;
         for (WordItem word : allWords) {
-            if (!word.isLearned()) {
+            // Слово в процессе если оно не выучено И готово к повторению
+            if (!SimpleRepetitionSystem.isLearnedWord(word) &&
+                    SimpleRepetitionSystem.shouldShowInSession(word)) {
                 count++;
             }
         }
+        Log.d(TAG, "📊 Слов в процессе (правильный подсчет): " + count);
         return count;
     }
     private void loadWordsFromLocalCache() {
@@ -728,37 +743,33 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     @Override
     public void onCardLearned(WordItem word) {
         Log.d(TAG, "=== ОБРАБОТКА: onCardLearned ===");
-        Log.d(TAG, "Слово: " + word.getWord());
-        Log.d(TAG, "Библиотека: " + word.getLibraryId());
-        Log.d(TAG, "Custom: " + word.isCustomWord());
 
-        SimpleRepetitionSystem.processAnswer(word, true);
+        // ТОЛЬКО ОДИН вызов - либо onWordLearned, либо onWordReviewed
+        if (SimpleRepetitionSystem.isLearnedWord(word)) {
+            wordRepository.onWordLearned(word.getWordId());
+        } else {
+            wordRepository.onWordReviewed();
+        }
 
-        Log.d(TAG, "После обработки:");
-        Log.d(TAG, " - difficulty: " + word.getDifficulty());
-        Log.d(TAG, " - reviewStage: " + word.getReviewStage());
-        Log.d(TAG, " - consecutiveShows: " + word.getConsecutiveShows());
-
-        wordRepository.updateWord(word);
-        // ✅ ДОБАВИТЬ ВЫЗОВЫ СТАТИСТИКИ
-        wordRepository.onWordLearned(word.getWordId()); // Слово полностью выучено
-        wordRepository.onWordReviewed(); // Также считаем как повторение
+        // Обновляем прогресс
+        updateProgress();
         Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
     }
 
-    @Override
 
+    @Override
     public void onCardNotLearned(WordItem word) {
         Log.d(TAG, "Слово не выучено: " + word.getWord());
 
-        // ВЫЗЫВАЕМ СИСТЕМУ ПОВТОРЕНИЙ!
-        SimpleRepetitionSystem.processAnswer(word, false);
+        // УБЕРИТЕ ЭТИ СТРОКИ - они уже вызваны в адаптере:
+        // SimpleRepetitionSystem.processAnswer(word, false);
+        // wordRepository.updateWord(word);
 
-        // СОХРАНЯЕМ обновленный прогресс
-        wordRepository.updateWord(word);
+        // Оставляем только статистику:
+        wordRepository.onWordReviewed();
 
-        // ✅ ДОБАВИТЬ ВЫЗОВ СТАТИСТИКИ
-        wordRepository.onWordReviewed(); // Слово повторено (но не выучено)
+        // Обновляем прогресс
+        updateProgress();
 
         Toast.makeText(getContext(), "🔄 " + word.getWord() + " - повторим позже", Toast.LENGTH_SHORT).show();
     }

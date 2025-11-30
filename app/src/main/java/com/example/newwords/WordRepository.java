@@ -1860,36 +1860,7 @@ public class WordRepository {
         }).start();
     }
 
-    /**
-     * Вызывается когда слово успешно изучено
-     */
-    public void onWordLearned(String wordId) {
-        updateStatsAsync(stats -> {
-            stats.setWordsLearned(stats.getWordsLearned() + 1);
-            stats.setTodayProgress(stats.getTodayProgress() + 1);
-            stats.setLastSessionDate(new Date());
 
-            int currentInProgress = Math.max(0, stats.getWordsInProgress() - 1);
-            stats.setWordsInProgress(currentInProgress);
-
-            Log.d(TAG, "✅ Слово изучено! Выучено: " + stats.getWordsLearned() +
-                    ", сегодня: " + stats.getTodayProgress());
-            return stats;
-        });
-    }
-
-    /**
-     * Вызывается при простом повторении слова
-     */
-    public void onWordReviewed() {
-        updateStatsAsync(stats -> {
-            stats.setTodayProgress(stats.getTodayProgress() + 1);
-            stats.setLastSessionDate(new Date());
-
-            Log.d(TAG, "📖 Слово повторено! Сегодня: " + stats.getTodayProgress());
-            return stats;
-        });
-    }
 
     /**
      * Вызывается когда новое слово добавлено в изучение
@@ -2062,6 +2033,73 @@ public class WordRepository {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         return user != null ? user.getUid() : null;
     }
+// === МЕТОДЫ СТАТИСТИКИ ===
 
+    /**
+     * Вызывается когда слово успешно изучено
+     */
+    public void onWordLearned(String wordId) {
+        updateStatsAsync(stats -> {
+            stats.setWordsLearned(stats.getWordsLearned() + 1);
+            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            stats.setLastSessionDate(new Date());
+
+            Log.d(TAG, "✅ Слово изучено! Выучено: " + stats.getWordsLearned() +
+                    ", сегодня: " + stats.getTodayProgress());
+            return stats;
+        });
+    }
+
+// ← ВСТАВЬТЕ ЗДЕСЬ ШАГ 3
+    /**
+     * Полностью пересчитывает статистику на основе всех слов
+     */
+    /**
+     * Полностью пересчитывает статистику на основе всех слов
+     */
+    public void recalculateAllStats(List<WordItem> allWords, OnSuccessListener listener) {
+        new Thread(() -> {
+            try {
+                // Создаем final переменные для использования в лямбде
+                final int[] counts = {0, 0}; // [wordsInProgress, wordsLearned]
+
+                for (WordItem word : allWords) {
+                    if (SimpleRepetitionSystem.isLearnedWord(word)) {
+                        counts[1]++; // wordsLearned
+                    } else if (SimpleRepetitionSystem.shouldShowInSession(word)) {
+                        counts[0]++; // wordsInProgress
+                    }
+                }
+
+                updateStatsAsync(stats -> {
+                    stats.setWordsInProgress(counts[0]);
+                    stats.setWordsLearned(counts[1]);
+                    stats.setLastUpdated(new Date());
+                    return stats;
+                });
+
+                if (listener != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        listener.onSuccess();
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка пересчета статистики", e);
+            }
+        }).start();
+    }
+    /**
+     * Вызывается при простом повторении слова
+     */
+    public void onWordReviewed() {
+        updateStatsAsync(stats -> {
+            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            stats.setLastSessionDate(new Date());
+
+            Log.d(TAG, "📖 Слово повторено! Сегодня: " + stats.getTodayProgress());
+            return stats;
+        });
+    }
 
 }

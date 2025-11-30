@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -155,28 +154,13 @@ public class Fragment1 extends Fragment {
     }
 
     private void setupBottomButtons(View view) {
-        EditText searchEditText = view.findViewById(R.id.searchEditText);
         ImageButton searchButton = view.findViewById(R.id.searchButton);
         ImageButton addButton = view.findViewById(R.id.addButton);
 
+        // Обработчик кнопки поиска (лупа)
         searchButton.setOnClickListener(v -> {
-            String query = searchEditText.getText().toString().trim();
-
-            // Создаем фрагмент поиска
-            SearchWordsFragment searchFragment = new SearchWordsFragment();
-
-            // Передаем поисковый запрос если есть
-            if (!query.isEmpty()) {
-                Bundle args = new Bundle();
-                args.putString("initial_query", query);
-                searchFragment.setArguments(args);
-            }
-
-            // Открываем фрагмент поиска
-            requireActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, searchFragment)
-                    .addToBackStack("search_navigation")
-                    .commit();
+            // Просто открываем фрагмент поиска без начального запроса
+            openSearchFragment();
         });
 
         addButton.setOnClickListener(v -> {
@@ -184,9 +168,15 @@ public class Fragment1 extends Fragment {
         });
     }
 
-    private void performSearch(String query) {
-        // TODO: Реализовать поиск по словам
-        Toast.makeText(getContext(), "Поиск: " + query, Toast.LENGTH_SHORT).show();
+    private void openSearchFragment() {
+        // Создаем фрагмент поиска
+        SearchWordsFragment searchFragment = new SearchWordsFragment();
+
+        // Открываем фрагмент поиска
+        requireActivity().getSupportFragmentManager().beginTransaction()
+                .replace(android.R.id.content, searchFragment)
+                .addToBackStack("search_navigation")
+                .commit();
     }
 
     @Override
@@ -197,7 +187,7 @@ public class Fragment1 extends Fragment {
     }
 
     private void showAddWordDialog() {
-        // ИСПРАВЛЕНИЕ: используем новый диалог с выбором библиотеки
+        // Используем диалог с выбором библиотеки
         AddWordWithLibraryDialog dialog = AddWordWithLibraryDialog.newInstance();
         dialog.setOnWordAddedListener(new AddWordWithLibraryDialog.OnWordAddedListener() {
             @Override
@@ -210,7 +200,6 @@ public class Fragment1 extends Fragment {
                     @Override
                     public void onWordAdded(WordItem addedWord) {
                         Toast.makeText(getContext(), "Слово добавлено в библиотеку!", Toast.LENGTH_SHORT).show();
-                        // Можно обновить статистику или показать уведомление
                     }
 
                     @Override

@@ -15,7 +15,7 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- Прогресс бар загрузки (добавить) -->
+        <!-- Прогресс бар загрузки -->
         <ProgressBar
             android:id="@+id/loadingProgressBar"
             android:layout_width="wrap_content"
@@ -72,8 +72,6 @@
             android:layout_width="200dp"
             android:layout_height="60dp"
             android:text="start"
-
-
             android:textSize="24sp"
             android:textColor="#322b36"
             android:background="@drawable/custom_library_badge"
@@ -83,41 +81,30 @@
 
     </LinearLayout>
 
-    <!-- Нижняя панель с полем поиска и кнопками -->
+    <!-- Нижняя панель только с кнопками -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <EditText
-            android:id="@+id/searchEditText"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:hint="Поиск"
-            android:textColor="#322b36"
-            android:textColorHint="#e7b5a9"
-            android:fontFamily="@font/jura_font_wght"
-            android:padding="8dp" />
+        android:gravity="center">
 
         <ImageButton
             android:id="@+id/searchButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:src="@drawable/ic_search"
             android:background="@android:color/transparent"
-            android:layout_marginStart="8dp"
+            android:layout_marginEnd="32dp"
             android:contentDescription="поиск" />
 
         <ImageButton
             android:id="@+id/addButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:src="@drawable/ic_add"
             android:background="@android:color/transparent"
-            android:contentDescription="Добавить"
-            android:layout_marginStart="8dp" />
+            android:contentDescription="Добавить" />
+
     </LinearLayout>
 
 </LinearLayout>
