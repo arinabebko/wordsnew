@@ -38,8 +38,8 @@
     <!-- Основная карточка с словом (УМЕНЬШЕНА и СПУЩЕНА ВНИЗ) -->
     <LinearLayout
         android:id="@+id/wordCard"
-        android:layout_width="300dp"
-    android:layout_height="320dp"
+        android:layout_width="280dp"
+    android:layout_height="300dp"
     android:orientation="vertical"
     android:background="@drawable/card_pastel_bg"
     android:gravity="center"
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:text="spring"
             android:textColor="#625fba"
-            android:textSize="40sp"
+            android:textSize="44sp"
             android:fontFamily="@font/jura_font_wght"
             android:layout_gravity="center_horizontal"/>
 
@@ -67,8 +67,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="весна"
-            android:textColor="#babba9"
-            android:textSize="16sp"
+            android:textColor="#625fba"
+            android:textSize="28sp"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginTop="26dp"
             android:layout_gravity="center_horizontal"
