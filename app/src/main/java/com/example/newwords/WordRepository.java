@@ -1129,14 +1129,14 @@ public class WordRepository {
     /**
      * Создать пользовательскую библиотеку
      */
-    public void createCustomLibrary(String name, String description, String category,
+    public void createCustomLibrary(String name, String description, String category, String language,
                                     OnLibraryCreatedListener listener) {
         Map<String, Object> libraryData = new HashMap<>();
         libraryData.put("name", name);
         libraryData.put("description", description);
         libraryData.put("category", category);
         libraryData.put("wordCount", 0);
-        libraryData.put("languageFrom", "en");
+        libraryData.put("languageFrom", language);
         libraryData.put("languageTo", "ru");
         libraryData.put("isPublic", false);
         libraryData.put("createdBy", userId);
@@ -1153,6 +1153,7 @@ public class WordRepository {
                     library.setDescription(description);
                     library.setCategory(category);
                     library.setWordCount(0);
+                    library.setLanguageFrom(language);
                     library.setCreatedBy(userId);
                     listener.onLibraryCreated(library);
                 })

@@ -1,6 +1,9 @@
 package com.example.newwords;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 public class WordLibrary {
     private String libraryId;
     private String name;
@@ -14,6 +17,52 @@ public class WordLibrary {
     private Date createdAt;
     private String createdBy;
 
+
+
+    // НОВОЕ: храним активность для каждого языка
+    private Map<String, Boolean> languageActiveStates = new HashMap<>();
+
+
+    // === НОВЫЕ МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ АКТИВНОСТЬЮ ПО ЯЗЫКАМ ===
+
+    /**
+     * Установить активность для конкретного языка
+     */
+    public void setActiveForLanguage(String languageCode, boolean active) {
+        if (languageActiveStates == null) {
+            languageActiveStates = new HashMap<>();
+        }
+        languageActiveStates.put(languageCode, active);
+    }
+
+    /**
+     * Получить активность для конкретного языка
+     */
+    public boolean isActiveForLanguage(String languageCode) {
+        if (languageActiveStates == null) {
+            return false;
+        }
+        Boolean active = languageActiveStates.get(languageCode);
+        return active != null ? active : false;
+    }
+
+    /**
+     * Получить все состояния по языкам
+     */
+    public Map<String, Boolean> getLanguageActiveStates() {
+        if (languageActiveStates == null) {
+            languageActiveStates = new HashMap<>();
+        }
+        return languageActiveStates;
+    }
+
+    /**
+     * Установить все состояния по языкам
+     */
+    public void setLanguageActiveStates(Map<String, Boolean> states) {
+        this.languageActiveStates = states;
+    }
+
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
         // Инициализируем поля пустыми строками по умолчанию
@@ -22,6 +71,9 @@ public class WordLibrary {
         this.category = "custom";
         this.languageFrom = "en";
         this.languageTo = "ru";
+        this.languageActiveStates = new HashMap<>();
+        this.languageActiveStates.put("en", false); // английский
+        this.languageActiveStates.put("ba", false); // башкирский
     }
 
     // Конструктор с параметрами

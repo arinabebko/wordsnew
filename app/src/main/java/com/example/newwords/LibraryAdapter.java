@@ -57,7 +57,27 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         this.libraries.addAll(newLibraries);
         notifyDataSetChanged();
     }
+    public void filterLibraries(String query, List<WordLibrary> allLibraries, String languageCode) {
+        this.libraries.clear();
 
+        for (WordLibrary library : allLibraries) {
+            // Проверяем язык библиотеки
+            String libraryLanguage = library.getLanguageTo();
+            boolean languageMatches = languageCode == null ||
+                    libraryLanguage == null ||
+                    libraryLanguage.equals(languageCode);
+
+            // Проверяем поисковый запрос
+            boolean queryMatches = query.isEmpty() ||
+                    library.getName().toLowerCase().contains(query.toLowerCase()) ||
+                    library.getDescription().toLowerCase().contains(query.toLowerCase());
+
+            if (languageMatches && queryMatches) {
+                this.libraries.add(library);
+            }
+        }
+        notifyDataSetChanged();
+    }
     /**
      * Обновляет карту активных библиотек
      */
