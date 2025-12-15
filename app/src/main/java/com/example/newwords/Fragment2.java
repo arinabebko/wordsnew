@@ -701,15 +701,18 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     }
 
     private void startLearning() {
-        Log.d(TAG, "Начало обучения с " + getActiveLibrariesCount() + " активными библиотеками");
+        Log.d(TAG, "Начало обучения для языка: " + currentLanguage +
+                " с " + getActiveLibrariesCount() + " активными библиотеками");
 
-        // Сохраняем в локальную БД
+        // Сохраняем активные библиотеки
         saveActiveLibraries();
 
-        // Сразу переходим к обучению, не дожидаясь синхронизации
+        // Создаем фрагмент обучения с указанием языка
+        WordsFragment wordsFragment = WordsFragment.newInstance(currentLanguage);
+
         if (getActivity() != null) {
             getActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new WordsFragment())
+                    .replace(android.R.id.content, wordsFragment)
                     .addToBackStack(null)
                     .commit();
         }
@@ -717,7 +720,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         // Синхронизируем с Firebase в фоне
         syncWithFirebase();
     }
-
 
 
     /**

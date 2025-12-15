@@ -283,15 +283,7 @@ public class WordRepository {
         return words;
     }
 
-
-    /**
-     * Получить ВСЕ активные слова пользователя (из библиотек + кастомные)
-     */
-
-    /**
-     * Загружает слова из активных библиотек напрямую из Firebase
-     */
-    public void getWordsFromActiveLibrariesFirebase(OnWordsLoadedListener listener) {
+    public void getWordsFromActiveLibrariesFirebaseOld(OnWordsLoadedListener listener) {
         Log.d(TAG, "🔥 Загрузка слов из активных библиотек (FIREBASE)");
 
         getUserActiveLibraries(new OnLibrariesLoadedListener() {
@@ -336,6 +328,149 @@ public class WordRepository {
 
                 }).addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Ошибка загрузки слов из Firebase", e);
+                    listener.onError(e);
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки активных библиотек", e);
+                listener.onError(e);
+            }
+        });
+    }
+    /**
+     * Получить ВСЕ активные слова пользователя (из библиотек + кастомные)
+     */
+
+    /**
+     * Загружает слова из активных библиотек напрямую из Firebase
+     */
+    public void getUserActiveLibrariesForLanguage(String language, OnLibrariesLoadedListener listener) {
+        Log.d(TAG, "🔄 Загрузка активных библиотек для языка: " + language);
+
+        db.collection("users")
+                .document(userId)
+                .collection("active_libraries")
+                .whereEqualTo("active", true)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        List<String> activeLibraryIds = new ArrayList<>();
+
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            String libraryId = document.getString("libraryId");
+                            if (libraryId != null && !libraryId.isEmpty()) {
+                                activeLibraryIds.add(libraryId);
+                            }
+                        }
+
+                        Log.d(TAG, "📚 Всего активных библиотек: " + activeLibraryIds.size());
+
+                        if (activeLibraryIds.isEmpty()) {
+                            listener.onLibrariesLoaded(new ArrayList<>());
+                            return;
+                        }
+
+                        // Загружаем информацию о библиотеках и фильтруем по языку
+                        loadLibrariesInfo(activeLibraryIds, new OnLibrariesLoadedListener() {
+                            @Override
+                            public void onLibrariesLoaded(List<WordLibrary> allLibraries) {
+                                List<WordLibrary> filteredLibraries = new ArrayList<>();
+
+                                for (WordLibrary library : allLibraries) {
+                                    String libraryLanguage = library.getLanguageFrom();
+                                    if (libraryLanguage != null && libraryLanguage.equals(language)) {
+                                        library.setActive(true);
+                                        filteredLibraries.add(library);
+                                        Log.d(TAG, "✅ Подходит для языка " + language + ": " + library.getName());
+                                    }
+                                }
+
+                                Log.d(TAG, "📚 Для языка " + language + ": " + filteredLibraries.size() + " библиотек");
+                                listener.onLibrariesLoaded(filteredLibraries);
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                listener.onError(e);
+                            }
+                        });
+                    } else {
+                        Log.e(TAG, "❌ Ошибка загрузки активных библиотек", task.getException());
+                        listener.onError(task.getException());
+                    }
+                });
+    }
+
+    /**
+     *
+     *
+     *
+     * Загружает слова из активных библиотек для указанного языка
+     */
+    public void getWordsFromActiveLibrariesFirebase(String language, OnWordsLoadedListener listener) {
+        Log.d(TAG, "🔥 Загрузка слов из активных библиотек для языка: " + language);
+
+        getUserActiveLibraries(new OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> activeLibraries) {
+                Log.d(TAG, "📚 Всего активных библиотек: " + activeLibraries.size());
+
+                // ФИЛЬТРУЕМ библиотеки по языку
+                List<WordLibrary> filteredLibraries = new ArrayList<>();
+                for (WordLibrary library : activeLibraries) {
+                    String libraryLanguage = library.getLanguageFrom();
+                    if (libraryLanguage != null && libraryLanguage.equals(language)) {
+                        filteredLibraries.add(library);
+                        Log.d(TAG, "✅ Подходит для обучения: " + library.getName() +
+                                " (язык: " + libraryLanguage + ")");
+                    } else {
+                        Log.d(TAG, "❌ Не подходит для обучения: " + library.getName() +
+                                " (ожидали: " + language + ", получили: " + libraryLanguage + ")");
+                    }
+                }
+
+                Log.d(TAG, "📚 Для обучения на языке " + language + ": " +
+                        filteredLibraries.size() + " библиотек");
+
+                if (filteredLibraries.isEmpty()) {
+                    listener.onWordsLoaded(new ArrayList<>());
+                    return;
+                }
+
+                List<WordItem> allWords = new ArrayList<>();
+                List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+
+                for (WordLibrary library : filteredLibraries) {
+                    boolean isCustom = library.getCreatedBy() != null &&
+                            !library.getCreatedBy().equals("system");
+
+                    Task<QuerySnapshot> task = getWordsFromSingleLibrary(library.getLibraryId(), isCustom);
+                    tasks.add(task);
+                }
+
+                Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+                    for (Object result : results) {
+                        if (result instanceof QuerySnapshot) {
+                            QuerySnapshot snapshot = (QuerySnapshot) result;
+                            for (QueryDocumentSnapshot document : snapshot) {
+                                WordItem word = document.toObject(WordItem.class);
+                                word.setWordId(document.getId());
+                                word.setLibraryId(document.getReference().getParent().getParent().getId());
+
+                                // Загружаем поля системы повторений
+                                loadRepetitionFields(word, document);
+                                allWords.add(word);
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "✅ Загружено слов для языка " + language + ": " + allWords.size());
+                    listener.onWordsLoaded(allWords);
+
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка загрузки слов для языка " + language, e);
                     listener.onError(e);
                 });
             }

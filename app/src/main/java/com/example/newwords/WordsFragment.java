@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class WordsFragment extends Fragment implements StackCardAdapter.OnCardActionListener {
-
+    private static final String ARG_LANGUAGE = "current_language"; // ← ДОБАВЬТЕ ЭТУ СТРОКУ
     private ViewPager2 viewPager2;
      private StackCardAdapter adapter;
    // private SimpleStackCardAdapter adapter; // Изменяем на новый адаптер
@@ -36,9 +36,29 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     private List<WordItem> wordList = new ArrayList<>();
     private ProgressBar progressBar;
     private TextView progressText;
+    private String currentLanguage = "en"; // по умолчанию
 
     private static final String TAG = "WordsFragment";
 
+    // Создать новый экземпляр с указанием языка
+    public static WordsFragment newInstance(String currentLanguage) {
+        WordsFragment fragment = new WordsFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_LANGUAGE, currentLanguage);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Получаем переданный язык
+        if (getArguments() != null) {
+            currentLanguage = getArguments().getString(ARG_LANGUAGE, "en");
+            Log.d(TAG, "📱 WordsFragment создан для языка: " + currentLanguage);
+        }
+    }
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -151,39 +171,6 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     }
      */
     /**
-     * Загружает слова из Firebase с предварительной проверкой структуры
-     */
-    private void loadWordsFromFirebase() {
-        Log.d(TAG, "Начинаем загрузку слов из Firebase...");
-        showLoading(true);
-
-        // СНАЧАЛА проверяем/создаем структуру word_progress
-        wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG, "✅ Структура word_progress готова, загружаем слова...");
-
-                // ТЕПЕРЬ загружаем слова
-                wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
-                    @Override
-                    public void onWordsLoaded(List<WordItem> words) {
-                        Log.d(TAG, "Успешно загружено слов: " + words.size());
-                        processLoadedWords(words);
-                        showLoading(false);
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
-                        loadWordsFromLocalCache();
-                        showLoading(false);
-                    }
-                });
-            }
-        });
-    }
-
-    /**
      * Обрабатывает загруженные слова (вынес в отдельный метод для чистоты)
      */
     private void processLoadedWords(List<WordItem> words) {
@@ -266,17 +253,17 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         return count;
     }
     private void loadWordsFromLocalCache() {
-        Log.d(TAG, "Пробуем загрузить слова из локального кеша...");
+        Log.d(TAG, "Пробуем загрузить слова из локального кеша для языка: " + currentLanguage);
 
-        // Тоже проверяем структуру перед загрузкой
         wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
             @Override
             public void onSuccess() {
-                wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
+                // Используем версию с языком
+                wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
                     @Override
                     public void onWordsLoaded(List<WordItem> words) {
                         if (words.isEmpty()) {
-                            showNoWordsState();
+                         //   showNoWordsForLanguage();
                         } else {
                             List<WordItem> sessionWords = getWordsForSession(words);
                             setupViewPagerWithWords(sessionWords);
@@ -286,12 +273,97 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "Ошибка локальной загрузки: " + e.getMessage());
-                        showNoWordsState();
+                        //  showNoWordsForLanguage();
                     }
                 });
             }
         });
     }
+
+    /**
+     * Загружает слова из Firebase с учетом текущего языка
+     */
+    private void loadWordsFromFirebase() {
+        Log.d(TAG, "Начинаем загрузку слов из Firebase для языка: " + currentLanguage);
+        showLoading(true);
+
+        // СНАЧАЛА проверяем/создаем структуру word_progress
+        wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "✅ Структура word_progress готова, загружаем слова для языка: " + currentLanguage);
+
+                // ТЕПЕРЬ загружаем слова для конкретного языка
+                wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+                    @Override
+                    public void onWordsLoaded(List<WordItem> words) {
+                        Log.d(TAG, "✅ Для языка " + currentLanguage + " загружено: " + words.size() + " слов");
+                        processLoadedWords(words);
+                        showLoading(false);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "❌ Ошибка загрузки слов для языка " + currentLanguage, e);
+
+
+                        showLoading(false);
+                    }
+                });
+            }
+        });
+    }
+    /**
+     * Фильтрует слова по языку библиотеки
+     */
+    private List<WordItem> filterWordsByLanguage(List<WordItem> allWords) {
+        List<WordItem> filteredWords = new ArrayList<>();
+
+        // К сожалению, WordItem не содержит информацию о языке библиотеки
+        // Нужно загружать информацию о библиотеках
+
+        // Временное решение: загрузим библиотеки и отфильтруем
+        wordRepository.getUserActiveLibrariesForLanguage(currentLanguage, new WordRepository.OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> libraries) {
+                Log.d(TAG, "📚 Найдено библиотек для языка " + currentLanguage + ": " + libraries.size());
+
+                // Собираем ID библиотек для этого языка
+                List<String> libraryIds = new ArrayList<>();
+                for (WordLibrary library : libraries) {
+                    libraryIds.add(library.getLibraryId());
+                    Log.d(TAG, "   Библиотека: " + library.getName() + " (ID: " + library.getLibraryId() + ")");
+                }
+
+                // Фильтруем слова по ID библиотек
+                for (WordItem word : allWords) {
+                    if (word.getLibraryId() != null && libraryIds.contains(word.getLibraryId())) {
+                        filteredWords.add(word);
+                    }
+                }
+
+                Log.d(TAG, "✅ После фильтрации: " + filteredWords.size() + " слов");
+
+                // Обрабатываем отфильтрованные слова
+                if (filteredWords.isEmpty()) {
+                   // showNoWordsForLanguage();
+                } else {
+                    processLoadedWords(filteredWords);
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки библиотек для фильтрации", e);
+                // Если не можем отфильтровать, показываем все
+                processLoadedWords(allWords);
+            }
+        });
+
+        return filteredWords;
+    }
+
+
 
     /**
      * Выбирает слова для текущей сессии изучения

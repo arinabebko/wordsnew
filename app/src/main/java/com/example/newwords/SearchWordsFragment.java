@@ -110,7 +110,7 @@ public class SearchWordsFragment extends Fragment implements WordListAdapter.OnW
         Log.d(TAG, "Загрузка всех слов пользователя...");
         showLoading(true);
 
-        wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
+        wordRepository.getWordsFromActiveLibrariesFirebaseOld( new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
                 Log.d(TAG, "Успешно загружено слов: " + words.size());

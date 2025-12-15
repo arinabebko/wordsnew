@@ -124,16 +124,25 @@ public class Fragment1 extends Fragment {
     }
 
     private void checkIfWordsAvailable() {
-        wordRepository.getWordsFromActiveLibrariesFirebase(new WordRepository.OnWordsLoadedListener() {
+        // Сначала получаем текущий язык
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String currentLanguage = languageManager.getCurrentLanguage();
+
+        Log.d("Fragment1", "Проверка слов для языка: " + currentLanguage);
+
+        // Используем новую версию метода с языком
+        wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
+                Log.d("Fragment1", "Для языка " + currentLanguage + " найдено слов: " + words.size());
+
                 if (words.isEmpty()) {
                     Toast.makeText(getContext(), "Нет слов для изучения. Добавьте слова в библиотеках.", Toast.LENGTH_LONG).show();
                 } else {
-                    // Создаем новый фрагмент
-                    WordsFragment startFragment = new WordsFragment();
+                    // Создаем фрагмент с указанием языка
+                    WordsFragment startFragment = WordsFragment.newInstance(currentLanguage);
 
-                    // Открываем его поверх текущей активности
+                    // Открываем его
                     requireActivity().getSupportFragmentManager().beginTransaction()
                             .replace(android.R.id.content, startFragment)
                             .addToBackStack("fragment1_navigation")
@@ -143,13 +152,10 @@ public class Fragment1 extends Fragment {
 
             @Override
             public void onError(Exception e) {
+                Log.e("Fragment1", "Ошибка загрузки слов для языка " + currentLanguage, e);
                 Toast.makeText(getContext(), "Ошибка загрузки слов", Toast.LENGTH_SHORT).show();
-                // Все равно переходим, там будет своя обработка
-                WordsFragment startFragment = new WordsFragment();
-                requireActivity().getSupportFragmentManager().beginTransaction()
-                        .replace(android.R.id.content, startFragment)
-                        .addToBackStack("fragment1_navigation")
-                        .commit();
+
+
             }
         });
     }
