@@ -2,9 +2,11 @@ package com.example.newwords;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,7 +23,8 @@ import com.google.firebase.auth.FirebaseUser;
 public class LoginActivity extends AppCompatActivity {
 
     private EditText emailEditText, passwordEditText;
-    private Button registerButton, loginButton;
+    private Button loginButton;
+    private TextView registerLinkTextView, forgotPasswordTextView;
     private FirebaseAuth mAuth;
 
     @Override
@@ -35,19 +38,17 @@ public class LoginActivity extends AppCompatActivity {
         // Получаем ссылки на UI-элементы
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
-        registerButton = findViewById(R.id.registerButton);
         loginButton = findViewById(R.id.loginButton);
+        registerLinkTextView = findViewById(R.id.registerLinkTextView);
+
+        // Находим TextView для восстановления пароля (если добавили в layout)
+        // forgotPasswordTextView = findViewById(R.id.forgotPasswordTextView);
 
         // Инициализируем Firebase Auth
         mAuth = FirebaseAuth.getInstance();
 
-        // Обработка регистрации
-        registerButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                registerUser();
-            }
-        });
+        // Проверяем, авторизован ли пользователь
+        checkCurrentUser();
 
         // Обработка входа
         loginButton.setOnClickListener(new View.OnClickListener() {
@@ -56,57 +57,194 @@ public class LoginActivity extends AppCompatActivity {
                 loginUser();
             }
         });
+
+        // Обработчик для ссылки на регистрацию
+        registerLinkTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                goToRegisterActivity();
+            }
+        });
+
+        // Если добавили восстановление пароля
+        /*
+        forgotPasswordTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showForgotPasswordDialog();
+            }
+        });
+        */
     }
 
-    private void registerUser() {
-        String email = emailEditText.getText().toString().trim();
-        String password = passwordEditText.getText().toString().trim();
-
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(LoginActivity.this, "Введите email и пароль", Toast.LENGTH_SHORT).show();
-            return;
+    private void checkCurrentUser() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            // Пользователь уже авторизован - переходим в MainActivity
+            if (currentUser.isEmailVerified()) {
+                // Email подтвержден - сразу переходим
+                goToMainActivity();
+            } else {
+                // Email не подтвержден - предлагаем подтвердить
+                showEmailNotVerifiedDialog(currentUser);
+            }
         }
-
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            Toast.makeText(LoginActivity.this, "Регистрация успешна: " + user.getEmail(), Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            Toast.makeText(LoginActivity.this, "Ошибка регистрации: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
     }
 
     private void loginUser() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(LoginActivity.this, "Введите email и пароль", Toast.LENGTH_SHORT).show();
+        // Валидация полей
+        if (TextUtils.isEmpty(email)) {
+            Toast.makeText(LoginActivity.this, "Введите email", Toast.LENGTH_SHORT).show();
+            emailEditText.requestFocus();
             return;
         }
+
+        if (TextUtils.isEmpty(password)) {
+            Toast.makeText(LoginActivity.this, "Введите пароль", Toast.LENGTH_SHORT).show();
+            passwordEditText.requestFocus();
+            return;
+        }
+
+        // Показываем прогресс (можно добавить ProgressBar)
+        loginButton.setEnabled(false);
+        loginButton.setText("Вход...");
 
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
+                        // Восстанавливаем кнопку
+                        loginButton.setEnabled(true);
+                        loginButton.setText("Вход");
+
                         if (task.isSuccessful()) {
                             FirebaseUser user = mAuth.getCurrentUser();
-                            Toast.makeText(LoginActivity.this, "Вход выполнен: " + user.getEmail(), Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
+
+                            if (user != null) {
+                                // Проверяем подтвержден ли email
+                                if (user.isEmailVerified()) {
+                                    // Email подтвержден - вход успешен
+                                    Toast.makeText(LoginActivity.this,
+                                            "Вход выполнен",
+                                            Toast.LENGTH_SHORT).show();
+                                    goToMainActivity();
+                                } else {
+                                    // Email не подтвержден
+                                    showEmailNotVerifiedDialog(user);
+                                    // Выходим, чтобы пользователь подтвердил email
+                                    mAuth.signOut();
+                                }
+                            }
                         } else {
-                            Toast.makeText(LoginActivity.this, "Ошибка входа: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            // Ошибка входа
+                            String errorMessage = "Ошибка входа";
+                            if (task.getException() != null) {
+                                String exceptionMessage = task.getException().getMessage();
+
+                                // Более понятные сообщения об ошибках
+                                if (exceptionMessage.contains("invalid credential") ||
+                                        exceptionMessage.contains("password is invalid")) {
+                                    errorMessage = "Неверный email или пароль";
+                                } else if (exceptionMessage.contains("no user record")) {
+                                    errorMessage = "Аккаунт не найден";
+                                } else if (exceptionMessage.contains("network error")) {
+                                    errorMessage = "Проверьте подключение к интернету";
+                                } else {
+                                    errorMessage = exceptionMessage;
+                                }
+                            }
+
+                            Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                         }
                     }
                 });
     }
+
+    private void showEmailNotVerifiedDialog(FirebaseUser user) {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Email не подтвержден")
+                .setMessage("Подтвердите ваш email " + user.getEmail() + " для доступа к приложению.\n\n" +
+                        "Отправить письмо подтверждения еще раз?")
+                .setPositiveButton("Отправить", (dialog, which) -> {
+                    sendVerificationEmail(user);
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void sendVerificationEmail(FirebaseUser user) {
+        user.sendEmailVerification()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(LoginActivity.this,
+                                "Письмо подтверждения отправлено на " + user.getEmail(),
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(LoginActivity.this,
+                                "Ошибка отправки: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void goToRegisterActivity() {
+        Intent intent = new Intent(this, RegisterActivity.class);
+        startActivity(intent);
+        // Анимация перехода (раскомментируйте когда создадите анимации)
+        // overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+    }
+
+    private void goToMainActivity() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    // Метод для восстановления пароля (если будете добавлять)
+    /*
+    private void showForgotPasswordDialog() {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Восстановление пароля");
+
+        final EditText input = new EditText(this);
+        input.setHint("Введите ваш email");
+        input.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        builder.setView(input);
+
+        builder.setPositiveButton("Отправить", (dialog, which) -> {
+            String email = input.getText().toString().trim();
+            if (!TextUtils.isEmpty(email)) {
+                sendPasswordResetEmail(email);
+            }
+        });
+
+        builder.setNegativeButton("Отмена", null);
+        builder.show();
+    }
+
+    private void sendPasswordResetEmail(String email) {
+        mAuth.sendPasswordResetEmail(email)
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    Toast.makeText(LoginActivity.this,
+                        "Инструкции отправлены на " + email,
+                        Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(LoginActivity.this,
+                        "Ошибка: " + task.getException().getMessage(),
+                        Toast.LENGTH_SHORT).show();
+                }
+            });
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        // При нажатии назад выходим из приложения
+        finishAffinity();
+    } */
 }
