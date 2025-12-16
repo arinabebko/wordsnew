@@ -87,14 +87,5 @@
 
         android:paddingVertical="8dp" />
 
-    <TextView
-        android:id="@+id/helpOption"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="помощь"
-        android:textColor="#8CA0FF"
-        android:textSize="18sp"
-
-        android:paddingVertical="8dp" />
 
 </LinearLayout>

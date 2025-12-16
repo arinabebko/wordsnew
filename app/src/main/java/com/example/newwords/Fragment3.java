@@ -63,18 +63,7 @@ public class Fragment3 extends Fragment {
                     .commit();
         });
 
-        // Находим ваш TextView (замените R.id.your_textview на реальный ID)
-        TextView helpTextView = view.findViewById(R.id.helpOption);
-        helpTextView.setOnClickListener(v -> {
-            // Создаем новый фрагмент
-            FragmentHelpOption FragmentHelpOption = new FragmentHelpOption();
 
-            // Открываем его поверх текущей активности
-            requireActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, FragmentHelpOption)
-                    .addToBackStack("fragment3_navigation")
-                    .commit();
-        });
 
         return view;
     }

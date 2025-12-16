@@ -34,6 +34,7 @@ android {
 
 dependencies {
     val room_version = "2.6.1" // Используем актуальную версию
+    implementation ("androidx.core:core-splashscreen:1.0.1")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
