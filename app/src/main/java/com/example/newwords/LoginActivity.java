@@ -81,13 +81,13 @@ public class LoginActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
             // Пользователь уже авторизован - переходим в MainActivity
-            if (currentUser.isEmailVerified()) {
+           // if (currentUser.isEmailVerified()) {
                 // Email подтвержден - сразу переходим
                 goToMainActivity();
-            } else {
+           // } else {
                 // Email не подтвержден - предлагаем подтвердить
-                showEmailNotVerifiedDialog(currentUser);
-            }
+             //   showEmailNotVerifiedDialog(currentUser);
+           // }
         }
     }
 
@@ -125,18 +125,18 @@ public class LoginActivity extends AppCompatActivity {
 
                             if (user != null) {
                                 // Проверяем подтвержден ли email
-                                if (user.isEmailVerified()) {
+                              //  if (user.isEmailVerified()) {
                                     // Email подтвержден - вход успешен
                                     Toast.makeText(LoginActivity.this,
                                             "Вход выполнен",
                                             Toast.LENGTH_SHORT).show();
                                     goToMainActivity();
-                                } else {
+                             //   } else {
                                     // Email не подтвержден
-                                    showEmailNotVerifiedDialog(user);
+                                 //   showEmailNotVerifiedDialog(user);
                                     // Выходим, чтобы пользователь подтвердил email
-                                    mAuth.signOut();
-                                }
+                                 //   mAuth.signOut();
+                                //}
                             }
                         } else {
                             // Ошибка входа

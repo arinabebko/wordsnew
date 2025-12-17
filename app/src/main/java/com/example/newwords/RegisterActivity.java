@@ -82,6 +82,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void registerUser() {
+
         // Получаем данные из полей
         String username = usernameEditText.getText().toString().trim();
         String email = emailEditText.getText().toString().trim();
@@ -151,11 +152,11 @@ public class RegisterActivity extends AppCompatActivity {
                                                 saveUserToFirestore(firebaseUser.getUid(), username, email);
 
                                                 // 3. Отправляем email для подтверждения
-                                                sendEmailVerification(firebaseUser);
+                                                //sendEmailVerification(firebaseUser);
 
                                                 // 4. Показываем сообщение и переходим на главный экран
                                                 Toast.makeText(RegisterActivity.this,
-                                                        "Регистрация успешна! Проверьте email для подтверждения.",
+                                                        "Регистрация успешна!",
                                                         Toast.LENGTH_LONG).show();
 
                                                 // Сразу переходим в MainActivity (не блокируем вход)

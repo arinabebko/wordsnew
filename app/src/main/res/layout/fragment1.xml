@@ -18,7 +18,7 @@
 
         <!-- Прогресс бар загрузки -->
         <ProgressBar
-            android:id="@+id/loadingProgressBar"
+            android:id="@+id/loadingProgressBarr"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -127,17 +127,40 @@
             android:layout_marginBottom="48dp" />
 
         <!-- Кнопка Start -->
-        <Button
-            android:id="@+id/startButton"
+
+
+
+
+
+        <!-- Вместо кнопки используйте FrameLayout -->
+        <FrameLayout
             android:layout_width="200dp"
             android:layout_height="60dp"
-            android:text="start"
-            android:textSize="24sp"
-            app:backgroundTint="@null"
-         android:textColor="#322b36"
-         android:background="@drawable/background_gradient"
-         android:fontFamily="@font/jura_font_wght"
-         android:textStyle="bold" />
+            android:layout_gravity="center">
+
+            <!-- Кнопка -->
+            <Button
+                android:id="@+id/startButton"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="start"
+                android:textSize="24sp"
+                app:backgroundTint="@null"
+                android:textColor="#322b36"
+                android:background="@drawable/background_gradient"
+                android:fontFamily="@font/jura_font_wght"
+                android:textStyle="bold" />
+
+            <!-- ProgressBar поверх кнопки -->
+            <ProgressBar
+                android:id="@+id/loadingProgressBar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:indeterminateTint="#8CA0FF" />
+
+        </FrameLayout>
  </LinearLayout>
 
 

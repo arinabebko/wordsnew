@@ -45,12 +45,19 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+
+
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore:25.0.0")
-    implementation("com.google.firebase:firebase-auth:22.3.0")
+    implementation("com.google.firebase:firebase-firestore")
+
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
+
+    // Glide для загрузки изображений
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
 
     // Room Database
     implementation("androidx.room:room-runtime:$room_version")

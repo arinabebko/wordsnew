@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background_gradient"
+    android:padding="16dp">
+
+    <!-- ПОЛУПРОЗРАЧНЫЙ КВАДРАТ НА ЗАДНЕМ ПЛАНЕ -->
+    <View
+        android:layout_width="350dp"
+        android:layout_height="488dp"
+        android:layout_gravity="center"
+        android:layout_margin="24dp"
+        android:alpha="0.2"
+        android:background="@drawable/rounded_square"
+        android:elevation="2dp" />
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:padding="16dp"
@@ -98,3 +116,4 @@
         android:layout_gravity="center"
         android:textStyle="bold"/>
 </LinearLayout>
+</FrameLayout>

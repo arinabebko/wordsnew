@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.LinearLayout; // ДОБАВЬ ЭТОТ ИМПОРТ
@@ -21,7 +22,8 @@ public class Fragment1 extends Fragment {
 
     private TextView daysTextView, wordsInProgressTextView, wordsLearnedTextView, goodJobTextView;
     private WordRepository wordRepository;
-
+    private boolean isProcessingClick = false;
+    private static final long BUTTON_COOLDOWN = 2000; // 2 секунды
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -117,10 +119,53 @@ public class Fragment1 extends Fragment {
 
     private void setupStartButton(View view) {
         Button startButton = view.findViewById(R.id.startButton);
+        ProgressBar progressBar = view.findViewById(R.id.loadingProgressBar);
+
         startButton.setOnClickListener(v -> {
-            // Проверяем есть ли слова для изучения
-            checkIfWordsAvailable();
+            // Если уже обрабатываем клик - игнорируем
+            if (isProcessingClick) {
+                return;
+            }
+
+            // Устанавливаем флаг
+            isProcessingClick = true;
+
+            // Визуальная обратная связь
+            startButton.setEnabled(false);
+            startButton.setAlpha(0.5f);
+            progressBar.setVisibility(View.VISIBLE);
+
+            // Показываем сообщение
+            Toast.makeText(getContext(), "Начинаем обучение...", Toast.LENGTH_SHORT).show();
+
+            // Запускаем с задержкой
+            startButton.postDelayed(() -> {
+                checkIfWordsAvailable();
+
+                // Восстанавливаем кнопку через 2 секунды
+                startButton.postDelayed(() -> {
+                    isProcessingClick = false;
+                    startButton.setEnabled(true);
+                    startButton.setAlpha(1f);
+                    progressBar.setVisibility(View.GONE);
+                }, BUTTON_COOLDOWN);
+            }, 500); // Небольшая задержка перед вызовом checkIfWordsAvailable
         });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Сбрасываем состояние при возвращении
+        if (getView() != null) {
+            Button startButton = getView().findViewById(R.id.startButton);
+            ProgressBar progressBar = getView().findViewById(R.id.loadingProgressBar);
+
+            isProcessingClick = false;
+            startButton.setEnabled(true);
+            startButton.setAlpha(1f);
+            progressBar.setVisibility(View.GONE);
+        }
     }
 
     private void checkIfWordsAvailable() {
@@ -193,12 +238,12 @@ public class Fragment1 extends Fragment {
                 .commit();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    //@Override
+  //  public void onResume() {
+  //      super.onResume();
         // Обновляем статистику при возвращении на фрагмент
-        loadUserStats();
-    }
+  //      loadUserStats();
+ //   }
 
     private void showAddWordDialog() {
         // Используем диалог с выбором библиотеки
