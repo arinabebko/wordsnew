@@ -45,4 +45,6 @@ public interface LocalWordDao {
 
     @Query("DELETE FROM local_words")
     void clearAllWords();
+
+
 }

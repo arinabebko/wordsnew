@@ -354,53 +354,72 @@ public class WordRepository {
                 .collection("active_libraries")
                 .whereEqualTo("active", true)
                 .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        List<String> activeLibraryIds = new ArrayList<>();
-
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            String libraryId = document.getString("libraryId");
-                            if (libraryId != null && !libraryId.isEmpty()) {
-                                activeLibraryIds.add(libraryId);
-                            }
-                        }
-
-                        Log.d(TAG, "📚 Всего активных библиотек: " + activeLibraryIds.size());
-
-                        if (activeLibraryIds.isEmpty()) {
-                            listener.onLibrariesLoaded(new ArrayList<>());
-                            return;
-                        }
-
-                        // Загружаем информацию о библиотеках и фильтруем по языку
-                        loadLibrariesInfo(activeLibraryIds, new OnLibrariesLoadedListener() {
-                            @Override
-                            public void onLibrariesLoaded(List<WordLibrary> allLibraries) {
-                                List<WordLibrary> filteredLibraries = new ArrayList<>();
-
-                                for (WordLibrary library : allLibraries) {
-                                    String libraryLanguage = library.getLanguageFrom();
-                                    if (libraryLanguage != null && libraryLanguage.equals(language)) {
-                                        library.setActive(true);
-                                        filteredLibraries.add(library);
-                                        Log.d(TAG, "✅ Подходит для языка " + language + ": " + library.getName());
-                                    }
-                                }
-
-                                Log.d(TAG, "📚 Для языка " + language + ": " + filteredLibraries.size() + " библиотек");
-                                listener.onLibrariesLoaded(filteredLibraries);
-                            }
-
-                            @Override
-                            public void onError(Exception e) {
-                                listener.onError(e);
-                            }
-                        });
-                    } else {
-                        Log.e(TAG, "❌ Ошибка загрузки активных библиотек", task.getException());
-                        listener.onError(task.getException());
+                .addOnSuccessListener(task -> {
+                    List<String> activeLibraryIds = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : task) {
+                        String libraryId = document.getString("libraryId");
+                        if (libraryId != null) activeLibraryIds.add(libraryId);
                     }
+
+                    if (activeLibraryIds.isEmpty()) {
+                        // Если в сети ничего нет, сбрасываем активность в Room для этого языка
+                        updateRoomActiveStatus(new ArrayList<>(), language);
+                        listener.onLibrariesLoaded(new ArrayList<>());
+                        return;
+                    }
+
+                    loadLibrariesInfo(activeLibraryIds, new OnLibrariesLoadedListener() {
+                        @Override
+                        public void onLibrariesLoaded(List<WordLibrary> allLibraries) {
+                            List<WordLibrary> filteredLibraries = new ArrayList<>();
+                            for (WordLibrary library : allLibraries) {
+                                if (language.equals(library.getLanguageFrom())) {
+                                    library.setActive(true);
+                                    filteredLibraries.add(library);
+                                }
+                            }
+
+                            // ВАЖНО: Синхронизируем локальную базу
+                            // Помечаем эти библиотеки в Room как активные
+                            updateRoomActiveStatus(activeLibraryIds, language);
+
+                            listener.onLibrariesLoaded(filteredLibraries);
+                        }
+
+                        @Override
+                        public void onError(Exception e) { listener.onError(e); }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    // ОФЛАЙН: Если нет сети, берем данные ТОЛЬКО из Room
+                    loadActiveFromRoomAsync(language, listener);
                 });
+    }
+
+    // Метод для обновления статусов в Room
+    private void updateRoomActiveStatus(List<String> activeIds, String lang) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // 1. Сначала сбрасываем isActive = false для всех библиотек этого языка
+            localDb.libraryDao().deactivateAllForLanguage(lang, false);
+
+            // 2. Теперь для пришедших ID ставим isActive = true
+            for (String id : activeIds) {
+                localDb.libraryDao().updateLibraryActiveStatus(id, true);
+            }
+            Log.d(TAG, "✅ Статусы активности синхронизированы с Room");
+        });
+    }
+
+    // Метод для загрузки из Room, когда нет интернета
+    private void loadActiveFromRoomAsync(String lang, OnLibrariesLoadedListener listener) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<LocalWordLibrary> locals = localDb.libraryDao().getActiveLibrariesByLanguage(lang);
+            List<WordLibrary> webs = convertToWeb(locals);
+
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                listener.onLibrariesLoaded(webs);
+            });
+        });
     }
 
     /**
@@ -1197,42 +1216,102 @@ public class WordRepository {
         }
     }
 
-    public void getAvailableLibraries(OnLibrariesLoadedListener listener) {
-        List<WordLibrary> allLibraries = new ArrayList<>();
 
-        // Загружаем публичные библиотеки
+
+    public void getAvailableLibraries(OnLibrariesLoadedListener listener) {
         db.collection("word_libraries")
                 .whereEqualTo("isPublic", true)
                 .get()
-                .addOnCompleteListener(publicTask -> {
-                    if (publicTask.isSuccessful() && publicTask.getResult() != null) {
-                        for (QueryDocumentSnapshot document : publicTask.getResult()) {
-                            WordLibrary library = document.toObject(WordLibrary.class);
-                            library.setLibraryId(document.getId());
-                            library.setCreatedBy("system");
-                            allLibraries.add(library);
+                .addOnSuccessListener(publicSnapshots -> {
+                    List<WordLibrary> allWebLibraries = new ArrayList<>();
+
+                    // 1. Собираем публичные
+                    for (DocumentSnapshot doc : publicSnapshots) {
+                        WordLibrary lib = doc.toObject(WordLibrary.class);
+                        if (lib != null) {
+                            lib.setLibraryId(doc.getId());
+                            lib.setCreatedBy("system");
+                            allWebLibraries.add(lib);
                         }
-
-                        // Теперь загружаем пользовательские библиотеки
-                        getCustomLibraries(new OnLibrariesLoadedListener() {
-                            @Override
-                            public void onLibrariesLoaded(List<WordLibrary> customLibraries) {
-                                allLibraries.addAll(customLibraries);
-                                listener.onLibrariesLoaded(allLibraries);
-                            }
-
-                            @Override
-                            public void onError(Exception e) {
-                                // Если ошибка с пользовательскими, возвращаем хотя бы публичные
-                                listener.onLibrariesLoaded(allLibraries);
-                            }
-                        });
-
-                    } else {
-                        // Если ошибка с публичными, пробуем загрузить только пользовательские
-                        getCustomLibraries(listener);
                     }
+
+                    // 2. Теперь подгружаем пользовательские (Custom)
+                    db.collection("users").document(userId).collection("custom_libraries")
+                            .get()
+                            .addOnSuccessListener(customSnapshots -> {
+                                for (DocumentSnapshot doc : customSnapshots) {
+                                    WordLibrary lib = doc.toObject(WordLibrary.class);
+                                    if (lib != null) {
+                                        lib.setLibraryId(doc.getId());
+                                        allWebLibraries.add(lib);
+                                    }
+                                }
+
+                                // 3. Сохраняем ВСЁ в Room массово
+                                saveToRoomAsync(allWebLibraries);
+
+                                // Возвращаем результат в UI
+                                listener.onLibrariesLoaded(allWebLibraries);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    // Если интернета нет — берем из кеша Room
+                    loadFromRoomAsync(listener);
                 });
+    }
+    // Вспомогательный метод для сохранения
+    private void saveToRoomAsync(List<WordLibrary> webList) {
+        List<LocalWordLibrary> localList = new ArrayList<>();
+        for (WordLibrary lib : webList) {
+            localList.add(convertToLocal(lib));
+        }
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            localDb.libraryDao().insertAll(localList);
+            Log.d("DB_SYNC", "Кеш Room обновлен: " + localList.size() + " библиотек");
+        });
+    }
+
+    // Вспомогательный метод для загрузки из кеша
+    private void loadFromRoomAsync(OnLibrariesLoadedListener listener) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<LocalWordLibrary> cached = localDb.libraryDao().getAllLibraries();
+            List<WordLibrary> webList = convertToWeb(cached);
+
+            // Возвращаемся в главный поток для UI
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                listener.onLibrariesLoaded(webList);
+            });
+        });
+    }
+    // Из сетевой модели в локальную (для сохранения в БД)
+    private LocalWordLibrary convertToLocal(WordLibrary web) {
+        LocalWordLibrary local = new LocalWordLibrary();
+        local.setLibraryId(web.getLibraryId());
+        local.setName(web.getName());
+        local.setDescription(web.getDescription());
+        local.setCategory(web.getCategory());
+        local.setLanguageFrom(web.getLanguageFrom()); // Проверь названия геттеров
+        local.setWordCount(web.getWordCount());
+        local.setActive(web.isActive());
+        return local;
+    }
+
+    // Из локальной модели в сетевую (для отображения в UI)
+    private List<WordLibrary> convertToWeb(List<LocalWordLibrary> locals) {
+        List<WordLibrary> webs = new ArrayList<>();
+        for (LocalWordLibrary local : locals) {
+            WordLibrary web = new WordLibrary();
+            web.setLibraryId(local.getLibraryId());
+            web.setName(local.getName());
+            web.setDescription(local.getDescription());
+            web.setCategory(local.getCategory());
+            web.setLanguageFrom(local.getLanguageFrom());
+            web.setWordCount(local.getWordCount());
+            web.setActive(local.isActive());
+            webs.add(web);
+        }
+        return webs;
     }
 
     /**
@@ -1304,20 +1383,16 @@ public class WordRepository {
         word.setLibraryId(libraryId);
         word.setCreatedAt(new Date());
 
+        // Готовим данные для Firebase (как у тебя и было)
         Map<String, Object> wordData = new HashMap<>();
         wordData.put("word", word.getWord());
         wordData.put("translation", word.getTranslation());
         wordData.put("note", word.getNote());
-        wordData.put("isFavorite", word.isFavorite());
-        wordData.put("difficulty", word.getDifficulty());
-        wordData.put("reviewCount", word.getReviewCount());
-        wordData.put("correctAnswers", word.getCorrectAnswers());
         wordData.put("userId", userId);
-        wordData.put("isCustomWord", true);
         wordData.put("libraryId", libraryId);
+        wordData.put("isCustomWord", true);
         wordData.put("createdAt", word.getCreatedAt());
 
-        // Добавляем слово в подколлекцию библиотеки
         db.collection("users")
                 .document(userId)
                 .collection("custom_libraries")
@@ -1325,9 +1400,13 @@ public class WordRepository {
                 .collection("words")
                 .add(wordData)
                 .addOnSuccessListener(documentReference -> {
-                    word.setWordId(documentReference.getId());
+                    String newId = documentReference.getId();
+                    word.setWordId(newId);
 
-                    // Обновляем счетчик слов в библиотеке
+                    // ВАЖНО: Синхронизируем с Room
+                    saveWordToLocal(word, libraryId);
+
+                    // Обновляем счетчик слов в Firebase (фоном)
                     updateLibraryWordCount(libraryId);
 
                     listener.onWordAdded(word);
@@ -1335,6 +1414,36 @@ public class WordRepository {
                 .addOnFailureListener(listener::onError);
     }
 
+    // Метод для локального сохранения
+    private void saveWordToLocal(WordItem word, String libraryId) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // 1. Конвертируем в локальную модель (нужно создать метод convertToLocalWord)
+            LocalWordItem localWord = convertToLocalWord(word);
+
+            // 2. Сохраняем слово в Room
+            localDb.wordDao().insertWord(localWord);
+
+            // 3. Мгновенно обновляем счетчик в локальной базе библиотек
+            localDb.libraryDao().incrementWordCount(libraryId);
+
+            Log.d(TAG, "💾 Слово сохранено в Room и счетчик обновлен");
+        });
+    }
+
+    private LocalWordItem convertToLocalWord(WordItem web) {
+        LocalWordItem local = new LocalWordItem();
+        local.setWordId(web.getWordId());
+        local.setWord(web.getWord());
+        local.setTranslation(web.getTranslation());
+        local.setNote(web.getNote());
+        local.setLibraryId(web.getLibraryId());
+        local.setFavorite(web.isFavorite());
+
+        // ИСПРАВЛЕНИЕ: Передаем Date напрямую, а не getTime()
+        local.setCreatedAt(web.getCreatedAt());
+
+        return local;
+    }
     /**
      * Обновить счетчик слов в библиотеке
      */
@@ -1679,7 +1788,6 @@ public class WordRepository {
     public void activateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
         Log.d(TAG, "🔗 Активация библиотеки: " + libraryId);
 
-        // ПРОСТАЯ СТРУКТУРА ДАННЫХ - только необходимые поля
         Map<String, Object> data = new HashMap<>();
         data.put("active", true);
         data.put("activatedAt", new Date());
@@ -1692,27 +1800,52 @@ public class WordRepository {
                 .document(libraryId)
                 .set(data)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "✅ Библиотека активирована: " + libraryId);
+                    Log.d(TAG, "✅ Библиотека активирована в Firebase: " + libraryId);
+
+                    // ВАЖНО: Синхронизируем с Room
+                    updateLibraryLocalStatus(libraryId, true);
+
                     success.onSuccess();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Ошибка активации библиотеки: " + libraryId, e);
+                    Log.e(TAG, "❌ Ошибка активации: " + libraryId, e);
                     error.onError(e);
                 });
     }
 
-    /**
-     * Деактивировать библиотеку для пользователя
-     */
     public void deactivateLibrary(String libraryId, OnSuccessListener success, OnErrorListener error) {
         db.collection("users")
                 .document(userId)
                 .collection("active_libraries")
                 .document(libraryId)
                 .delete()
-                .addOnSuccessListener(aVoid -> success.onSuccess())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Библиотека деактивирована в Firebase");
+
+                    // ВАЖНО: Синхронизируем с Room
+                    updateLibraryLocalStatus(libraryId, false);
+
+                    success.onSuccess();
+                })
                 .addOnFailureListener(error::onError);
     }
+
+    // Вспомогательный метод для обновления Room
+    private void updateLibraryLocalStatus(String libraryId, boolean isActive) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                localDb.libraryDao().updateLibraryActiveStatus(libraryId, isActive);
+                Log.d(TAG, "💾 Room обновлен: библиотека " + libraryId + " теперь isActive=" + isActive);
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка обновления Room", e);
+            }
+        });
+    }
+
+    /**
+     * Деактивировать библиотеку для пользователя
+     */
+
 
     /**
      * Загружает информацию о библиотеке по ID
