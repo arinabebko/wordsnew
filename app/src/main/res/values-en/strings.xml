@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">newwords</string>
+    <string name="login_tv_welcome">Welcome!</string>
+    <string name="login_et_email">Email</string>
+    <string name="login_et_password">Password</string>
+    <string name="login_btn_enter">Login</string>
+    <string name="login_tv_no_account">No account? Sign up</string>
+
+
+
+    <string name="register_tv_title">Create account</string>
+    <string name="register_et_username">Username</string>
+    <string name="register_et_email">Email</string>
+    <string name="register_et_password">Password</string>
+    <string name="register_et_password_confirm">Confirm password</string>
+    <string name="register_btn_signup">Sign up</string>
+    <string name="register_tv_have_account">Already have an account? Login</string>
+
+
+
+
+
+    <string name="profile_tv_username_placeholder">username</string>
+    <string name="profile_tv_email_placeholder">email@example.com</string>
+    <string name="profile_tv_option_settings">settings</string>
+    <string name="profile_tv_option_notifications">notifications</string>
+    <string name="profile_tv_option_login_params">login parameters</string>
+</resources>

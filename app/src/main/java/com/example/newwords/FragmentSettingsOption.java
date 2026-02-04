@@ -282,24 +282,28 @@ public class FragmentSettingsOption extends Fragment {
     }
 
     private void showLanguageDialog() {
-        // Диалог выбора языка
-        String[] languages = {"Русский", "English", "Español", "Français"};
+        String[] languages = {"Русский", "English"};
+        // Коды языков для системы
+        String[] languageCodes = {"ru", "en"};
 
         androidx.appcompat.app.AlertDialog.Builder builder =
                 new androidx.appcompat.app.AlertDialog.Builder(getContext());
 
-        builder.setTitle("Выберите язык")
+        builder.setTitle(R.string.settings_label_language) // Используем строку из ресурсов!
                 .setItems(languages, (dialog, which) -> {
                     String selectedLanguage = languages[which];
-                    if (languageTextView != null) {
-                        languageTextView.setText(selectedLanguage);
-                    }
+                    String selectedCode = languageCodes[which];
+
+                    // 1. Сохраняем в настройки
                     saveSetting("language", selectedLanguage);
-                    Toast.makeText(getContext(),
-                            "Язык изменен на " + selectedLanguage,
-                            Toast.LENGTH_SHORT).show();
+
+                    // 2. МЕНЯЕМ ЯЗЫК В ПРИЛОЖЕНИИ
+                    setAppLocale(selectedCode);
+
+                    // После setApplicationLocales активити сама перезагрузится,
+                    // и всё приложение станет на новом языке!
                 })
-                .setNegativeButton("Отмена", null)
+                .setNegativeButton(R.string.common_cancel, null)
                 .show();
     }
 
@@ -339,5 +343,18 @@ public class FragmentSettingsOption extends Fragment {
         super.onDestroyView();
         // Очищаем слушатель при уничтожении вью
         usernameChangedListener = null;
+    }
+
+
+
+    private void setAppLocale(String languageCode) {
+        androidx.core.os.LocaleListCompat appLocale =
+                androidx.core.os.LocaleListCompat.forLanguageTags(languageCode);
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale);
+
+        // Добавляем плавный переход для текущего экрана
+        if (getActivity() != null) {
+            getActivity().overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        }
     }
 }

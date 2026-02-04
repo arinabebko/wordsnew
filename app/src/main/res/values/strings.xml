@@ -1,3 +1,39 @@
 <resources>
     <string name="app_name">newwords</string>
+
+    <string name="login_tv_welcome">Здравствуй!</string>
+    <string name="login_et_email">Email</string>
+    <string name="login_et_password">Пароль</string>
+    <string name="login_btn_enter">Вход</string>
+    <string name="login_tv_no_account">Нет аккаунта? Зарегистрироваться</string>
+
+    <string name="register_tv_title">Создание аккаунта</string>
+    <string name="register_et_username">Имя пользователя</string>
+    <string name="register_et_email">Email</string>
+    <string name="register_et_password">Пароль</string>
+    <string name="register_et_password_confirm">Подтвердите пароль</string>
+    <string name="register_btn_signup">Зарегистрироваться</string>
+    <string name="register_tv_have_account">Уже есть аккаунт? Войти</string>
+
+
+
+
+
+        <string name="settings_label_language">Выберите язык</string>
+        <string name="common_cancel">Отмена</string>
+
+        <string name="settings_toast_language_changed">Язык изменен</string>
+        <string name="settings_hint_current">Текущее: %1$s</string>
+        <string name="settings_status_not_set">Не установлено</string>
+        <string name="settings_status_guest">Гость</string>
+        <string name="settings_save_loading">Сохранение...</string>
+        <string name="settings_save_success">Имя успешно изменено!</string>
+
+
+    <string name="profile_tv_username_placeholder">имя пользователя</string>
+    <string name="profile_tv_email_placeholder">почта@example.com</string>
+    <string name="profile_tv_option_settings">настройки</string>
+    <string name="profile_tv_option_notifications">уведомления</string>
+    <string name="profile_tv_option_login_params">параметры входа</string>
+
 </resources>

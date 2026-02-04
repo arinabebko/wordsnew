@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:background="#232224"
+    android:background="#211B20"
     android:padding="24dp">
 
     <!-- Заголовок -->
@@ -56,7 +56,7 @@
         android:layout_height="wrap_content"
         android:text="Сменить пароль"
         app:backgroundTint="@null"
-        android:textColor="#322b36"
+        android:textColor="#211B20"
         android:textSize="16sp"
         android:background="#e7b5a9"
         android:fontFamily="@font/jura_font_wght"

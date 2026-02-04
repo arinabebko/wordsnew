@@ -8,7 +8,7 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
     <style name="BottomNavigationStyle" parent="Widget.MaterialComponents.BottomNavigationView">
-        <item name="android:background">#232224</item> <!-- Цвет фона -->
+        <item name="android:background">#211B20</item> <!-- Цвет фона -->
         <item name="itemIconTint">#fcb6b0</item>
         <item name="itemTextColor">#fcb6b0</item>
         <item name="itemRippleColor">#8496ED</item>

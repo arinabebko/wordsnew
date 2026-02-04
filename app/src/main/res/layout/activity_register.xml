@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background_gradient"
     android:padding="16dp">
 
-    <!-- ПОЛУПРОЗРАЧНЫЙ КВАДРАТ НА ЗАДНЕМ ПЛАНЕ -->
     <View
         android:layout_width="350dp"
         android:layout_height="488dp"
@@ -17,103 +14,96 @@
         android:background="@drawable/rounded_square"
         android:elevation="2dp" />
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@drawable/background_gradient"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center">
-
-    <TextView
-        android:id="@+id/titleTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Создание аккаунта"
-        android:textSize="28sp"
-        android:textColor="#5539D0"
-        android:fontFamily="@font/jura_font_wght"
-        android:layout_marginBottom="24dp" />
-
-    <!-- Имя пользователя -->
-    <EditText
-        android:id="@+id/usernameEditText"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="Имя пользователя"
-        android:inputType="textPersonName"
-        android:textColor="#372C2C"
-        android:textColorHint="#2C3D4E"
-        android:minWidth="48dp"
-        android:minHeight="48dp" />
+        android:layout_height="match_parent"
+        android:background="@drawable/background_gradient"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <!-- Email -->
-    <EditText
-        android:id="@+id/emailEditText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="Email"
-        android:inputType="textEmailAddress"
-        android:textColor="#372C2C"
-        android:textColorHint="#2C3D4E"
-        android:minWidth="48dp"
-        android:minHeight="48dp" />
+        <TextView
+            android:id="@+id/titleTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:fontFamily="@font/jura_font_wght"
+            android:text="@string/register_tv_title"
+            android:textColor="#5539D0"
+            android:textSize="28sp" />
 
-    <!-- Пароль -->
-    <EditText
-        android:id="@+id/passwordEditText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="Пароль"
-        android:inputType="textPassword"
-        android:textColor="#372C2C"
-        android:textColorHint="#2C3D4E"
-        android:minWidth="48dp"
-        android:minHeight="48dp" />
+        <EditText
+            android:id="@+id/usernameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="@string/register_et_username"
+            android:inputType="textPersonName"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:textColor="#372C2C"
+            android:textColorHint="#2C3D4E" />
 
-    <!-- Подтверждение пароля -->
-    <EditText
-        android:id="@+id/confirmPasswordEditText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:hint="Подтвердите пароль"
-        android:inputType="textPassword"
-        android:textColor="#372C2C"
-        android:textColorHint="#2C3D4E"
-        android:minWidth="48dp"
-        android:minHeight="48dp" />
+        <EditText
+            android:id="@+id/emailEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="@string/register_et_email"
+            android:inputType="textEmailAddress"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:textColor="#372C2C"
+            android:textColorHint="#2C3D4E" />
 
-    <!-- Кнопка регистрации -->
-    <Button
-        android:id="@+id/registerButton"
-        android:text="Зарегистрироваться"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"/>
+        <EditText
+            android:id="@+id/passwordEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="@string/register_et_password"
+            android:inputType="textPassword"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:textColor="#372C2C"
+            android:textColorHint="#2C3D4E" />
 
-    <!-- Разделитель -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#E0E0E0"
-        android:layout_marginVertical="16dp"/>
+        <EditText
+            android:id="@+id/confirmPasswordEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:hint="@string/register_et_password_confirm"
+            android:inputType="textPassword"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:textColor="#372C2C"
+            android:textColorHint="#2C3D4E" />
 
-    <!-- Ссылка на вход -->
-    <TextView
-        android:id="@+id/loginLinkTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Уже есть аккаунт? Войти"
-        android:textColor="#5539D0"
-        android:textSize="16sp"
-        android:padding="8dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:layout_gravity="center"
-        android:textStyle="bold"/>
-</LinearLayout>
+        <Button
+            android:id="@+id/registerButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/register_btn_signup" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="16dp"
+            android:background="#E0E0E0" />
+
+        <TextView
+            android:id="@+id/loginLinkTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:text="@string/register_tv_have_account"
+            android:textColor="#5539D0"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </FrameLayout>

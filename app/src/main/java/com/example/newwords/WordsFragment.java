@@ -564,7 +564,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 ));
-                noWordsLayout.setBackgroundColor(0xFF322b36);
+                noWordsLayout.setBackgroundColor(0xFF211B20);
 
                 // Текст сообщения
                 TextView messageText = new TextView(getContext());
@@ -907,7 +907,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 ));
-                completedLayout.setBackgroundColor(0xFF322b36);
+                completedLayout.setBackgroundColor(0xFF211B20);
 
                 // Иконка праздника
                 TextView emojiIcon = new TextView(getContext());
@@ -1015,7 +1015,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                 ));
-                noWordsLayout.setBackgroundColor(0xFF322b36);
+                noWordsLayout.setBackgroundColor(0xFF211B20);
 
                 // Иконка
                 TextView emojiIcon = new TextView(getContext());

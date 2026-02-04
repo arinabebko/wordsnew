@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-
-
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background_gradient"
     android:padding="16dp">
 
-    <!-- ПОЛУПРОЗРАЧНЫЙ КВАДРАТ НА ЗАДНЕМ ПЛАНЕ -->
     <View
         android:layout_width="352dp"
         android:layout_height="386dp"
@@ -32,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:fontFamily="@font/jura_font_wght"
-            android:text="здравствуй!"
+            android:text="@string/login_tv_welcome"
             android:textColor="#5539D0"
             android:textSize="28sp" />
 
@@ -41,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Email"
+            android:hint="@string/login_et_email"
             android:inputType="textEmailAddress"
             android:minWidth="48dp"
             android:minHeight="48dp"
@@ -53,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
-            android:hint="Пароль"
+            android:hint="@string/login_et_password"
             android:inputType="textPassword"
             android:minWidth="48dp"
             android:minHeight="48dp"
@@ -65,31 +61,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Вход" />
+            android:text="@string/login_btn_enter" />
 
-        <!-- Ссылка на восстановление пароля (опционально) -->
-        <!--
-    <TextView
-        android:id="@+id/forgotPasswordTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Забыли пароль?"
-        android:textColor="#5539D0"
-        android:textSize="14sp"
-        android:padding="8dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:layout_marginBottom="16dp"/>
-    -->
-
-        <!-- Разделитель -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginBottom="16dp"
             android:background="#E0E0E0" />
 
-        <!-- Ссылка на регистрацию -->
         <TextView
             android:id="@+id/registerLinkTextView"
             android:layout_width="wrap_content"
@@ -97,7 +76,7 @@
             android:clickable="true"
             android:focusable="true"
             android:padding="8dp"
-            android:text="Нет аккаунта? Зарегистрироваться"
+            android:text="@string/login_tv_no_account"
             android:textColor="#5539D0"
             android:textSize="16sp"
             android:textStyle="bold" />
