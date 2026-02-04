@@ -144,7 +144,6 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-
             wordText = itemView.findViewById(R.id.wordText);
             hintText = itemView.findViewById(R.id.hintText);
             statusText = itemView.findViewById(R.id.statusText);
@@ -162,13 +161,24 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
 
             updateRepetitionUI(wordItem);
 
-            // Обновляем звезду избранного
-            if (wordItem.isFavorite()) {
-                starButton.setBackgroundColor(0x30FFD700);
+            // ВМЕСТО setBackgroundColor используем иконку:
+            updateStarIcon(wordItem.isFavorite());
+        }
+
+        // НОВЫЙ МЕТОД:
+        private void updateStarIcon(boolean isFavorite) {
+            starButton.setBackgroundResource(android.R.color.transparent);
+            if (isFavorite) {
+                starButton.setImageResource(R.drawable.ic_full_heart_icon);
+                // Если в XML остался tint, он может мешать.
+                // Можно управлять цветом программно:
+                starButton.setColorFilter(0xFFCE5D5D); // Красный
             } else {
-                starButton.setBackgroundColor(0x00000000);
+                starButton.setImageResource(R.drawable.ic_empty_heart_icon);
+                starButton.setColorFilter(0xFFFFFFFF); // Белый
             }
         }
+
 
         private void updateRepetitionUI(WordItem word) {
             if (statusText != null) {
@@ -214,34 +224,25 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         }
 
         private void setupClickListeners() {
-            // Кнопка избранного
             starButton.setOnClickListener(v -> {
                 if (currentWordItem != null && listener != null) {
                     boolean newFavoriteState = !currentWordItem.isFavorite();
                     currentWordItem.setFavorite(newFavoriteState);
 
-                    if (newFavoriteState) {
-                        starButton.setBackgroundColor(0x30FFD700);
-                    } else {
-                        starButton.setBackgroundColor(0x00000000);
-                    }
+                    // Теперь используем только метод с иконками
+                    updateStarIcon(newFavoriteState);
 
-                    // Сохраняем в базу
                     wordRepository.updateWord(currentWordItem);
-
                     listener.onCardFavoriteToggled(currentWordItem, newFavoriteState);
                 }
             });
 
-            // Клик по карточке - показать/скрыть перевод
             itemView.findViewById(R.id.wordCard).setOnClickListener(v -> {
-                if (hintText.getVisibility() == View.VISIBLE) {
-                    hintText.setVisibility(View.GONE);
-                } else {
-                    hintText.setVisibility(View.VISIBLE);
-                }
+                hintText.setVisibility(hintText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
             });
         }
+
+
     }
 
     public interface OnCardActionListener {

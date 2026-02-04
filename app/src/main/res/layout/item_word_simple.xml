@@ -48,7 +48,7 @@
             android:id="@+id/starButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/ic_star"
+            android:src="@drawable/ic_empty_heart_icon"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Избранное" />
 

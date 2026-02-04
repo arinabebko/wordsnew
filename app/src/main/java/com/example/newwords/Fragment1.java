@@ -165,6 +165,9 @@ public class Fragment1 extends Fragment {
             startButton.setEnabled(true);
             startButton.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
+
+
+            loadUserStats();
         }
     }
 
@@ -239,11 +242,7 @@ public class Fragment1 extends Fragment {
     }
 
     //@Override
-  //  public void onResume() {
-  //      super.onResume();
-        // Обновляем статистику при возвращении на фрагмент
-  //      loadUserStats();
- //   }
+
 
     private void showAddWordDialog() {
         // Используем диалог с выбором библиотеки

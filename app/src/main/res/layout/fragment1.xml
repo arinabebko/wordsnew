@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#232224"
+    android:background="#211B20"
     android:padding="24dp">
 
     <!-- Главный контент занимает всю доступную высоту, кроме нижней панели -->
@@ -29,8 +29,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="left"
-            android:layout_marginBottom="48dp">
+            android:gravity="center"
+            android:layout_marginBottom="70dp">
 
             <!-- Дни подряд -->
             <TextView
@@ -173,6 +173,7 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:padding="16dp"
+        android:background="#302631"
       >
 
         <!-- Кнопка поиска -->
@@ -183,7 +184,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center"
-
+            android:background="@drawable/status_background"
             android:padding="12dp"
             android:layout_marginEnd="8dp"
             android:clickable="true"
@@ -193,7 +194,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_search"
+                android:src="@drawable/ic_font_search"
                 app:tint="#8CA0FF"
                 android:layout_marginEnd="8dp" />
 
@@ -215,7 +216,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center"
-
+            android:background="#302631"
             android:padding="12dp"
             android:layout_marginStart="8dp"
             android:clickable="true"
@@ -225,7 +226,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_add"
+                android:src="@drawable/ic_font_plus"
                 app:tint="#8CA0FF"
                 android:layout_marginEnd="8dp" />
 

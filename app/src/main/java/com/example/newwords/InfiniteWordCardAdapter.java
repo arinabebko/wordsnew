@@ -57,6 +57,7 @@ public class InfiniteWordCardAdapter extends RecyclerView.Adapter<InfiniteWordCa
     }
 
     // ViewHolder остается таким же как в WordCardAdapter
+
     public class ViewHolder extends RecyclerView.ViewHolder {
         private TextView wordText;
         private TextView hintText;
@@ -66,7 +67,6 @@ public class InfiniteWordCardAdapter extends RecyclerView.Adapter<InfiniteWordCa
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-
             wordText = itemView.findViewById(R.id.wordText);
             hintText = itemView.findViewById(R.id.hintText);
             starButton = itemView.findViewById(R.id.starButton);
@@ -77,12 +77,8 @@ public class InfiniteWordCardAdapter extends RecyclerView.Adapter<InfiniteWordCa
                     boolean newFavoriteState = !currentWordItem.isFavorite();
                     currentWordItem.setFavorite(newFavoriteState);
 
-                    // Временно меняем фон вместо иконок
-                    if (newFavoriteState) {
-                        starButton.setBackgroundColor(0x30FFD700);
-                    } else {
-                        starButton.setBackgroundColor(0x00000000);
-                    }
+                    // 1. ВМЕСТО background используем наш метод
+                    updateStarIcon(newFavoriteState);
 
                     listener.onWordFavoriteToggled(currentWordItem, newFavoriteState);
                 }
@@ -103,17 +99,31 @@ public class InfiniteWordCardAdapter extends RecyclerView.Adapter<InfiniteWordCa
             hintText.setText(wordItem.getTranslation());
             hintText.setVisibility(View.GONE);
 
-            if (wordItem.isFavorite()) {
-                starButton.setBackgroundColor(0x30FFD700);
+            // 2. И здесь вызываем метод для иконки
+            updateStarIcon(wordItem.isFavorite());
+        }
+
+        // 3. Добавляем сам метод смены иконок
+        private void updateStarIcon(boolean isFavorite) {
+            // Обязательно убираем тот самый желтый фон, если он застрял в памяти
+            starButton.setBackgroundResource(android.R.color.transparent);
+
+            if (isFavorite) {
+                starButton.setImageResource(R.drawable.ic_full_heart_icon);
             } else {
-                starButton.setBackgroundColor(0x00000000);
+                starButton.setImageResource(R.drawable.ic_empty_heart_icon);
             }
         }
+
     }
 
     public interface OnWordActionListener {
         void onWordLearned(WordItem word);
+
         void onWordNotLearned(WordItem word);
+
         void onWordFavoriteToggled(WordItem word, boolean isFavorite);
     }
 }
+
+

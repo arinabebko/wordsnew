@@ -21,7 +21,9 @@ public class WordCardAdapter extends RecyclerView.Adapter<WordCardAdapter.ViewHo
     // Интерфейс для связи с фрагментом
     public interface OnWordActionListener {
         void onWordLearned(WordItem word);
+
         void onWordNotLearned(WordItem word);
+
         void onWordFavoriteToggled(WordItem word, boolean isFavorite);
     }
 
@@ -73,86 +75,33 @@ public class WordCardAdapter extends RecyclerView.Adapter<WordCardAdapter.ViewHo
         private TextView hintText;
         private ImageButton starButton;
         private View wordCard;
+        private WordItem currentWordItem;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-
-            // Находим все элементы в макете карточки
             wordText = itemView.findViewById(R.id.wordText);
             hintText = itemView.findViewById(R.id.hintText);
             starButton = itemView.findViewById(R.id.starButton);
             wordCard = itemView.findViewById(R.id.wordCard);
 
-            // Обработчик клика на звезду (избранное)
+            // Клик по сердечку
             starButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     WordItem word = wordList.get(position);
                     boolean newFavoriteState = !word.isFavorite();
                     word.setFavorite(newFavoriteState);
-
-                    // Меняем иконку звезды
                     updateStarIcon(newFavoriteState);
-
-                    // Сообщаем слушателю
                     listener.onWordFavoriteToggled(word, newFavoriteState);
                 }
             });
 
-            // Обработчик клика на карточку (показать/скрыть перевод)
+            // Клик по всей карточке (перенос сюда из updateStarIcon)
             wordCard.setOnClickListener(v -> {
-                if (hintText.getVisibility() == View.VISIBLE) {
-                    hintText.setVisibility(View.GONE);  // Скрываем
-                } else {
-                    hintText.setVisibility(View.VISIBLE); // Показываем
-                }
-            });
-
-
-
-        }
-        public void bindForList(WordItem wordItem) {
-            currentWordItem = wordItem;
-            wordText.setText(wordItem.getWord());
-            hintText.setText(wordItem.getTranslation());
-            hintText.setVisibility(View.VISIBLE); // В режиме списка всегда показываем перевод
-
-            if (wordItem.isFavorite()) {
-                starButton.setBackgroundColor(0x30FFD700);
-            } else {
-                starButton.setBackgroundColor(0x00000000);
-            }
-        }
-        // Заполняем карточку данными слова
-        public void bind(WordItem wordItem) {
-            wordText.setText(wordItem.getWord());
-            hintText.setText(wordItem.getTranslation());
-            hintText.setVisibility(View.GONE); // Сначала скрываем перевод
-
-            // Устанавливаем правильную иконку звезды
-            updateStarIcon(wordItem.isFavorite());
-            updateStarIcon(wordItem.isFavorite());
-
-            // Сохраняем ссылку на текущее слово
-            currentWordItem = wordItem;
-
-        }
-        private WordItem currentWordItem;
-        // Обновляет иконку звезды в зависимости от состояния
-        private void updateStarIcon(boolean isFavorite) {
-            if (isFavorite) {
-                // starButton.setImageResource(R.drawable.ic_star_filled);
-                starButton.setBackgroundColor(0xFFFFFF00); // Желтый цвет
-            } else {
-                starButton.setImageResource(R.drawable.ic_star);
-            }
-
-
-            wordCard.setOnClickListener(v -> {
-                // Анимация нажатия
+                // Анимация
                 v.startAnimation(AnimationUtils.loadAnimation(v.getContext(), R.anim.card_click));
 
-                // Показ/скрытие перевода с задержкой
+                // Переключение видимости перевода
                 v.postDelayed(() -> {
                     if (hintText.getVisibility() == View.VISIBLE) {
                         hintText.setVisibility(View.GONE);
@@ -163,10 +112,30 @@ public class WordCardAdapter extends RecyclerView.Adapter<WordCardAdapter.ViewHo
             });
         }
 
+        public void bindForList(WordItem wordItem) {
+            currentWordItem = wordItem;
+            wordText.setText(wordItem.getWord());
+            hintText.setText(wordItem.getTranslation());
+            hintText.setVisibility(View.VISIBLE);
+            updateStarIcon(wordItem.isFavorite());
+        }
 
+        public void bind(WordItem wordItem) {
+            currentWordItem = wordItem;
+            wordText.setText(wordItem.getWord());
+            hintText.setText(wordItem.getTranslation());
+            hintText.setVisibility(View.GONE);
+            updateStarIcon(wordItem.isFavorite());
+        }
 
-
+        // Теперь этот метод отвечает ТОЛЬКО за картинку. Просто и чисто!
+        private void updateStarIcon(boolean isFavorite) {
+            if (isFavorite) {
+                starButton.setImageResource(R.drawable.ic_full_heart_icon);
+            } else {
+                starButton.setImageResource(R.drawable.ic_empty_heart_icon);
+            }
+        }
     }
-
 }
 
