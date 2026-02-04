@@ -55,6 +55,17 @@ public class WordRepository {
 
 
     // === ИНТЕРФЕЙСЫ ДЛЯ КОЛБЭКОВ ===
+
+
+
+
+    public interface StatUpdateListener {
+        UserStats onUpdate(UserStats stats);
+    }
+
+
+
+
     public interface OnStatsLoadedListener {
         void onStatsLoaded(UserStats stats);
         void onError(Exception e);
@@ -1374,6 +1385,32 @@ public class WordRepository {
                 .addOnFailureListener(listener::onError);
     }
 
+
+
+    public void toggleFavorite(WordItem word, OnSuccessListener successListener) {
+        if (word == null || word.getWordId() == null) return;
+
+        boolean newStatus = !word.isFavorite();
+        word.setFavorite(newStatus); // Сразу меняем в объекте для UI
+
+        // 1. Обновляем в Room (мгновенно)
+        Executors.newSingleThreadExecutor().execute(() -> {
+            localDb.wordDao().updateFavoriteStatus(word.getWordId(), newStatus);
+        });
+
+        // 2. Пытаемся обновить в Firebase, если есть libraryId
+        if (word.getLibraryId() != null) {
+            db.collection("users").document(userId)
+                    .collection("custom_libraries").document(word.getLibraryId())
+                    .collection("words").document(word.getWordId())
+                    .update("isFavorite", newStatus)
+                    .addOnSuccessListener(aVoid -> {
+                        if (successListener != null) successListener.onSuccess();
+                    })
+                    .addOnFailureListener(e -> Log.e(TAG, "Firebase favorite sync failed", e));
+        }
+    }
+
     /**
      * Добавить слово в пользовательскую библиотеку
      */
@@ -2095,42 +2132,72 @@ public class WordRepository {
      * Получить статистику пользователя
      */
     public void getUserStats(OnStatsLoadedListener listener) {
-        new Thread(() -> {
+        if (userId.equals("anonymous")) return;
+
+        // 1. Сначала берем из Room (Фоновый поток)
+        Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                String userId = getCurrentUserId();
-                if (userId == null) {
-                    if (listener != null) {
-                        listener.onError(new Exception("User not authenticated"));
-                    }
-                    return;
-                }
+                UserStats localStats = localDb.statsDao().getStats(userId);
 
-                UserStats localStats = localDb.getOrCreateStats(userId);
-
-                if (needsDailyReset(localStats)) {
-                    updateStreakForNewDay(localStats, listener);
-                    return;
-                }
-
-                if (isStatsOutdated(localStats)) {
-                    syncStatsFromFirebase(userId, listener);
-                } else {
-                    if (listener != null) {
+                // Если в базе что-то есть, сразу отправляем в UI
+                if (localStats != null) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                         listener.onStatsLoaded(localStats);
-                    }
+                    });
                 }
-
             } catch (Exception e) {
-                Log.e(TAG, "Error loading local stats: " + e.getMessage());
-                if (listener != null) {
-                    listener.onError(e);
-                }
+                Log.e(TAG, "Ошибка чтения Room stats", e);
             }
-        }).start();
+        });
+
+        // 2. Параллельно идем в Firebase
+        db.collection("users").document(userId)
+                .collection("stats").document("main")
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        UserStats remoteStats = documentSnapshot.toObject(UserStats.class);
+                        if (remoteStats != null) {
+                            // Обновляем локальную базу свежими данными
+                            Executors.newSingleThreadExecutor().execute(() -> {
+                                localDb.statsDao().insertStats(remoteStats);
+                            });
+                            listener.onStatsLoaded(remoteStats);
+                        }
+                    }
+                })
+                .addOnFailureListener(listener::onError);
     }
 
+    public void updateStatsAsync(StatUpdateListener updateListener) {
+        if (userId.equals("anonymous")) return;
 
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                // Получаем текущую статистику из Room
+                UserStats stats = localDb.statsDao().getStats(userId);
+                if (stats == null) {
+                    stats = new UserStats(userId);
+                }
 
+                // Применяем изменения через интерфейс
+                UserStats updatedStats = updateListener.onUpdate(stats);
+
+                // 1. Сохраняем в Room
+                localDb.statsDao().insertStats(updatedStats);
+
+                // 2. Отправляем в Firebase
+                db.collection("users").document(userId)
+                        .collection("stats").document("main")
+                        .set(updatedStats, SetOptions.merge())
+                        .addOnSuccessListener(aVoid -> Log.d(TAG, "Статистика синхронизирована с облаком"))
+                        .addOnFailureListener(e -> Log.e(TAG, "Ошибка синхронизации облака", e));
+
+            } catch (Exception e) {
+                Log.e(TAG, "Критическая ошибка обновления статистики", e);
+            }
+        });
+    }
     /**
      * Вызывается когда новое слово добавлено в изучение
      */
@@ -2145,27 +2212,31 @@ public class WordRepository {
     /**
      * Обновляет статистику асинхронно
      */
-    public void updateStatsAsync(StatsUpdater updater) {
-        new Thread(() -> {
+    /**
+     * Обновляет статистику асинхронно
+     */
+    public void updateStats(UserStats stats) {
+        if (userId == null || userId.equals("anonymous")) return;
+
+        // 1. Сохраняем в Firebase
+        db.collection("users").document(userId)
+                .collection("stats").document("main")
+                .set(stats, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Статистика сохранена в облако"));
+
+        // 2. СИНХРОНИЗАЦИЯ: Сохраняем в Room
+        // Мы передаем напрямую объект stats, потому что твой UserStatsDao
+        // ожидает именно этот класс.
+        Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                String userId = getCurrentUserId();
-                if (userId == null) return;
-
-                UserStats stats = localDb.getOrCreateStats(userId);
-                stats = updater.update(stats);
-                stats.setLastUpdated(new Date());
-
+                // Исправление: используем сразу stats, а не LocalUserStats
                 localDb.statsDao().insertStats(stats);
-                syncStatsToFirebase(stats);
-
-                Log.d(TAG, "📊 Статистика обновлена");
-
+                Log.d(TAG, "Статистика синхронизирована с Room");
             } catch (Exception e) {
-                Log.e(TAG, "❌ Ошибка обновления статистики", e);
+                Log.e(TAG, "Ошибка сохранения статистики в Room", e);
             }
-        }).start();
+        });
     }
-
     /**
      * Синхронизирует статистику с Firebase
      */

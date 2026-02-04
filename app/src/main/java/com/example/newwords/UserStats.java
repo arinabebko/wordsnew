@@ -7,7 +7,7 @@ import androidx.room.TypeConverters;
 import java.util.Date;
 
 @Entity(tableName = "user_stats")
-@TypeConverters(Converters.class)
+@TypeConverters(DateConverter.class)
 public class UserStats {
     @PrimaryKey
     @NonNull

@@ -46,5 +46,6 @@ public interface LocalWordDao {
     @Query("DELETE FROM local_words")
     void clearAllWords();
 
-
+    @Query("UPDATE local_words SET isFavorite = :isFav WHERE wordId = :id")
+    void updateFavoriteStatus(String id, boolean isFav);
 }
