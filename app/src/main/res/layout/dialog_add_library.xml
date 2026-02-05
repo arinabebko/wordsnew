@@ -5,11 +5,10 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Название библиотеки -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Название библиотеки"
+        android:text="@string/lib_create_tv_name_label"
         android:textColor="#211B20"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -18,18 +17,17 @@
         android:id="@+id/nameEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Введите название"
+        android:hint="@string/lib_create_et_name_hint"
         android:maxLines="1"
         android:minHeight="48dp"
         android:paddingTop="12dp"
         android:paddingBottom="12dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- Описание -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Описание"
+        android:text="@string/lib_create_tv_desc_label"
         android:textColor="#211B20"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -38,18 +36,17 @@
         android:id="@+id/descriptionEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Введите описание"
+        android:hint="@string/lib_create_et_desc_hint"
         android:maxLines="3"
         android:minHeight="48dp"
         android:paddingTop="12dp"
         android:paddingBottom="12dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- Категория -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Категория"
+        android:text="@string/lib_create_tv_category_label"
         android:textColor="#211B20"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -64,11 +61,10 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:layout_marginBottom="16dp" />
 
-    <!-- НОВОЕ: Выбор языка -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Язык изучения"
+        android:text="@string/lib_create_tv_lang_label"
         android:textColor="#211B20"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -83,7 +79,6 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:layout_marginBottom="24dp" />
 
-    <!-- Кнопки -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -94,7 +89,7 @@
             android:id="@+id/cancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Отмена"
+            android:text="@string/common_cancel"
             android:textColor="#625fba"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:layout_marginEnd="16dp" />
@@ -103,7 +98,7 @@
             android:id="@+id/createButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Создать"
+            android:text="@string/lib_create_btn_create"
             android:textColor="#FFFFFF"
             android:background="@drawable/button_primary_bg"
             android:paddingHorizontal="24dp" />

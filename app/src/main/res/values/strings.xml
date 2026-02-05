@@ -36,4 +36,170 @@
     <string name="profile_tv_option_notifications">уведомления</string>
     <string name="profile_tv_option_login_params">параметры входа</string>
 
+
+
+    <string name="lib_create_tv_name_label">название библиотеки</string>
+    <string name="lib_create_et_name_hint">введите название</string>
+    <string name="lib_create_tv_desc_label">описание</string>
+    <string name="lib_create_et_desc_hint">введите описание</string>
+    <string name="lib_create_tv_category_label">категория</string>
+    <string name="lib_create_tv_lang_label">язык изучения</string>
+    <string name="lib_create_btn_create">создать</string>
+
+
+    <string name="word_add_tv_word_label">слово (английский)</string>
+    <string name="word_add_et_word_hint">например: computer</string>
+    <string name="word_add_tv_translation_label">перевод (русский)</string>
+    <string name="word_add_et_translation_hint">например: компьютер</string>
+    <string name="word_add_tv_note_label">примечание (опционально)</string>
+    <string name="word_add_et_note_hint">например: электронное устройство</string>
+    <string name="word_add_btn_add">добавить</string>
+
+    <string name="word_full_add_tv_word_label">Слово (английский)</string>
+    <string name="word_full_add_et_word_hint">Например: computer</string>
+    <string name="word_full_add_tv_translation_label">Перевод (русский)</string>
+    <string name="word_full_add_et_translation_hint">Например: компьютер</string>
+    <string name="word_full_add_tv_note_label">Примечание (опционально)</string>
+    <string name="word_full_add_et_note_hint">Например: Электронное устройство</string>
+    <string name="word_full_add_tv_library_label">Библиотека</string>
+    <string name="word_full_add_tv_no_libraries">У вас нет созданных библиотек</string>
+    <string name="word_full_add_btn_create_library">Создать библиотеку</string>
+
+    <string name="password_change_tv_current_label">Текущий пароль</string>
+    <string name="password_change_et_current_hint">Введите текущий пароль</string>
+    <string name="password_change_tv_new_label">Новый пароль</string>
+    <string name="password_change_et_new_hint">Введите новый пароль</string>
+    <string name="password_change_tv_confirm_label">Подтвердите новый пароль</string>
+    <string name="password_change_et_confirm_hint">Повторите новый пароль</string>
+
+
+    <string name="lib_select_desc_refresh">Обновить</string>
+    <string name="lib_select_desc_add">Добавить библиотеку</string>
+    <string name="lib_select_et_search_hint">Поиск библиотек...</string>
+    <string name="lib_select_tv_lang_prefix">Язык:</string>
+    <string name="lib_select_lang_en">Английский</string>
+    <string name="lib_select_lang_ba">Башкирский</string>
+    <string name="lib_select_tv_title">Выбор библиотек</string>
+    <string name="lib_select_tv_description">Выберите библиотеки слов для изучения</string>
+    <string name="lib_select_tv_empty_state">Библиотеки не найдены\nПопробуйте позже</string>
+    <string name="lib_select_btn_start">Начать обучение</string>
+
+    <string name="lib_words_tv_title_placeholder">Название библиотеки</string>
+    <string name="lib_words_tv_empty_state">В библиотеке нет слов</string>
+    <string name="lib_words_desc_back">Назад</string>
+
+
+    <string name="auth_params_tv_header">параметры входа</string>
+    <string name="auth_params_tv_login_placeholder">логин: nnn@gmail.com</string>
+    <string name="auth_params_tv_password_label">пароль: ******</string>
+    <string name="auth_params_btn_change_pass">Сменить пароль</string>
+    <string name="auth_params_tv_logout">выйти</string>
+    <string name="auth_params_tv_delete_account">удалить аккаунт</string>
+
+
+    <string name="notif_settings_header">уведомления</string>
+    <string name="notif_settings_rb_none">без уведомлений</string>
+    <string name="notif_settings_rb_once_a_day">раз в день</string>
+    <string name="notif_settings_tv_reminder_at">напоминание в</string>
+    <string name="notif_settings_rb_inactivity">через 1 день бездействия</string>
+
+
+    <string name="word_search_desc_back">Назад</string>
+    <string name="word_search_et_hint">Поиск по словам...</string>
+    <string name="word_search_desc_clear">Очистить</string>
+    <string name="word_search_tv_empty">У вас пока нет слов для изучения</string>
+
+
+
+    <string name="profile_settings_tv_title">Настройки профиля</string>
+    <string name="profile_settings_tv_current_name_label">Текущее имя:</string>
+    <string name="profile_settings_tv_username_placeholder">Имя пользователя</string>
+    <string name="profile_settings_tv_new_name_label">Новое имя:</string>
+    <string name="profile_settings_et_new_name_hint">Введите новое имя</string>
+    <string name="profile_settings_tv_name_rules">Имя может содержать буквы, цифры и нижнее подчеркивание</string>
+    <string name="profile_settings_btn_save">Сохранить имя</string>
+    <string name="profile_settings_tv_others_title">Другие настройки</string>
+    <string name="profile_settings_tv_ui_lang_label">Язык интерфейса</string>
+    <string name="profile_settings_tv_ui_lang_current">Русский</string>
+    <string name="profile_settings_tv_theme_label">Тема</string>
+    <string name="profile_settings_tv_theme_current">Темная</string>
+    <string name="common_back_upper">Назад</string>
+
+
+
+    <string name="learning_process_desc_review">Повторить позже</string>
+    <string name="learning_process_desc_learned">Выучено</string>
+    <string name="learning_process_desc_back">Назад</string>
+
+
+    <string name="word_card_tv_status_new">Новое слово</string>
+    <string name="word_card_desc_favorite">Избранное</string>
+    <string name="word_card_tv_next_review_placeholder">Следующее: завтра</string>
+
+
+    <string name="item_lib_tv_name_placeholder">Название библиотеки</string>
+    <string name="item_lib_tv_desc_placeholder">Описание библиотеки</string>
+    <string name="item_lib_tv_word_count_placeholder">500 слов</string>
+    <string name="item_lib_tv_category_placeholder">Базовый</string>
+    <string name="item_lib_desc_info">Информация</string>
+    <string name="item_lib_desc_manage">Управление</string>
+
+    <string name="item_word_tv_word_placeholder">word</string>
+    <string name="item_word_tv_translation_placeholder">перевод</string>
+    <string name="item_word_tv_note_placeholder">примечание к слову</string>
+    <string name="item_word_desc_favorite">Избранное</string>
+    <string name="item_word_desc_delete">Удалить</string>
+
+
+
+
+    <string name="nav_title_home">главная</string>
+    <string name="nav_title_libraries">библиотеки</string>
+    <string name="nav_title_profile">профиль</string>
+
+
+
+    <string name="word_add_dialog_title">Добавить слово в: %1$s</string>
+    <string name="word_add_error_empty_word">Введите слово</string>
+    <string name="word_add_error_empty_translation">Введите перевод</string>
+    <string name="word_add_default_note">Пользовательское слово</string>
+
+
+
+
+
+    <string name="lib_load_error_toast">Ошибка загрузки библиотек</string>
+    <string name="lib_error_load_active">Ошибка загрузки активных библиотек</string>
+    <string name="lib_load_error_connection">Ошибка загрузки библиотек\nПроверьте подключение</string>
+
+    <string name="lib_select_error_no_libraries">Библиотеки для изучения «%1$s» не найдены\n\nВы можете создать свою библиотеку</string>
+    <string name="lib_search_not_found">Библиотеки по запросу «%1$s» не найдены</string>
+
+    <string name="lib_btn_start_with_count">Начать обучение (%1$d)</string>
+    <string name="lib_error_select_at_least_one">Выберите хотя бы одну библиотеку</string>
+
+    <string name="lib_manage_title">Управление: %1$s</string>
+    <string name="lib_manage_add_word">Добавить слово</string>
+    <string name="lib_manage_view_words">Просмотреть слова</string>
+    <string name="lib_manage_delete">Удалить библиотеку</string>
+
+    <string name="lib_delete_confirm_title">Удаление библиотеки</string>
+    <string name="lib_delete_confirm_msg">Вы уверены, что хотите удалить библиотеку «%1$s»? Все слова в ней будут удалены.</string>
+    <string name="lib_delete_system_error">Нельзя удалять системные библиотеки</string>
+    <string name="lib_delete_success">Библиотека удалена</string>
+    <string name="lib_delete_error">Ошибка удаления библиотеки</string>
+    <string name="lib_status_activated">Библиотека активирована</string>
+    <string name="lib_status_deactivated">Библиотека деактивирована</string>
+
+    <string name="lib_create_success">Библиотека создана!</string>
+    <string name="lib_create_success_other_lang">Библиотека создана для языка: %1$s</string>
+    <string name="lib_create_error_params">Ошибка создания библиотеки: %1$s</string>
+
+    <string name="lib_info_name">Название</string>
+    <string name="lib_info_desc">Описание</string>
+    <string name="lib_info_count">Слов</string>
+    <string name="lib_info_category">Категория</string>
+
+    <string name="word_add_success">Слово добавлено!</string>
+    <string name="word_add_error_toast">Ошибка добавления слова</string>
 </resources>

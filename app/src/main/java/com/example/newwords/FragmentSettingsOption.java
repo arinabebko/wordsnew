@@ -282,26 +282,33 @@ public class FragmentSettingsOption extends Fragment {
     }
 
     private void showLanguageDialog() {
-        String[] languages = {"Русский", "English"};
-        // Коды языков для системы
-        String[] languageCodes = {"ru", "en"};
+        // Названия языков для отображения в списке
+        String[] languages = {"Русский", "English", "Башҡорт"};
+        // Соответствующие коды для системы (ISO 639-1)
+        String[] languageCodes = {"ru", "en", "ba"};
 
         androidx.appcompat.app.AlertDialog.Builder builder =
-                new androidx.appcompat.app.AlertDialog.Builder(getContext());
+                new androidx.appcompat.app.AlertDialog.Builder(requireContext());
 
-        builder.setTitle(R.string.settings_label_language) // Используем строку из ресурсов!
+        builder.setTitle(R.string.settings_label_language)
                 .setItems(languages, (dialog, which) -> {
                     String selectedLanguage = languages[which];
                     String selectedCode = languageCodes[which];
 
-                    // 1. Сохраняем в настройки
+                    // 1. Сохраняем название языка для отображения в UI
                     saveSetting("language", selectedLanguage);
 
-                    // 2. МЕНЯЕМ ЯЗЫК В ПРИЛОЖЕНИИ
+                    // Обновляем текст в самом фрагменте сразу
+                    if (languageTextView != null) {
+                        languageTextView.setText(selectedLanguage);
+                    }
+
+                    // 2. МЕНЯЕМ ЛОКАЛЬ ПРИЛОЖЕНИЯ
+                    // AppCompatDelegate.setApplicationLocales сам перезапустит активити
+                    // и подтянет нужный strings.xml (values-ru, values-en или values-ba)
                     setAppLocale(selectedCode);
 
-                    // После setApplicationLocales активити сама перезагрузится,
-                    // и всё приложение станет на новом языке!
+                    Toast.makeText(getContext(), R.string.settings_toast_language_changed, Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton(R.string.common_cancel, null)
                 .show();

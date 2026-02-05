@@ -8,18 +8,16 @@
     android:padding="24dp"
     android:gravity="center">
 
-    <!-- Заголовок -->
     <TextView
         android:id="@+id/notificationsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="уведомления"
+        android:text="@string/notif_settings_header"
         android:textSize="20sp"
         android:textColor="#b5b5e7"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginBottom="24dp"/>
 
-    <!-- Радиогруппа с вариантами -->
     <RadioGroup
         android:id="@+id/notificationOptionsGroup"
         android:layout_width="match_parent"
@@ -30,7 +28,7 @@
             android:id="@+id/rb_none"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="без уведомлений"
+            android:text="@string/notif_settings_rb_none"
             android:textColor="#e7b5a9"
             android:fontFamily="@font/jura_font_wght"
             android:textSize="16sp"
@@ -41,14 +39,13 @@
             android:id="@+id/rb_onceADay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="раз в день"
+            android:text="@string/notif_settings_rb_once_a_day"
             android:textColor="#fcb6b0"
             android:fontFamily="@font/jura_font_wght"
             android:textSize="16sp"
             android:buttonTint="#fcb6b0"
             android:padding="8dp"/>
 
-        <!-- Лейаут для напоминания со временем -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -61,7 +58,7 @@
                 android:id="@+id/reminderLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="напоминание в"
+                android:text="@string/notif_settings_tv_reminder_at"
                 android:textColor="#e7b5a9"
                 android:fontFamily="@font/jura_font_wght"
                 android:textSize="16sp"/>
@@ -81,22 +78,18 @@
                 android:fontFamily="@font/jura_font_wght"
                 android:imeOptions="actionDone"
                 android:maxLength="5"
-
                 android:digits="0123456789:"/>
-
-
         </LinearLayout>
 
         <RadioButton
             android:id="@+id/rb_afterInactivity"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="через 1 день бездействия"
+            android:text="@string/notif_settings_rb_inactivity"
             android:textColor="#e7b5a9"
             android:fontFamily="@font/jura_font_wght"
             android:textSize="16sp"
             android:buttonTint="#e7b5a9"
             android:padding="8dp"/>
     </RadioGroup>
-
 </LinearLayout>

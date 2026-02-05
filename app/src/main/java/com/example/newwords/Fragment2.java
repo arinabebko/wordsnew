@@ -67,7 +67,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Находим View элементы
         librariesRecyclerView = view.findViewById(R.id.librariesRecyclerView);
-        progressBar = view.findViewById(R.id.progressBar);
+      //  progressBar = view.findViewById(R.id.progressBar);
         emptyStateText = view.findViewById(R.id.emptyStateText);
         startLearningButton = view.findViewById(R.id.startLearningButton);
         searchEditText = view.findViewById(R.id.searchEditText);
@@ -245,8 +245,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 if (availableLibraries.isEmpty()) {
                     showEmptyState(true);
                     String languageName = languageManager.getLanguageDisplayName(currentLanguage);
-                    emptyStateText.setText("Библиотеки для изучения \"" + languageName + "\" не найдены\n\nВы можете создать свою библиотеку");
-
+                    emptyStateText.setText(getString(R.string.lib_select_error_no_libraries, languageName));
                     // Если нет библиотек для этого языка, очищаем activeLibrariesMap
                     activeLibrariesMap.clear();
                 } else {
@@ -263,17 +262,22 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки библиотек: " + e.getMessage());
+                Log.e(TAG, "Ошибка загрузки библиотек: " + e.getMessage()); // Логи оставляем на английском/русском для дебага [cite: 217]
 
-                // Очистить адаптер и показать ошибку
+                // Очистить адаптер и показать ошибку [cite: 218]
                 if (libraryAdapter != null) {
-                    libraryAdapter.updateLibraries(new ArrayList<>());
+                    libraryAdapter.updateLibraries(new ArrayList<>()); // [cite: 220]
                 }
 
-                Toast.makeText(getContext(), "Ошибка загрузки библиотек", Toast.LENGTH_SHORT).show();
-                showEmptyState(true);
-                emptyStateText.setText("Ошибка загрузки библиотек\nПроверьте подключение");
-                showLoading(false);
+                // Используем строковый ресурс для Toast [cite: 222]
+                Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
+
+                showEmptyState(true); // [cite: 223]
+
+                // Устанавливаем текст ошибки из ресурсов [cite: 224]
+                emptyStateText.setText(R.string.lib_load_error_connection);
+
+                showLoading(false); // [cite: 225]
             }
         });
     }
@@ -384,7 +388,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         updateStartButtonState();
 
-        String message = isActive ? "Библиотека активирована" : "Библиотека деактивирована";
+        String message = isActive ? getString(R.string.lib_status_activated) : getString(R.string.lib_status_deactivated);
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
     }
     /**
@@ -551,14 +555,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
     private void filterLibraries(String query) {
         if (query.isEmpty()) {
-            // Если запрос пустой, показываем все библиотеки
             filteredLibraries.clear();
             filteredLibraries.addAll(availableLibraries);
         } else {
-            // Фильтруем библиотеки по названию и описанию
             filteredLibraries.clear();
             for (WordLibrary library : availableLibraries) {
-                // ЗАЩИТА ОТ NULL: проверяем каждое поле перед вызовом toLowerCase()
                 String name = library.getName() != null ? library.getName().toLowerCase() : "";
                 String description = library.getDescription() != null ? library.getDescription().toLowerCase() : "";
                 String category = library.getCategory() != null ? library.getCategory().toLowerCase() : "";
@@ -573,22 +574,21 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
         }
 
-        // Обновляем адаптер
         libraryAdapter.updateLibraries(filteredLibraries);
 
         // Показываем/скрываем состояние пустого списка
         if (filteredLibraries.isEmpty() && !query.isEmpty()) {
             showEmptyState(true);
-            emptyStateText.setText("Библиотеки по запросу \"" + query + "\" не найдены");
+            // ⭐ ИСПОЛЬЗУЕМ РЕСУРС С ПАРАМЕТРОМ:
+            emptyStateText.setText(getString(R.string.lib_search_not_found, query));
         } else if (filteredLibraries.isEmpty()) {
             showEmptyState(true);
-            emptyStateText.setText("Библиотеки не найдены\nПопробуйте позже");
+            // Тут можно использовать общий текст "Библиотеки не найдены"
+            emptyStateText.setText(R.string.lib_select_tv_empty_state);
         } else {
             showEmptyState(false);
         }
     }
-
-
 
 
     /**
@@ -639,7 +639,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 }
 
                 // Обновляем адаптер
-               // libraryAdapter.updateLibraries(availableLibraries);
+                // libraryAdapter.updateLibraries(availableLibraries);
                 //libraryAdapter.updateActiveLibraries(activeLibrariesMap);
 
 
@@ -655,9 +655,10 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             @Override
             public void onError(Exception e) {
                 Log.e(TAG, "Ошибка загрузки активных библиотек: " + e.getMessage());
-                Toast.makeText(getContext(), "Ошибка загрузки активных библиотек", Toast.LENGTH_SHORT).show();
 
-                // Если ошибка, устанавливаем все библиотеки как неактивные
+                // ⭐ Используем ресурс для ошибки загрузки
+                Toast.makeText(getContext(), R.string.lib_error_load_active, Toast.LENGTH_SHORT).show();
+
                 for (WordLibrary library : availableLibraries) {
                     library.setActive(false);
                 }
@@ -681,6 +682,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
         });
     }
+
 
 
     private void syncWithFirebase() {
@@ -748,9 +750,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
                 if (hasActive) {
                     int activeCount = getActiveLibrariesCount();
-                    startLearningButton.setText("Начать обучение (" + activeCount + ")");
+                    // ⭐ Используем ресурс с числовым параметром
+                    startLearningButton.setText(getString(R.string.lib_btn_start_with_count, activeCount));
                 } else {
-                    startLearningButton.setText("Начать обучение");
+                    // ⭐ Используем обычный ресурс кнопки
+                    startLearningButton.setText(R.string.lib_select_btn_start);
                 }
             });
         }
@@ -874,94 +878,76 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         dialog.show(getParentFragmentManager(), "add_library_dialog");
     }
     private void createCustomLibrary(String name, String description, String category, String language) {
-        Log.d(TAG, "Создание библиотеки: " + name + ", язык: " + language);
-
-        // Здесь передаем language как 4-й параметр
         wordRepository.createCustomLibrary(name, description, category, language,
                 new WordRepository.OnLibraryCreatedListener() {
                     @Override
                     public void onLibraryCreated(WordLibrary library) {
-                        Log.d(TAG, "Библиотека успешно создана: " + library.getName() +
-                                ", язык: " + library.getLanguageFrom() +
-                                ", ID: " + library.getLibraryId());
-                        Toast.makeText(getContext(), "Библиотека создана!", Toast.LENGTH_SHORT).show();
-
-                        // Если созданная библиотека для текущего языка, показываем ее
+                        // Если созданная библиотека для текущего языка
                         if (language.equals(currentLanguage)) {
+                            Toast.makeText(getContext(), R.string.lib_create_success, Toast.LENGTH_SHORT).show();
                             loadLibraries();
                         } else {
-                            // Иначе просто сообщаем
+                            // Если создали для другого языка (например, создаем англ. библиотеку, находясь в башк. интерфейсе)
+                            String langName = languageManager.getLanguageDisplayName(language);
                             Toast.makeText(getContext(),
-                                    "Библиотека создана для языка: " +
-                                            languageManager.getLanguageDisplayName(language),
+                                    getString(R.string.lib_create_success_other_lang, langName),
                                     Toast.LENGTH_SHORT).show();
                         }
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        Log.e(TAG, "Ошибка создания библиотеки: " + e.getMessage());
-                        Toast.makeText(getContext(), "Ошибка создания библиотеки: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(),
+                                getString(R.string.lib_create_error_params, e.getMessage()),
+                                Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
     private void showLibraryInfoDialog(WordLibrary library) {
-        String info = "Название: " + library.getName() + "\n" +
-                "Описание: " + library.getDescription() + "\n" +
-                "Слов: " + library.getWordCount() + "\n" +
-                "Категория: " + library.getCategory();
+        // Формируем красивую строку информации из ресурсов
+        String info = getString(R.string.lib_info_name) + ": " + library.getName() + "\n" +
+                getString(R.string.lib_info_desc) + ": " + library.getDescription() + "\n" +
+                getString(R.string.lib_info_count) + ": " + library.getWordCount() + "\n" +
+                getString(R.string.lib_info_category) + ": " + library.getCategory();
 
         Toast.makeText(getContext(), info, Toast.LENGTH_LONG).show();
     }
 
     private void showLibraryManagementDialog(WordLibrary library) {
-        String[] options = {"Добавить слово", "Просмотреть слова", "Удалить библиотеку"};
+        // Опции меню из ресурсов
+        String[] options = {
+                getString(R.string.lib_manage_add_word),
+                getString(R.string.lib_manage_view_words),
+                getString(R.string.lib_manage_delete)
+        };
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Управление: " + library.getName())
+        builder.setTitle(getString(R.string.lib_manage_title, library.getName()))
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
-                        case 0:
-                            showAddWordDialog(library);
-                            break;
-                        case 1:
-                            showLibraryWords(library);
-                            break;
-                        case 2:
-                            deleteLibrary(library);
-                            break;
+                        case 0: showAddWordDialog(library); break;
+                        case 1: showLibraryWords(library); break;
+                        case 2: deleteLibrary(library); break;
                     }
                 })
-                .setNegativeButton("Отмена", null)
+                .setNegativeButton(R.string.common_cancel, null)
                 .show();
-    }
-
-    private void showAddWordDialog(WordLibrary library) {
-        AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getName());
-        dialog.setOnWordAddedListener(new AddWordDialog.OnWordAddedListener() {
-            @Override
-            public void onWordAdded(String word, String translation, String note) {
-                addWordToLibrary(library.getLibraryId(), word, translation, note);
-            }
-        });
-        dialog.show(getParentFragmentManager(), "add_word_dialog");
     }
 
     private void addWordToLibrary(String libraryId, String word, String translation, String note) {
         WordItem newWord = new WordItem(word, translation, note);
-
         wordRepository.addWordToCustomLibrary(libraryId, newWord,
                 new WordRepository.OnWordAddedListener() {
                     @Override
                     public void onWordAdded(WordItem word) {
-                        Toast.makeText(getContext(), "Слово добавлено!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), R.string.word_add_success, Toast.LENGTH_SHORT).show();
                         loadLibraries();
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        Toast.makeText(getContext(), "Ошибка добавления слова", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), R.string.word_add_error_toast, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -984,35 +970,48 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                     .commit();
         }
     }
+    private void showAddWordDialog(WordLibrary library) {
+        AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getName());
+        dialog.setOnWordAddedListener(new AddWordDialog.OnWordAddedListener() {
+            @Override
+            public void onWordAdded(String word, String translation, String note) {
+                addWordToLibrary(library.getLibraryId(), word, translation, note);
+            }
+        });
+        dialog.show(getParentFragmentManager(), "add_word_dialog");
+    }
 
     /**
      * Удаляет библиотеку
      */
     private void deleteLibrary(WordLibrary library) {
         if (library.getCreatedBy() == null || library.getCreatedBy().equals("system")) {
-            Toast.makeText(getContext(), "Нельзя удалять системные библиотеки", Toast.LENGTH_SHORT).show();
+            // Используем ресурс для запрета удаления системных библиотек
+            Toast.makeText(getContext(), R.string.lib_delete_system_error, Toast.LENGTH_SHORT).show();
             return;
         }
 
         new AlertDialog.Builder(getContext())
-                .setTitle("Удаление библиотеки")
-                .setMessage("Вы уверены, что хотите удалить библиотеку \"" + library.getName() + "\"? Все слова в ней будут удалены.")
-                .setPositiveButton("Удалить", (dialog, which) -> {
+                .setTitle(R.string.lib_delete_confirm_title)
+                // Используем getString с параметром для названия библиотеки
+                .setMessage(getString(R.string.lib_delete_confirm_msg, library.getName()))
+                .setPositiveButton(R.string.lib_manage_delete, (dialog, which) -> {
                     performLibraryDelete(library);
                 })
-                .setNegativeButton("Отмена", null)
+                .setNegativeButton(R.string.common_cancel, null)
                 .show();
     }
 
     private void performLibraryDelete(WordLibrary library) {
         wordRepository.deleteCustomLibrary(library.getLibraryId(),
                 () -> {
-                    Toast.makeText(getContext(), "Библиотека удалена", Toast.LENGTH_SHORT).show();
-                    // Обновляем список библиотек
+                    // Ресурс для успешного удаления
+                    Toast.makeText(getContext(), R.string.lib_delete_success, Toast.LENGTH_SHORT).show();
                     loadLibraries();
                 },
                 e -> {
-                    Toast.makeText(getContext(), "Ошибка удаления библиотеки", Toast.LENGTH_SHORT).show();
+                    // Ресурс для ошибки удаления
+                    Toast.makeText(getContext(), R.string.lib_delete_error, Toast.LENGTH_SHORT).show();
                 }
         );
     }

@@ -6,11 +6,10 @@
     android:background="#211B20"
     android:padding="16dp">
 
-    <!-- Слово -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Слово (английский)"
+        android:text="@string/word_full_add_tv_word_label"
         android:textColor="#A2B2FF"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -19,15 +18,14 @@
         android:id="@+id/wordEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Например: computer"
+        android:hint="@string/word_full_add_et_word_hint"
         android:maxLines="1"
         android:layout_marginBottom="24dp" />
 
-    <!-- Перевод -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Перевод (русский)"
+        android:text="@string/word_full_add_tv_translation_label"
         android:textColor="#A2B2FF"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -36,15 +34,14 @@
         android:id="@+id/translationEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Например: компьютер"
+        android:hint="@string/word_full_add_et_translation_hint"
         android:maxLines="1"
         android:layout_marginBottom="24dp" />
 
-    <!-- Примечание -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Примечание (опционально)"
+        android:text="@string/word_full_add_tv_note_label"
         android:textColor="#A2B2FF"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
@@ -53,20 +50,18 @@
         android:id="@+id/noteEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Например: Электронное устройство"
+        android:hint="@string/word_full_add_et_note_hint"
         android:maxLines="2"
         android:layout_marginBottom="24dp" />
 
-    <!-- Выбор библиотеки -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Библиотека"
+        android:text="@string/word_full_add_tv_library_label"
         android:textColor="#A2B2FF"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
 
-    <!-- Спиннер для выбора библиотеки -->
     <Spinner
         android:id="@+id/librarySpinner"
         android:layout_width="match_parent"
@@ -74,29 +69,26 @@
         android:layout_marginBottom="16dp"
         android:visibility="gone" />
 
-    <!-- Сообщение когда нет библиотек -->
     <TextView
         android:id="@+id/noLibrariesText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:gravity="center"
-        android:text="У вас нет созданных библиотек"
+        android:text="@string/word_full_add_tv_no_libraries"
         android:textColor="?android:attr/textColorSecondary"
         android:visibility="gone" />
 
-    <!-- Кнопка перехода к библиотекам -->
     <Button
         android:id="@+id/goToLibrariesButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:text="Создать библиотеку"
+        android:text="@string/word_full_add_btn_create_library"
         android:backgroundTint="@color/black"
         android:textColor="@android:color/white"
         android:visibility="gone" />
 
-    <!-- Кнопки -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -107,7 +99,7 @@
             android:id="@+id/cancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Отмена"
+            android:text="@string/common_cancel"
             android:textColor="#625fba"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:layout_marginEnd="16dp" />
@@ -116,7 +108,7 @@
             android:id="@+id/addButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Добавить"
+            android:text="@string/word_add_btn_add"
             android:textColor="#211B20"
             android:background="@drawable/button_primary_bg"
             android:paddingHorizontal="24dp" />

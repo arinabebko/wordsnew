@@ -20,10 +20,182 @@
 
 
 
+    <string name="settings_label_language">choose language</string>
+    <string name="common_cancel">Отмена</string>
+
+    <string name="settings_toast_language_changed">Язык изменен</string>
+    <string name="settings_hint_current">Текущее: %1$s</string>
+    <string name="settings_status_not_set">Не установлено</string>
+    <string name="settings_status_guest">Гость</string>
+    <string name="settings_save_loading">Сохранение...</string>
+    <string name="settings_save_success">Имя успешно изменено!</string>
+
+
+
 
     <string name="profile_tv_username_placeholder">username</string>
     <string name="profile_tv_email_placeholder">email@example.com</string>
     <string name="profile_tv_option_settings">settings</string>
     <string name="profile_tv_option_notifications">notifications</string>
     <string name="profile_tv_option_login_params">login parameters</string>
+
+    <string name="lib_create_tv_name_label">library name</string>
+    <string name="lib_create_et_name_hint">enter name</string>
+    <string name="lib_create_tv_desc_label">description</string>
+    <string name="lib_create_et_desc_hint">enter description</string>
+    <string name="lib_create_tv_category_label">category</string>
+    <string name="lib_create_tv_lang_label">language to learn</string>
+    <string name="lib_create_btn_create">create</string>
+
+
+    <string name="word_add_tv_word_label">word (english)</string>
+    <string name="word_add_et_word_hint">e.g.: computer</string>
+    <string name="word_add_tv_translation_label">translation (russian)</string>
+    <string name="word_add_et_translation_hint">e.g.: компьютер</string>
+    <string name="word_add_tv_note_label">note (optional)</string>
+    <string name="word_add_et_note_hint">e.g.: electronic device</string>
+    <string name="word_add_btn_add">add</string>
+
+    <string name="word_full_add_tv_word_label">Word (english)</string>
+    <string name="word_full_add_et_word_hint">E.g.: computer</string>
+    <string name="word_full_add_tv_translation_label">Translation (russian)</string>
+    <string name="word_full_add_et_translation_hint">E.g.: компьютер</string>
+    <string name="word_full_add_tv_note_label">Note (optional)</string>
+    <string name="word_full_add_et_note_hint">E.g.: Electronic device</string>
+    <string name="word_full_add_tv_library_label">Library</string>
+    <string name="word_full_add_tv_no_libraries">You have no libraries created</string>
+    <string name="word_full_add_btn_create_library">Create library</string>
+
+    <string name="common_back_upper">Back</string>
+
+
+    <string name="password_change_tv_current_label">Current password</string>
+    <string name="password_change_et_current_hint">Enter current password</string>
+    <string name="password_change_tv_new_label">New password</string>
+    <string name="password_change_et_new_hint">Enter new password</string>
+    <string name="password_change_tv_confirm_label">Confirm new password</string>
+    <string name="password_change_et_confirm_hint">Repeat new password</string>
+
+    <string name="lib_select_desc_refresh">Refresh</string>
+    <string name="lib_select_desc_add">Add library</string>
+    <string name="lib_select_et_search_hint">Search libraries...</string>
+    <string name="lib_select_tv_lang_prefix">Language:</string>
+    <string name="lib_select_lang_en">English</string>
+    <string name="lib_select_lang_ba">Bashkir</string>
+    <string name="lib_select_tv_title">Select libraries</string>
+    <string name="lib_select_tv_description">Select word libraries to study</string>
+    <string name="lib_select_tv_empty_state">No libraries found\nTry again later</string>
+    <string name="lib_select_btn_start">Start learning</string>
+
+    <string name="lib_words_tv_title_placeholder">Library name</string>
+    <string name="lib_words_tv_empty_state">No words in the library</string>
+    <string name="lib_words_desc_back">Back</string>
+
+
+
+    <string name="auth_params_tv_header">login parameters</string>
+    <string name="auth_params_tv_login_placeholder">login: nnn@gmail.com</string>
+    <string name="auth_params_tv_password_label">password: ******</string>
+    <string name="auth_params_btn_change_pass">Change password</string>
+    <string name="auth_params_tv_logout">log out</string>
+    <string name="auth_params_tv_delete_account">delete account</string>
+
+
+    <string name="notif_settings_header">notifications</string>
+    <string name="notif_settings_rb_none">no notifications</string>
+    <string name="notif_settings_rb_once_a_day">once a day</string>
+    <string name="notif_settings_tv_reminder_at">reminder at</string>
+    <string name="notif_settings_rb_inactivity">after 1 day of inactivity</string>
+
+
+    <string name="word_search_desc_back">Back</string>
+    <string name="word_search_et_hint">Search words...</string>
+    <string name="word_search_desc_clear">Clear</string>
+    <string name="word_search_tv_empty">You don\'t have any words to study yet</string>
+
+
+
+    <string name="profile_settings_tv_title">Profile settings</string>
+    <string name="profile_settings_tv_current_name_label">Current name:</string>
+    <string name="profile_settings_tv_username_placeholder">Username</string>
+    <string name="profile_settings_tv_new_name_label">New name:</string>
+    <string name="profile_settings_et_new_name_hint">Enter new name</string>
+    <string name="profile_settings_tv_name_rules">Name can contain letters, numbers and underscores</string>
+    <string name="profile_settings_btn_save">Save name</string>
+    <string name="profile_settings_tv_others_title">Other settings</string>
+    <string name="profile_settings_tv_ui_lang_label">Interface language</string>
+    <string name="profile_settings_tv_ui_lang_current">English</string>
+    <string name="profile_settings_tv_theme_label">Theme</string>
+    <string name="profile_settings_tv_theme_current">Dark</string>
+
+
+    <string name="learning_process_desc_review">Review later</string>
+    <string name="learning_process_desc_learned">Learned</string>
+    <string name="learning_process_desc_back">Back</string>
+
+
+
+    <string name="word_card_tv_status_new">New word</string>
+    <string name="word_card_desc_favorite">Favorite</string>
+    <string name="word_card_tv_next_review_placeholder">Next: tomorrow</string>
+
+
+    <string name="item_lib_tv_name_placeholder">Library name</string>
+    <string name="item_lib_tv_desc_placeholder">Library description</string>
+    <string name="item_lib_tv_word_count_placeholder">500 words</string>
+    <string name="item_lib_tv_category_placeholder">Basic</string>
+    <string name="item_lib_desc_info">Information</string>
+    <string name="item_lib_desc_manage">Manage</string>
+
+    <string name="item_word_tv_word_placeholder">word</string>
+    <string name="item_word_tv_translation_placeholder">translation</string>
+    <string name="item_word_tv_note_placeholder">word note</string>
+    <string name="item_word_desc_favorite">Favorite</string>
+    <string name="item_word_desc_delete">Delete</string>
+
+
+
+
+    <string name="nav_title_home">home</string>
+    <string name="nav_title_libraries">libraries</string>
+    <string name="nav_title_profile">profile</string>
+
+
+    <string name="word_add_dialog_title">Add word to: %1$s</string>
+    <string name="word_add_error_empty_word">Enter a word</string>
+    <string name="word_add_error_empty_translation">Enter a translation</string>
+    <string name="word_add_default_note">User word</string>
+
+
+
+
+
+    <string name="lib_load_error_toast">Error loading libraries</string>
+    <string name="lib_error_load_active">Error loading active libraries</string>
+    <string name="lib_load_error_connection">Error loading libraries\nCheck your connection</string>
+    <string name="lib_select_error_no_libraries">No libraries found for learning \"%1$s\"\n\nYou can create your own library</string>
+    <string name="lib_search_not_found">No libraries found for \"%1$s\"</string>
+    <string name="lib_btn_start_with_count">Start learning (%1$d)</string>
+    <string name="lib_error_select_at_least_one">Select at least one library</string>
+    <string name="lib_manage_title">Manage: %1$s</string>
+    <string name="lib_manage_add_word">Add word</string>
+    <string name="lib_manage_view_words">View words</string>
+    <string name="lib_manage_delete">Delete library</string>
+    <string name="lib_delete_confirm_title">Delete library</string>
+    <string name="lib_delete_confirm_msg">Are you sure you want to delete the library \"%1$s\"? All words in it will be deleted.</string>
+    <string name="lib_delete_system_error">System libraries cannot be deleted</string>
+    <string name="lib_delete_success">Library deleted</string>
+    <string name="lib_delete_error">Error deleting library</string>
+    <string name="lib_status_activated">Library activated</string>
+    <string name="lib_status_deactivated">Library deactivated</string>
+
+    <string name="lib_create_success">Library created!</string>
+    <string name="lib_create_success_other_lang">Library created for language: %1$s</string>
+    <string name="lib_create_error_params">Error creating library: %1$s</string>
+    <string name="lib_info_name">Name</string>
+    <string name="lib_info_desc">Description</string>
+    <string name="lib_info_count">Words</string>
+    <string name="lib_info_category">Category</string>
+    <string name="word_add_success">Word added!</string>
+    <string name="word_add_error_toast">Error adding word</string>
 </resources>

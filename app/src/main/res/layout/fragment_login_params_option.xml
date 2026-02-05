@@ -7,36 +7,33 @@
     android:background="#211B20"
     android:padding="24dp">
 
-    <!-- Заголовок -->
     <TextView
         android:id="@+id/loginHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="параметры входа"
+        android:text="@string/auth_params_tv_header"
         android:textSize="24sp"
         android:textColor="#b5b5e7"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginTop="50dp"
         android:layout_marginBottom="28dp"/>
 
-    <!-- Логин -->
     <TextView
         android:id="@+id/loginLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="логин: nnn@gmail.com"
+        android:text="@string/auth_params_tv_login_placeholder"
         android:textSize="16sp"
         android:textColor="#e7b5a9"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginLeft="17dp"
         android:layout_marginBottom="8dp"/>
 
-    <!-- Пароль -->
     <TextView
         android:id="@+id/passwordLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="пароль: ******"
+        android:text="@string/auth_params_tv_password_label"
         android:textSize="16sp"
         android:textColor="#e7b5a9"
         android:fontFamily="@font/jura_font_wght"
@@ -49,12 +46,11 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"/>
 
-    <!-- Кнопка смены пароля -->
     <Button
         android:id="@+id/changePasswordButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Сменить пароль"
+        android:text="@string/auth_params_btn_change_pass"
         app:backgroundTint="@null"
         android:textColor="#211B20"
         android:textSize="16sp"
@@ -62,12 +58,11 @@
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginBottom="24dp"/>
 
-    <!-- Кнопка Выйти -->
     <TextView
         android:id="@+id/logoutLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="выйти"
+        android:text="@string/auth_params_tv_logout"
         android:textColor="#fcb6b0"
         android:fontFamily="@font/jura_font_wght"
         android:textSize="16sp"
@@ -79,12 +74,11 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"/>
 
-    <!-- Удаление аккаунта -->
     <TextView
         android:id="@+id/deleteAccountLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="удалить аккаунт"
+        android:text="@string/auth_params_tv_delete_account"
         android:textColor="#ff8c8c"
         android:textSize="14sp"
         android:fontFamily="@font/jura_font_wght"
@@ -93,7 +87,6 @@
         android:clickable="true"
         android:focusable="true"
         android:paddingTop="16dp"
-
         android:paddingBottom="16dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"/>

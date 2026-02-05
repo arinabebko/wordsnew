@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,20 +6,19 @@
     android:padding="24dp"
     android:background="#211B20">
 
-    <!-- Статус слова (УВЕЛИЧЕН ШРИФТ) -->
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Новое слово"
+        android:text="@string/word_card_tv_status_new"
         android:textColor="#FFFFFF"
         android:textSize="14sp"
-    android:background="@drawable/status_background"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="4dp"
-    android:layout_centerHorizontal="true"
-    android:layout_marginTop="32dp"/>
-    <!-- Звезда в правом верхнем углу -->
+        android:background="@drawable/status_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="32dp"/>
+
     <ImageButton
         android:id="@+id/starButton"
         android:layout_width="48dp"
@@ -28,31 +26,27 @@
         android:src="@drawable/ic_empty_heart_icon"
         android:scaleType="fitCenter"
         android:padding="12dp"
-
         android:background="?attr/selectableItemBackgroundBorderless"
         app:tint="#CE5D5D"
-        android:contentDescription="Избранное"
+        android:contentDescription="@string/word_card_desc_favorite"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="8dp"/>
 
-    <!-- Основная карточка с словом (УМЕНЬШЕНА и СПУЩЕНА ВНИЗ) -->
     <LinearLayout
         android:id="@+id/wordCard"
         android:layout_width="280dp"
-    android:layout_height="300dp"
-    android:orientation="vertical"
-    android:background="@drawable/card_pastel_bg"
-    android:gravity="center"
-    android:elevation="4dp"
-    android:layout_centerInParent="true"
-    android:padding="16dp"
-    android:layout_below="@id/statusText"
-    android:layout_marginTop="24dp">
+        android:layout_height="300dp"
+        android:orientation="vertical"
+        android:background="@drawable/card_pastel_bg"
+        android:gravity="center"
+        android:elevation="4dp"
+        android:layout_centerInParent="true"
+        android:padding="16dp"
+        android:layout_below="@id/statusText"
+        android:layout_marginTop="24dp">
 
-
-        <!-- Английское слово -->
         <TextView
             android:id="@+id/wordText"
             android:layout_width="wrap_content"
@@ -63,7 +57,6 @@
             android:fontFamily="@font/jura_font_wght"
             android:layout_gravity="center_horizontal"/>
 
-        <!-- Перевод (изначально скрыт) -->
         <TextView
             android:id="@+id/hintText"
             android:layout_width="wrap_content"
@@ -78,12 +71,11 @@
 
     </LinearLayout>
 
-    <!-- Следующее повторение -->
     <TextView
         android:id="@+id/nextReviewText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Следующее: завтра"
+        android:text="@string/word_card_tv_next_review_placeholder"
         android:textColor="#babba9"
         android:textSize="12sp"
         android:layout_below="@id/wordCard"

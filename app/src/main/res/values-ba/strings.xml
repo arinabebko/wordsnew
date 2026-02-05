@@ -1,0 +1,181 @@
+<resources>
+    <string name="app_name">newwords</string>
+
+    <string name="login_tv_welcome">Һаумы!</string>
+    <string name="login_et_email">Email</string>
+    <string name="login_et_password">Серһүҙ</string>
+    <string name="login_btn_enter">Инеү</string>
+    <string name="login_tv_no_account">Аккаунтың юҡмы? Теркәлергә</string>
+
+    <string name="register_tv_title">Аккаунт булдырыу</string>
+    <string name="register_et_username">Ҡулланыусы исеме</string>
+    <string name="register_et_email">Email</string>
+    <string name="register_et_password">Серһүҙ</string>
+    <string name="register_et_password_confirm">Серһүҙҙе раҫлағыҙ</string>
+    <string name="register_btn_signup">Теркәлергә</string>
+    <string name="register_tv_have_account">Аккаунтың бармы? Инергә</string>
+
+    <string name="settings_label_language">Телде һайлағыҙ</string>
+    <string name="common_cancel">Баш тартырға</string>
+
+    <string name="settings_toast_language_changed">Тел үҙгәртелде</string>
+    <string name="settings_hint_current">Ағымдағы: %1$s</string>
+    <string name="settings_status_not_set">Урынлаштырылмаған</string>
+    <string name="settings_status_guest">Ҡунаҡ</string>
+    <string name="settings_save_loading">Һаҡлана...</string>
+    <string name="settings_save_success">Исем уңышлы үҙгәртелде!</string>
+
+    <string name="profile_tv_username_placeholder">ҡулланыусы исеме</string>
+    <string name="profile_tv_email_placeholder">почта@example.com</string>
+    <string name="profile_tv_option_settings">көйләүҙәр</string>
+    <string name="profile_tv_option_notifications">белдереүҙәр</string>
+    <string name="profile_tv_option_login_params">инеү параметрҙары</string>
+
+    <string name="lib_create_tv_name_label">китапхана исеме</string>
+    <string name="lib_create_et_name_hint">исемен керетегеҙ</string>
+    <string name="lib_create_tv_desc_label">тасуирлама</string>
+    <string name="lib_create_et_desc_hint">тасуирлама керетегеҙ</string>
+    <string name="lib_create_tv_category_label">категория</string>
+    <string name="lib_create_tv_lang_label">өйрәнеү теле</string>
+    <string name="lib_create_btn_create">булдырырға</string>
+
+    <string name="word_add_tv_word_label">һүҙ (инглизсә)</string>
+    <string name="word_add_et_word_hint">мәҫәлән: computer</string>
+    <string name="word_add_tv_translation_label">тәржемә (башҡортса)</string>
+    <string name="word_add_et_translation_hint">мәҫәлән: компьютер</string>
+    <string name="word_add_tv_note_label">иҫкәрмә (мәжбүри түгел)</string>
+    <string name="word_add_et_note_hint">мәҫәлән: электрон ҡорама</string>
+    <string name="word_add_btn_add">өҫтәргә</string>
+
+    <string name="word_full_add_tv_word_label">Һүҙ (инглизсә)</string>
+    <string name="word_full_add_et_word_hint">Мәҫәлән: computer</string>
+    <string name="word_full_add_tv_translation_label">Тәржемә (башҡортса)</string>
+    <string name="word_full_add_et_translation_hint">Мәҫәлән: компьютер</string>
+    <string name="word_full_add_tv_note_label">Иҫкәрмә (мәжбүри түгел)</string>
+    <string name="word_full_add_et_note_hint">Мәҫәлән: Электрон ҡорама</string>
+    <string name="word_full_add_tv_library_label">Китапхана</string>
+    <string name="word_full_add_tv_no_libraries">Һеҙҙең китапханаларығыҙ юҡ</string>
+    <string name="word_full_add_btn_create_library">Китапхана булдырырға</string>
+
+    <string name="password_change_tv_current_label">Ағымдағы серһүҙ</string>
+    <string name="password_change_et_current_hint">Ағымдағы серһүҙҙе керетегеҙ</string>
+    <string name="password_change_tv_new_label">Яңы серһүҙ</string>
+    <string name="password_change_et_new_hint">Яңы серһүҙҙе керетегеҙ</string>
+    <string name="password_change_tv_confirm_label">Яңы серһүҙҙе раҫлағыҙ</string>
+    <string name="password_change_et_confirm_hint">Яңы серһүҙҙе ҡабатлағыҙ</string>
+
+    <string name="lib_select_desc_refresh">Яңыртырға</string>
+    <string name="lib_select_desc_add">Китапхана өҫтәргә</string>
+    <string name="lib_select_et_search_hint">Китапханаларҙы эҙләү...</string>
+    <string name="lib_select_tv_lang_prefix">Тел:</string>
+    <string name="lib_select_lang_en">Инглиз</string>
+    <string name="lib_select_lang_ba">Башҡорт</string>
+    <string name="lib_select_tv_title">Китапхана һайлау</string>
+    <string name="lib_select_tv_description">Өйрәнеү өсөн һүҙҙәр китапханаһын һайлағыҙ</string>
+    <string name="lib_select_tv_empty_state">Китапханалар табылманы\nҺуңыраҡ ҡабатлап ҡарағыҙ</string>
+    <string name="lib_select_btn_start">Өйрәнә башларға</string>
+
+    <string name="lib_words_tv_title_placeholder">Китапхана исеме</string>
+    <string name="lib_words_tv_empty_state">Китапханала һүҙҙәр юҡ</string>
+    <string name="lib_words_desc_back">Артҡа</string>
+
+    <string name="auth_params_tv_header">инеү параметрҙары</string>
+    <string name="auth_params_tv_login_placeholder">логин: nnn@gmail.com</string>
+    <string name="auth_params_tv_password_label">серһүҙ: ******</string>
+    <string name="auth_params_btn_change_pass">Серһүҙҙе үҙгәртергә</string>
+    <string name="auth_params_tv_logout">сығырға</string>
+    <string name="auth_params_tv_delete_account">аккаунтты юйырға</string>
+
+    <string name="notif_settings_header">белдереүҙәр</string>
+    <string name="notif_settings_rb_none">белдереүҙәрһеҙ</string>
+    <string name="notif_settings_rb_once_a_day">көнөнә бер тапҡыр</string>
+    <string name="notif_settings_tv_reminder_at">хәтерләтеү ваҡыты:</string>
+    <string name="notif_settings_rb_inactivity">1 көн инмәһәң</string>
+
+    <string name="word_search_desc_back">Артҡа</string>
+    <string name="word_search_et_hint">Һүҙҙәр буйынса эҙләү...</string>
+    <string name="word_search_desc_clear">Таҙартырға</string>
+    <string name="word_search_tv_empty">Өйрәнеү өсөн һүҙҙәрегеҙ юҡ әле</string>
+
+    <string name="profile_settings_tv_title">Профиль көйләүҙәре</string>
+    <string name="profile_settings_tv_current_name_label">Ағымдағы исем:</string>
+    <string name="profile_settings_tv_username_placeholder">Ҡулланыусы исеме</string>
+    <string name="profile_settings_tv_new_name_label">Яңы исем:</string>
+    <string name="profile_settings_et_new_name_hint">Яңы исем керетегеҙ</string>
+    <string name="profile_settings_tv_name_rules">Исемдә хәрефтәр, цифрҙар һәм аҫҡы һыҙыҡ булыуы мөмкин</string>
+    <string name="profile_settings_btn_save">Исемде һаҡларға</string>
+    <string name="profile_settings_tv_others_title">Башҡа көйләүҙәр</string>
+    <string name="profile_settings_tv_ui_lang_label">Интерфейс теле</string>
+    <string name="profile_settings_tv_ui_lang_current">Башҡорт</string>
+    <string name="profile_settings_tv_theme_label">Тема</string>
+    <string name="profile_settings_tv_theme_current">Ҡараңғы</string>
+    <string name="common_back_upper">Артҡа</string>
+
+    <string name="learning_process_desc_review">Һуңыраҡ ҡабатларға</string>
+    <string name="learning_process_desc_learned">Өйрәнелде</string>
+    <string name="learning_process_desc_back">Артҡа</string>
+
+    <string name="word_card_tv_status_new">Яңы һүҙ</string>
+    <string name="word_card_desc_favorite">Һайланғандар</string>
+    <string name="word_card_tv_next_review_placeholder">Киләһе: иртәгә</string>
+
+    <string name="item_lib_tv_name_placeholder">Китапхана исеме</string>
+    <string name="item_lib_tv_desc_placeholder">Китапхана тасуирламаһы</string>
+    <string name="item_lib_tv_word_count_placeholder">500 һүҙ</string>
+    <string name="item_lib_tv_category_placeholder">Нигеҙ</string>
+    <string name="item_lib_desc_info">Мәғлүмәт</string>
+    <string name="item_lib_desc_manage">Идара итеү</string>
+
+    <string name="item_word_tv_word_placeholder">word</string>
+    <string name="item_word_tv_translation_placeholder">тәржемә</string>
+    <string name="item_word_tv_note_placeholder">һүҙгә иҫкәрмә</string>
+    <string name="item_word_desc_favorite">Һайланғандар</string>
+    <string name="item_word_desc_delete">Юйырға</string>
+
+    <string name="nav_title_home">төп бет</string>
+    <string name="nav_title_libraries">китапханалар</string>
+    <string name="nav_title_profile">профиль</string>
+
+    <string name="word_add_dialog_title">%1$s китапханаһына һүҙ өҫтәү</string>
+    <string name="word_add_error_empty_word">Һүҙҙе керетегеҙ</string>
+    <string name="word_add_error_empty_translation">Тәржемәһен керетегеҙ</string>
+    <string name="word_add_default_note">Ҡулланыусы һүҙе</string>
+
+
+
+
+    <string name="lib_load_error_toast">Китапханаларҙы йөкләп булманы</string>
+    <string name="lib_error_load_active">Актив китапханаларҙы йөкләп булманы</string>
+    <string name="lib_load_error_connection">Китапханаларҙы йөкләгәндә хата килеп сыҡты\nБәйләнеште тикшерегеҙ</string>
+
+    <string name="lib_select_error_no_libraries">«%1$s» телен өйрәнеү өсөн китапханалар табылманы\n\nҺеҙ үҙ китапханағыҙҙы булдыра алаһығыҙ</string>
+    <string name="lib_search_not_found">«%1$s» һорауы буйынса китапханалар табылманы</string>
+
+    <string name="lib_btn_start_with_count">Өйрәнә башларға (%1$d)</string>
+    <string name="lib_error_select_at_least_one">Гон булһа бер китапхананы һайлағыҙ</string>
+
+    <string name="lib_manage_title">Идара итеү: %1$s</string>
+    <string name="lib_manage_add_word">Һүҙ өҫтәргә</string>
+    <string name="lib_manage_view_words">Һүҙҙәрҙе ҡарап сығырға</string>
+    <string name="lib_manage_delete">Китапхананы юйырға</string>
+
+    <string name="lib_delete_confirm_title">Китапхананы юйыу</string>
+    <string name="lib_delete_confirm_msg">Һеҙ ысынлап та «%1$s» китапханаһын юйырырға теләйһегеҙме? Ундағы бөтә һүҙҙәр ҙә юйыласаҡ.</string>
+    <string name="lib_delete_system_error">Система китапханаларын юйып булмай</string>
+    <string name="lib_delete_success">Китапхана юйылды</string>
+    <string name="lib_delete_error">Китапхананы юйғанда хата килеп сыҡты</string>
+    <string name="lib_status_activated">Китапхана активлаштырылды</string>
+    <string name="lib_status_deactivated">Китапхана деактивлаштырылды</string>
+
+    <string name="lib_create_success">Китапхана булдырылды!</string>
+    <string name="lib_create_success_other_lang">Китапхана киләһе тел өсөн булдырылды: %1$s</string>
+    <string name="lib_create_error_params">Китапхана булдырғанда хата: %1$s</string>
+
+    <string name="lib_info_name">Исеме</string>
+    <string name="lib_info_desc">Тасуирламаһы</string>
+    <string name="lib_info_count">Һүҙҙәр һаны</string>
+    <string name="lib_info_category">Категорияһы</string>
+
+    <string name="word_add_success">Һүҙ өҫтәлде!</string>
+    <string name="word_add_error_toast">Һүҙ өҫтәү хатаһы</string>
+</resources>

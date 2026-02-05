@@ -15,7 +15,6 @@
         android:padding="10dp"
         android:background="@drawable/a">
 
-        <!-- Первая строка: название и переключатель -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -27,7 +26,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Название библиотеки"
+                android:text="@string/item_lib_tv_name_placeholder"
                 android:textColor="#D9D8FF"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -44,17 +43,15 @@
 
         </LinearLayout>
 
-        <!-- Описание -->
         <TextView
             android:id="@+id/libraryDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Описание библиотеки"
+            android:text="@string/item_lib_tv_desc_placeholder"
             android:textColor="#D9D8FF"
             android:textSize="14sp"
             android:layout_marginTop="8dp" />
 
-        <!-- Вторая строка: детали и кнопки -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -62,31 +59,28 @@
             android:gravity="center_vertical"
             android:layout_marginTop="12dp">
 
-            <!-- Контейнер для тегов -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="horizontal">
 
-                <!-- Количество слов -->
                 <TextView
                     android:id="@+id/libraryWordCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="500 слов"
+                    android:text="@string/item_lib_tv_word_count_placeholder"
                     android:textColor="#625fba"
                     android:textSize="12sp"
                     android:background="@drawable/tag_bg"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp" />
 
-                <!-- Категория -->
                 <TextView
                     android:id="@+id/libraryCategory"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Базовый"
+                    android:text="@string/item_lib_tv_category_placeholder"
                     android:textColor="#625fba"
                     android:textSize="12sp"
                     android:background="@drawable/tag_bg"
@@ -96,24 +90,21 @@
 
             </LinearLayout>
 
-            <!-- Контейнер для кнопок -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <!-- Кнопка информации -->
                 <ImageButton
                     android:id="@+id/infoButton"
                     android:layout_width="48dp"
                     android:layout_height="40dp"
-                    app:tint="@color/white"                    android:src="@drawable/ic_info"
+                    app:tint="@color/white"
+                    android:src="@drawable/ic_info"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Информация"
+                    android:contentDescription="@string/item_lib_desc_info"
                     android:layout_marginEnd="8dp" />
 
-
-                <!-- Кнопка управления (только для пользовательских библиотек) -->
                 <ImageButton
                     android:id="@+id/manageButton"
                     android:layout_width="48dp"
@@ -121,13 +112,10 @@
                     android:src="@drawable/ic_edit"
                     app:tint="@color/white"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Управление"
+                    android:contentDescription="@string/item_lib_desc_manage"
                     android:visibility="gone" />
 
             </LinearLayout>
-
         </LinearLayout>
-
     </LinearLayout>
-
 </androidx.cardview.widget.CardView>

@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:background="#211B20">
 
-    <!-- Шапка с поиском -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,7 +21,7 @@
             android:src="@drawable/ic_back"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="#FFFFFF"
-            android:contentDescription="Назад" />
+            android:contentDescription="@string/word_search_desc_back" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -30,7 +29,6 @@
             android:layout_weight="1"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="8dp"
-
             android:gravity="center_vertical"
             android:paddingStart="16dp"
             android:paddingEnd="8dp">
@@ -40,7 +38,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:hint="Поиск по словам..."
+                android:hint="@string/word_search_et_hint"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#B0B0B0"
                 android:background="@android:color/transparent"
@@ -57,13 +55,12 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 app:tint="#B0B0B0"
                 android:visibility="gone"
-                android:contentDescription="Очистить" />
+                android:contentDescription="@string/word_search_desc_clear" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Прогресс бар -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
@@ -72,21 +69,19 @@
         android:layout_marginTop="32dp"
         android:visibility="gone" />
 
-    <!-- Состояние пустого списка -->
     <TextView
         android:id="@+id/emptyStateText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:padding="32dp"
-        android:text="У вас пока нет слов для изучения"
+        android:text="@string/word_search_tv_empty"
         android:textColor="#B0B0B0"
         android:textSize="16sp"
         android:gravity="center"
         android:visibility="gone"
         android:fontFamily="@font/jura_font_wght" />
 
-    <!-- Список слов -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/wordsRecyclerView"
         android:layout_width="match_parent"

@@ -49,7 +49,6 @@ public class AddWordDialog extends DialogFragment {
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.dialog_add_word, null);
 
-        // Получаем аргументы
         if (getArguments() != null) {
             libraryId = getArguments().getString("libraryId");
             libraryName = getArguments().getString("libraryName");
@@ -57,7 +56,9 @@ public class AddWordDialog extends DialogFragment {
 
         initViews(view);
 
-        String title = "Добавить слово в: " + libraryName;
+        // Используем форматную строку: "Добавить слово в: %1$s"
+        String title = getString(R.string.word_add_dialog_title, libraryName);
+
         builder.setView(view)
                 .setTitle(title);
 
@@ -81,17 +82,20 @@ public class AddWordDialog extends DialogFragment {
         String note = noteEditText.getText().toString().trim();
 
         if (word.isEmpty()) {
-            Toast.makeText(getContext(), "Введите слово", Toast.LENGTH_SHORT).show();
+            // Заменили на ресурс
+            Toast.makeText(getContext(), R.string.word_add_error_empty_word, Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (translation.isEmpty()) {
-            Toast.makeText(getContext(), "Введите перевод", Toast.LENGTH_SHORT).show();
+            // Заменили на ресурс
+            Toast.makeText(getContext(), R.string.word_add_error_empty_translation, Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (note.isEmpty()) {
-            note = "Пользовательское слово";
+            // Заменили на ресурс
+            note = getString(R.string.word_add_default_note);
         }
 
         if (listener != null) {

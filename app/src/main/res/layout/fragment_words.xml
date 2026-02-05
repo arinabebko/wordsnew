@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#211B20">
 
-    <!-- ProgressBar для индикации загрузки -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
@@ -16,7 +15,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Текст прогресса -->
     <TextView
         android:id="@+id/progressText"
         android:layout_width="wrap_content"
@@ -29,7 +27,6 @@
         android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp" />
 
-    <!-- ViewPager2 для карточек слов -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager2"
         android:layout_width="0dp"
@@ -42,7 +39,6 @@
         android:layout_marginTop="50dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- Layout для кнопок управления - ПОДНЯТ ВЫШЕ -->
     <LinearLayout
         android:id="@+id/buttonLayout"
         android:layout_width="0dp"
@@ -53,31 +49,28 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/backButton"
         android:layout_marginBottom="30dp"
-    android:paddingHorizontal="40dp">
+        android:paddingHorizontal="40dp">
 
-        <!-- Кнопка "Повторить" (розовый градиент с крестиком) -->
         <ImageButton
             android:id="@+id/reviewButton"
             android:layout_width="90dp"
             android:layout_height="90dp"
             android:src="@drawable/ic_outline_arrow_top_left"
-        android:background="@drawable/button_pink_gradient"
-        android:contentDescription="Повторить позже"
-        android:layout_marginEnd="40dp" />
+            android:background="@drawable/button_pink_gradient"
+            android:contentDescription="@string/learning_process_desc_review"
+            android:layout_marginEnd="40dp" />
 
-        <!-- Кнопка "Выучено" (синий градиент с галочкой) -->
         <ImageButton
             android:id="@+id/learnedButton"
             android:layout_width="90dp"
             android:layout_height="90dp"
             android:src="@drawable/ic_check"
-        android:background="@drawable/button_blue_gradient"
-        android:contentDescription="Выучено"
-        android:layout_marginStart="40dp" />
+            android:background="@drawable/button_blue_gradient"
+            android:contentDescription="@string/learning_process_desc_learned"
+            android:layout_marginStart="40dp" />
 
     </LinearLayout>
 
-    <!-- Кнопка назад -->
     <ImageButton
         android:id="@+id/backButton"
         android:layout_width="60dp"
@@ -85,7 +78,7 @@
         android:src="@drawable/ic_back"
         android:background="?attr/selectableItemBackgroundBorderless"
         app:tint="#e7b5a9"
-        android:contentDescription="Назад"
+        android:contentDescription="@string/learning_process_desc_back"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginStart="16dp"

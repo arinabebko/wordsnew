@@ -7,18 +7,16 @@
     android:background="#211B20"
     android:padding="24dp">
 
-    <!-- Заголовок -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Настройки профиля"
+        android:text="@string/profile_settings_tv_title"
         android:textSize="28sp"
         android:textColor="#8CA0FF"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginBottom="32dp"
         android:layout_gravity="center" />
 
-    <!-- Карточка с настройками -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -30,11 +28,10 @@
         android:backgroundTintMode="src_in"
         android:backgroundTint="#4A445C">
 
-        <!-- Текущее имя пользователя -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Текущее имя:"
+            android:text="@string/profile_settings_tv_current_name_label"
             android:textColor="#A2B2FF"
             android:textSize="16sp"
             android:fontFamily="@font/jura_font_wght"
@@ -44,25 +41,23 @@
             android:id="@+id/currentUsernameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Имя пользователя"
+            android:text="@string/profile_settings_tv_username_placeholder"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             android:fontFamily="@font/jura_font_wght"
             android:textStyle="bold"
             android:layout_marginBottom="24dp" />
 
-        <!-- Разделитель -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#554A445C"
             android:layout_marginBottom="24dp" />
 
-        <!-- Поле для изменения имени -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Новое имя:"
+            android:text="@string/profile_settings_tv_new_name_label"
             android:textColor="#A2B2FF"
             android:textSize="16sp"
             android:fontFamily="@font/jura_font_wght"
@@ -72,7 +67,7 @@
             android:id="@+id/newUsernameEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Введите новое имя"
+            android:hint="@string/profile_settings_et_new_name_hint"
             android:textColor="#FFFFFF"
             android:textColorHint="#A2B2FF"
             android:textSize="16sp"
@@ -83,44 +78,38 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Имя может содержать буквы, цифры и нижнее подчеркивание"
+            android:text="@string/profile_settings_tv_name_rules"
             android:textColor="#A2B2FF"
             android:textSize="12sp"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="24dp" />
 
-        <!-- Кнопка сохранения -->
         <Button
             android:id="@+id/saveUsernameButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Сохранить имя"
+            android:text="@string/profile_settings_btn_save"
             android:textColor="#FFFFFF"
             android:backgroundTint="#5539D0"
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="32dp" />
 
-        <!-- Разделитель -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#554A445C"
             android:layout_marginBottom="24dp" />
 
-        <!-- Другие настройки (можно добавить позже) -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Другие настройки"
+            android:text="@string/profile_settings_tv_others_title"
             android:textColor="#A2B2FF"
             android:textSize="18sp"
             android:fontFamily="@font/jura_font_wght"
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
 
-        <!-- Уведомления (чекбокс) -->
-
-        <!-- Язык интерфейса -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -132,7 +121,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Язык интерфейса"
+                android:text="@string/profile_settings_tv_ui_lang_label"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:fontFamily="@font/jura_font_wght" />
@@ -141,7 +130,7 @@
                 android:id="@+id/languageTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Русский"
+                android:text="@string/profile_settings_tv_ui_lang_current"
                 android:textColor="#A2B2FF"
                 android:textSize="16sp"
                 android:fontFamily="@font/jura_font_wght"
@@ -152,7 +141,6 @@
 
         </LinearLayout>
 
-        <!-- Тема -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -163,7 +151,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Тема"
+                android:text="@string/profile_settings_tv_theme_label"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:fontFamily="@font/jura_font_wght" />
@@ -172,7 +160,7 @@
                 android:id="@+id/themeTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Темная"
+                android:text="@string/profile_settings_tv_theme_current"
                 android:textColor="#A2B2FF"
                 android:textSize="16sp"
                 android:fontFamily="@font/jura_font_wght"
@@ -185,12 +173,11 @@
 
     </LinearLayout>
 
-    <!-- Кнопка назад -->
     <Button
         android:id="@+id/backButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Назад"
+        android:text="@string/common_back_upper"
         android:textColor="#8CA0FF"
         android:backgroundTint="@android:color/transparent"
         android:layout_gravity="center"
