@@ -75,47 +75,42 @@ public class Fragment1 extends Fragment {
         if (getActivity() == null) return;
 
         getActivity().runOnUiThread(() -> {
-            // Обновляем дни подряд
-            String daysText = stats.getStreakDays() + " дней подряд";
-            daysTextView.setText(daysText);
+            // Используем getString с форматированием для дней
+            daysTextView.setText(getString(R.string.stats_streak_days, stats.getStreakDays()));
 
-            // Слова в процессе
-            String inProgressText = " " + stats.getWordsInProgress();
-            wordsInProgressTextView.setText(inProgressText);
+            // Числа оставляем просто числами, но текст берем из ресурсов
+            wordsInProgressTextView.setText(" " + stats.getWordsInProgress());
+            wordsLearnedTextView.setText(" " + stats.getWordsLearned());
 
-            // Выучено слов
-            String learnedText = " " + stats.getWordsLearned();
-            wordsLearnedTextView.setText(learnedText);
-
-            // Мотивационное сообщение
             updateMotivationalMessage(stats);
         });
     }
 
-    private void updateMotivationalMessage(UserStats stats) {
-        String message;
-        if (stats.getStreakDays() >= 7) {
-            message = "great\nwork!";
-        } else if (stats.getTodayProgress() >= 10) {
-            message = "good\njob!";
-        } else if (stats.getWordsLearned() > 0) {
-            message = "keep\ngoing!";
-        } else {
-            message = "let's\nstart!";
-        }
-        goodJobTextView.setText(message);
-    }
-
     private void showDefaultStats() {
         if (getActivity() == null) return;
-
         getActivity().runOnUiThread(() -> {
-            daysTextView.setText("0 дней подряд");
-            wordsInProgressTextView.setText("слов в процессе: 0");
-            wordsLearnedTextView.setText("выучено слов: 0");
+            daysTextView.setText(getString(R.string.stats_streak_days, 0));
+            wordsInProgressTextView.setText(" 0");
+            wordsLearnedTextView.setText(" 0");
             goodJobTextView.setText("let's\nstart!");
         });
     }
+
+    private void updateMotivationalMessage(UserStats stats) {
+        int messageResId;
+        if (stats.getStreakDays() >= 7) {
+            messageResId = R.string.msg_great_work;
+        } else if (stats.getTodayProgress() >= 10) {
+            messageResId = R.string.msg_good_job;
+        } else if (stats.getWordsLearned() > 0) {
+            messageResId = R.string.msg_keep_going;
+        } else {
+            messageResId = R.string.msg_lets_start;
+        }
+        goodJobTextView.setText(messageResId);
+    }
+
+
 
     private void setupStartButton(View view) {
         Button startButton = view.findViewById(R.id.startButton);
@@ -136,7 +131,7 @@ public class Fragment1 extends Fragment {
             progressBar.setVisibility(View.VISIBLE);
 
             // Показываем сообщение
-            Toast.makeText(getContext(), "Начинаем обучение...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.stats_loading_study, Toast.LENGTH_SHORT).show();
 
             // Запускаем с задержкой
             startButton.postDelayed(() -> {
@@ -185,8 +180,8 @@ public class Fragment1 extends Fragment {
                 Log.d("Fragment1", "Для языка " + currentLanguage + " найдено слов: " + words.size());
 
                 if (words.isEmpty()) {
-                    Toast.makeText(getContext(), "Нет слов для изучения. Добавьте слова в библиотеках.", Toast.LENGTH_LONG).show();
-                } else {
+                    Toast.makeText(getContext(), R.string.stats_no_words, Toast.LENGTH_LONG).show();
+                      } else {
                     // Создаем фрагмент с указанием языка
                     WordsFragment startFragment = WordsFragment.newInstance(currentLanguage);
 
@@ -201,7 +196,7 @@ public class Fragment1 extends Fragment {
             @Override
             public void onError(Exception e) {
                 Log.e("Fragment1", "Ошибка загрузки слов для языка " + currentLanguage, e);
-                Toast.makeText(getContext(), "Ошибка загрузки слов", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
 
 
             }
@@ -257,12 +252,13 @@ public class Fragment1 extends Fragment {
                 wordRepository.addWordToCustomLibrary(libraryId, newWord, new WordRepository.OnWordAddedListener() {
                     @Override
                     public void onWordAdded(WordItem addedWord) {
-                        Toast.makeText(getContext(), "Слово добавлено в библиотеку!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), R.string.stats_word_added, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        Toast.makeText(getContext(), "Ошибка добавления слова: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        String errorMsg = getString(R.string.word_add_error_toast) + ": " + e.getMessage();
+                        Toast.makeText(getContext(), errorMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }

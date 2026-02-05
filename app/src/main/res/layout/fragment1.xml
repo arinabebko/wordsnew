@@ -8,7 +8,6 @@
     android:background="#211B20"
     android:padding="24dp">
 
-    <!-- Главный контент занимает всю доступную высоту, кроме нижней панели -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -16,7 +15,6 @@
         android:orientation="vertical"
         android:gravity="center">
 
-        <!-- Прогресс бар загрузки -->
         <ProgressBar
             android:id="@+id/loadingProgressBarr"
             android:layout_width="wrap_content"
@@ -24,7 +22,6 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <!-- Контейнер для статистики -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -32,29 +29,25 @@
             android:gravity="center"
             android:layout_marginBottom="70dp">
 
-            <!-- Дни подряд -->
             <TextView
                 android:id="@+id/daysTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="5 дней подряд"
+                android:text="@string/stats_streak_days"
                 android:textSize="32sp"
                 android:textColor="#fcb6b0"
                 android:fontFamily="@font/jura_font_wght"
                 android:textStyle="bold"
                 android:layout_marginBottom="24dp" />
 
-            <!-- Контейнер для двух строк статистики -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-
                 android:paddingVertical="16dp"
                 android:paddingHorizontal="24dp">
 
-                <!-- Слова в процессе -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -65,7 +58,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="слов в процессе:"
+                        android:text="@string/stats_in_progress"
                         android:textSize="16sp"
                         android:textColor="#A2B2FF"
                         android:fontFamily="@font/jura_font_wght" />
@@ -74,7 +67,7 @@
                         android:id="@+id/wordsInProgressTextView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text=" 15"
+                        android:text=" 0"
                         android:textSize="16sp"
                         android:textColor="#fcb6b0"
                         android:fontFamily="@font/jura_font_wght"
@@ -82,7 +75,6 @@
 
                 </LinearLayout>
 
-                <!-- Выучено слов -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -92,7 +84,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="выучено слов:"
+                        android:text="@string/stats_learned"
                         android:textSize="16sp"
                         android:textColor="#A2B2FF"
                         android:fontFamily="@font/jura_font_wght" />
@@ -101,7 +93,7 @@
                         android:id="@+id/wordsLearnedTextView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text=" 43"
+                        android:text=" 0"
                         android:textSize="16sp"
                         android:textColor="#fcb6b0"
                         android:fontFamily="@font/jura_font_wght"
@@ -113,12 +105,11 @@
 
         </LinearLayout>
 
-        <!-- Мотивационное сообщение -->
         <TextView
             android:id="@+id/goodJobTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="good\njob!"
+            android:text="let's\nstart!"
             android:textSize="36sp"
             android:textColor="#fcb6b0"
             android:fontFamily="@font/jura_font_wght"
@@ -126,19 +117,11 @@
             android:textStyle="bold"
             android:layout_marginBottom="48dp" />
 
-        <!-- Кнопка Start -->
-
-
-
-
-
-        <!-- Вместо кнопки используйте FrameLayout -->
         <FrameLayout
             android:layout_width="200dp"
             android:layout_height="60dp"
             android:layout_gravity="center">
 
-            <!-- Кнопка -->
             <Button
                 android:id="@+id/startButton"
                 android:layout_width="match_parent"
@@ -151,7 +134,6 @@
                 android:fontFamily="@font/jura_font_wght"
                 android:textStyle="bold" />
 
-            <!-- ProgressBar поверх кнопки -->
             <ProgressBar
                 android:id="@+id/loadingProgressBar"
                 android:layout_width="32dp"
@@ -161,22 +143,16 @@
                 android:indeterminateTint="#8CA0FF" />
 
         </FrameLayout>
- </LinearLayout>
+    </LinearLayout>
 
-
-
-
- <!-- Нижняя панель с кнопками как на скриншоте -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
         android:padding="16dp"
-        android:background="#302631"
-      >
+        android:background="#302631">
 
-        <!-- Кнопка поиска -->
         <LinearLayout
             android:id="@+id/searchButtonLayout"
             android:layout_width="0dp"
@@ -201,14 +177,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Поиск"
+                android:text="@string/stats_btn_search"
                 android:textSize="16sp"
                 android:textColor="#A2B2FF"
                 android:fontFamily="@font/jura_font_wght" />
 
         </LinearLayout>
 
-        <!-- Кнопка добавления -->
         <LinearLayout
             android:id="@+id/addButtonLayout"
             android:layout_width="0dp"
@@ -233,15 +208,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Добавить"
+                android:text="@string/stats_btn_add"
                 android:textSize="16sp"
                 android:textColor="#A2B2FF"
                 android:fontFamily="@font/jura_font_wght" />
 
         </LinearLayout>
-
     </LinearLayout>
-
-        <!-- Нижняя панель только с кнопками -->
-
 </LinearLayout>

@@ -20,16 +20,15 @@
 
 
 
-    <string name="settings_label_language">choose language</string>
-    <string name="common_cancel">Отмена</string>
+    <string name="settings_label_language">Choose language</string>
+    <string name="common_cancel">Cancel</string>
 
-    <string name="settings_toast_language_changed">Язык изменен</string>
-    <string name="settings_hint_current">Текущее: %1$s</string>
-    <string name="settings_status_not_set">Не установлено</string>
-    <string name="settings_status_guest">Гость</string>
-    <string name="settings_save_loading">Сохранение...</string>
-    <string name="settings_save_success">Имя успешно изменено!</string>
-
+    <string name="settings_toast_language_changed">Language changed</string>
+    <string name="settings_hint_current">Current: %1$s</string>
+    <string name="settings_status_not_set">Not set</string>
+    <string name="settings_status_guest">Guest</string>
+    <string name="settings_save_loading">Saving...</string>
+    <string name="settings_save_success">Name changed successfully!</string>
 
 
 
@@ -198,4 +197,26 @@
     <string name="lib_info_category">Category</string>
     <string name="word_add_success">Word added!</string>
     <string name="word_add_error_toast">Error adding word</string>
+
+
+
+
+
+    <string name="msg_great_work">great\nwork!</string>
+    <string name="msg_good_job">good\njob!</string>
+    <string name="msg_keep_going">keep\ngoing!</string>
+    <string name="msg_lets_start">let\'s\nstart!</string>
+
+    <string name="stats_streak_days">%1$d days in a row</string>
+    <string name="stats_in_progress">words in progress:</string>
+    <string name="stats_learned">words learned:</string>
+
+    <string name="stats_loading_study">Starting the session…</string>
+    <string name="stats_no_words">No words to learn. Please add words to your libraries.</string>
+    <string name="stats_error_load">Error loading statistics</string>
+    <string name="stats_word_added">Word added!</string>
+
+    <string name="stats_btn_search">Search</string>
+    <string name="stats_btn_add">Add</string>
+
 </resources>

@@ -178,4 +178,23 @@
 
     <string name="word_add_success">Һүҙ өҫтәлде!</string>
     <string name="word_add_error_toast">Һүҙ өҫтәү хатаһы</string>
+
+
+
+
+
+    <string name="msg_great_work">бик яҡшы!</string>
+    <string name="msg_good_job">афарин!</string>
+    <string name="msg_keep_going">дауам ит!</string>
+    <string name="msg_lets_start">башланыҡ!</string>
+
+    <string name="stats_streak_days">%1$d көн рәттән</string>
+    <string name="stats_in_progress">өйрәнеү процессында:</string>
+    <string name="stats_learned">үҙләштерелгән һүҙҙәр:</string>
+    <string name="stats_loading_study">Өйрәнә башлайбыҙ…</string>
+    <string name="stats_no_words">Өйрәнер өсөн һүҙҙәр юҡ. Китапханаға һүҙҙәр өҫтәгеҙ.</string>
+    <string name="stats_error_load">Статистиканы йөкләп булманы</string>
+    <string name="stats_btn_search">Эҙләү</string>
+    <string name="stats_btn_add">Өҫтәү</string>
+    <string name="stats_word_added">Һүҙ өҫтәлде!</string>
 </resources>

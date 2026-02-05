@@ -202,4 +202,25 @@
 
     <string name="word_add_success">Слово добавлено!</string>
     <string name="word_add_error_toast">Ошибка добавления слова</string>
+
+
+
+
+
+
+
+    <string name="msg_great_work">отличная\nработа!</string>
+    <string name="msg_good_job">молодец!</string>
+    <string name="msg_keep_going">так\nдержать!</string>
+    <string name="msg_lets_start">давай\nначнем!</string>
+
+    <string name="stats_streak_days">%1$d дней подряд</string>
+    <string name="stats_in_progress">слов в процессе:</string>
+    <string name="stats_learned">выучено слов:</string>
+    <string name="stats_loading_study">Начинаем обучение…</string>
+    <string name="stats_no_words">Нет слов для изучения. Добавьте слова в библиотеках.</string>
+    <string name="stats_error_load">Ошибка загрузки статистики</string>
+    <string name="stats_btn_search">Поиск</string>
+    <string name="stats_btn_add">Добавить</string>
+    <string name="stats_word_added">Слово добавлено!</string>
 </resources>
