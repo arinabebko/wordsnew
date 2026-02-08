@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,7 +30,7 @@ public class AddWordWithLibraryDialog extends DialogFragment {
     private Button cancelButton;
     private TextView noLibrariesText;
     private Button goToLibrariesButton;
-
+    private ProgressBar libLoadingProgress;
     private OnWordAddedListener listener;
     private WordRepository wordRepository;
     private List<WordLibrary> userLibraries = new ArrayList<>();
@@ -49,23 +50,32 @@ public class AddWordWithLibraryDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        // 1. Создаем билдер
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-
         LayoutInflater inflater = requireActivity().getLayoutInflater();
 
-        // ВАЖНО: используем правильный layout файл
+        // 2. Инфлейтим макет
         View view = inflater.inflate(R.layout.dialog_add_word_with_library, null);
-        view.setBackgroundColor(0xFF211B20); // HEX в формате ARGB
-        // Инициализируем репозиторий
-        wordRepository = new WordRepository(getContext());
 
+        // Устанавливаем фон программно или он уже есть в XML (лучше в XML)
+        view.setBackgroundColor(0xFF211B20);
+
+        wordRepository = new WordRepository(getContext());
         initViews(view);
         loadUserLibraries();
 
-        builder.setView(view)
-                .setTitle("Добавить новое слово");
+        // 3. УСТАНАВЛИВАЕМ ТОЛЬКО VIEW (БЕЗ TITLE!)
+        builder.setView(view);
 
-        return builder.create();
+        Dialog dialog = builder.create();
+
+        // 4. ГЛАВНОЕ: делаем системный фон прозрачным
+        // Без этого вокруг твоего темного диалога будут белые углы
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        return dialog;
     }
 
     private void initViews(View view) {
@@ -78,9 +88,9 @@ public class AddWordWithLibraryDialog extends DialogFragment {
         cancelButton = view.findViewById(R.id.cancelButton);
         noLibrariesText = view.findViewById(R.id.noLibrariesText);
         goToLibrariesButton = view.findViewById(R.id.goToLibrariesButton);
-
+        libLoadingProgress = view.findViewById(R.id.libLoadingProgress); // Теперь он под рукой
         // Сначала скрываем спиннер и показываем сообщение
-        librarySpinner.setVisibility(View.GONE);
+        librarySpinner.setVisibility(View.INVISIBLE);
         noLibrariesText.setVisibility(View.GONE);
         goToLibrariesButton.setVisibility(View.GONE);
 
@@ -101,21 +111,16 @@ public class AddWordWithLibraryDialog extends DialogFragment {
 
     private void loadUserLibraries() {
         showLoadingState();
-
         wordRepository.getCustomLibraries(new WordRepository.OnLibrariesLoadedListener() {
             @Override
             public void onLibrariesLoaded(List<WordLibrary> libraries) {
                 if (getActivity() == null) return;
-
                 getActivity().runOnUiThread(() -> {
                     userLibraries.clear();
                     userLibraries.addAll(libraries);
-
                     if (userLibraries.isEmpty()) {
-                        // Нет библиотек - показываем сообщение и кнопку
                         showNoLibrariesState();
                     } else {
-                        // Есть библиотеки - показываем спиннер
                         showLibrariesSpinner();
                     }
                 });
@@ -124,9 +129,9 @@ public class AddWordWithLibraryDialog extends DialogFragment {
             @Override
             public void onError(Exception e) {
                 if (getActivity() == null) return;
-
                 getActivity().runOnUiThread(() -> {
-                    Toast.makeText(getContext(), "Ошибка загрузки библиотек", Toast.LENGTH_SHORT).show();
+                    // ЗАМЕНА: Сообщение об ошибке
+                    Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
                     showNoLibrariesState();
                 });
             }
@@ -134,17 +139,20 @@ public class AddWordWithLibraryDialog extends DialogFragment {
     }
 
     private void showLoadingState() {
-        librarySpinner.setVisibility(View.GONE);
+        librarySpinner.setVisibility(View.INVISIBLE);
+
+        if (libLoadingProgress != null) {
+            libLoadingProgress.setVisibility(View.VISIBLE);
+        }
+
         noLibrariesText.setVisibility(View.GONE);
         goToLibrariesButton.setVisibility(View.GONE);
-
-        // Временно деактивируем кнопку добавления
         addButton.setEnabled(false);
         addButton.setAlpha(0.5f);
     }
 
     private void showNoLibrariesState() {
-        librarySpinner.setVisibility(View.GONE);
+        librarySpinner.setVisibility(View.INVISIBLE);
         noLibrariesText.setVisibility(View.VISIBLE);
         goToLibrariesButton.setVisibility(View.VISIBLE);
 
@@ -154,18 +162,23 @@ public class AddWordWithLibraryDialog extends DialogFragment {
     }
 
     private void showLibrariesSpinner() {
+
+        if (libLoadingProgress != null) {
+            libLoadingProgress.setVisibility(View.GONE);
+        }
+
+        librarySpinner.setVisibility(View.VISIBLE);
         noLibrariesText.setVisibility(View.GONE);
         goToLibrariesButton.setVisibility(View.GONE);
-        librarySpinner.setVisibility(View.VISIBLE);
-
-        // Активируем кнопку добавления
         addButton.setEnabled(true);
         addButton.setAlpha(1.0f);
 
-        // Создаем адаптер для спиннера
         List<String> libraryNames = new ArrayList<>();
         for (WordLibrary library : userLibraries) {
-            libraryNames.add(library.getName() + " (" + library.getWordCount() + " слов)");
+            // ЗАМЕНА: Форматированная строка для Spinner (например, "Имя (5 слов)")
+            String nameWithCount = getString(R.string.lib_spinner_format,
+                    library.getName(), library.getWordCount());
+            libraryNames.add(nameWithCount);
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
@@ -182,35 +195,32 @@ public class AddWordWithLibraryDialog extends DialogFragment {
         String translation = translationEditText.getText().toString().trim();
         String note = noteEditText.getText().toString().trim();
 
+        // ЗАМЕНА: Валидация полей
         if (word.isEmpty()) {
-            Toast.makeText(getContext(), "Введите слово", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.error_empty_word, Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (translation.isEmpty()) {
-            Toast.makeText(getContext(), "Введите перевод", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.error_empty_translation, Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (userLibraries.isEmpty()) {
-            Toast.makeText(getContext(), "Сначала создайте библиотеку", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.error_no_libs, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Получаем выбранную библиотеку
         int selectedPosition = librarySpinner.getSelectedItemPosition();
         if (selectedPosition >= 0 && selectedPosition < userLibraries.size()) {
             WordLibrary selectedLibrary = userLibraries.get(selectedPosition);
-            String selectedLibraryId = selectedLibrary.getLibraryId();
-
             if (listener != null) {
-                listener.onWordAdded(word, translation, note, selectedLibraryId);
+                listener.onWordAdded(word, translation, note, selectedLibrary.getLibraryId());
             }
         } else {
-            Toast.makeText(getContext(), "Выберите библиотеку", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.error_select_lib, Toast.LENGTH_SHORT).show();
             return;
         }
-
         dismiss();
     }
 }

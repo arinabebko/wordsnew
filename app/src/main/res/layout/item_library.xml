@@ -95,22 +95,14 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <ImageButton
-                    android:id="@+id/infoButton"
-                    android:layout_width="48dp"
-                    android:layout_height="40dp"
-                    app:tint="@color/white"
-                    android:src="@drawable/ic_info"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/item_lib_desc_info"
-                    android:layout_marginEnd="8dp" />
+
 
                 <ImageButton
                     android:id="@+id/manageButton"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:src="@drawable/ic_edit"
-                    app:tint="@color/white"
+                    android:src="@drawable/ic_font_settings"
+                    app:tint="#FA9085"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/item_lib_desc_manage"
                     android:visibility="gone" />

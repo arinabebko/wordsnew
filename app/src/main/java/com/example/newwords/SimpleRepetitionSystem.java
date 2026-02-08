@@ -127,26 +127,27 @@ public class SimpleRepetitionSystem {
     /**
      * Получает текст для отображения следующего повторения
      */
-    public static String getNextReviewText(WordItem word) {
+    public static String getNextReviewText(android.content.Context context, WordItem word) {
         if (word.getReviewStage() == 0 && word.getConsecutiveShows() < 3) {
             int remainingShows = 3 - word.getConsecutiveShows();
-            return "Повторить: еще " + remainingShows + " раз";
+            // Используем getString с параметром
+            return context.getString(R.string.review_remaining_times, remainingShows);
         }
 
-        if (word.getNextReviewDate() == null) return "Сейчас";
+        if (word.getNextReviewDate() == null) return context.getString(R.string.review_now);
 
         if (word.getReviewStage() >= MAX_STAGE) {
-            return "Выучено!";
+            return context.getString(R.string.word_status_learned);
         }
 
         long diff = word.getNextReviewDate().getTime() - new Date().getTime();
         long days = diff / (1000 * 60 * 60 * 24);
 
-        if (days <= 0) return "Сейчас";
-        if (days == 1) return "Повторить: через 1 день";
-        return "Повторить: через " + days + " дней";
-    }
+        if (days <= 0) return context.getString(R.string.review_now);
 
+        // Для дней используем getQuantityString (плюрализация)
+        return context.getResources().getQuantityString(R.plurals.review_in_days, (int) days, (int) days);
+    }
     /**
      * Проверяет, является ли слово новым
      */

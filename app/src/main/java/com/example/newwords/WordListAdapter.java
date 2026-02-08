@@ -226,12 +226,17 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
         }
 
         private void updateFavoriteIcon(boolean isFavorite) {
+            // Убираем любой фон, который мог остаться (особенно желтый)
+            favoriteButton.setBackgroundResource(android.R.color.transparent);
+
             if (isFavorite) {
-                favoriteButton.setBackgroundColor(0x30FFD700); // Желтый фон
-                favoriteButton.setColorFilter(0xFFFFD700); // Желтая иконка
+                // Ставим закрашенную иконку и красим в красный/желтый
+                favoriteButton.setImageResource(R.drawable.ic_full_heart_icon);
+                favoriteButton.setColorFilter(0xFFCE5D5D); // Твой красный цвет
             } else {
-                favoriteButton.setBackgroundColor(0x00000000); // Прозрачный фон
-                favoriteButton.setColorFilter(0xFF888888); // Сервая иконка
+                // Ставим пустую иконку и красим в серый/белый
+                favoriteButton.setImageResource(R.drawable.ic_empty_heart_icon);
+                favoriteButton.setColorFilter(0xFF888888); // Серый цвет для неактивного состояния
             }
         }
     }

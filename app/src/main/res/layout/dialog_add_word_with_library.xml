@@ -6,6 +6,18 @@
     android:background="#211B20"
     android:padding="16dp">
 
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/dialog_add_word_title"
+        android:textColor="#fcb6b0"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="24dp" />
+
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -61,13 +73,26 @@
         android:textColor="#A2B2FF"
         android:textSize="16sp"
         android:layout_marginBottom="4dp" />
-
-    <Spinner
-        android:id="@+id/librarySpinner"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:visibility="gone" />
+        android:layout_height="55dp"
+        android:layout_marginBottom="16dp">
+
+        <ProgressBar
+            android:id="@+id/libLoadingProgress"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="#A2B2FF"
+            android:visibility="gone" />
+
+        <Spinner
+            android:id="@+id/librarySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:visibility="invisible" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/noLibrariesText"

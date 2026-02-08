@@ -21,12 +21,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#3C374A"
+        android:background="#211B20"
         android:padding="24dp"
         android:elevation="4dp"
         android:clipToOutline="true"
         android:backgroundTintMode="src_in"
-        android:backgroundTint="#4A445C">
+        android:backgroundTint="#302631">
 
         <TextView
             android:layout_width="wrap_content"
@@ -154,7 +154,8 @@
                 android:text="@string/profile_settings_tv_theme_label"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
-                android:fontFamily="@font/jura_font_wght" />
+                android:fontFamily="@font/jura_font_wght"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/themeTextView"
@@ -166,8 +167,9 @@
                 android:fontFamily="@font/jura_font_wght"
                 android:padding="8dp"
                 android:background="#5539D0"
-                android:clickable="true"
-                android:focusable="true" />
+                android:clickable="false"
+                android:focusable="false"
+                android:visibility="gone" />
 
         </LinearLayout>
 

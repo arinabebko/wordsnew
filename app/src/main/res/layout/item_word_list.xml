@@ -57,14 +57,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
         <ImageButton
             android:id="@+id/favoriteButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_star"
+            android:src="@drawable/ic_empty_heart_icon"
+            android:scaleType="fitCenter"
+            android:padding="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="#FFFFFF"
             android:contentDescription="@string/item_word_desc_favorite"
             android:layout_marginEnd="8dp" />
 

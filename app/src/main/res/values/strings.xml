@@ -223,4 +223,39 @@
     <string name="stats_btn_search">Поиск</string>
     <string name="stats_btn_add">Добавить</string>
     <string name="stats_word_added">Слово добавлено!</string>
+
+
+
+    <string name="review_remaining_times">Повторить: еще %1$d раз</string>
+    <string name="review_now">Сейчас</string>
+
+    <plurals name="review_in_days">
+        <item quantity="one">Повторить: через %1$d день</item>
+        <item quantity="few">Повторить: через %1$d дня</item>
+        <item quantity="other">Повторить: через %1$d дней</item>
+    </plurals>
+
+
+
+    <string name="word_status_new">НОВОЕ СЛОВО</string>
+    <string name="word_status_learning">ИЗУЧАЕТСЯ</string>
+    <string name="word_status_learned">ВЫУЧЕНО</string>
+    <string name="word_status_unknown">НЕИЗВЕСТНО</string>
+
+
+
+
+    <string name="dialog_add_word_title">Добавить новое слово</string>
+    <string name="lib_spinner_format">%1$s (%2$d слов)</string>
+    <string name="error_empty_word">Введите слово</string>
+    <string name="error_empty_translation">Введите перевод</string>
+    <string name="error_no_libs">Сначала создайте библиотеку</string>
+    <string name="error_select_lib">Выберите библиотеку</string>
+
+    <string name="hint_word">Слово</string>
+    <string name="hint_translation">Перевод</string>
+    <string name="hint_note">Заметка (необязательно)</string>
+    <string name="btn_add">Добавить</string>
+    <string name="no_libs_message">У вас пока нет библиотек</string>
+    <string name="btn_go_to_libs">Перейти к библиотекам</string>
 </resources>

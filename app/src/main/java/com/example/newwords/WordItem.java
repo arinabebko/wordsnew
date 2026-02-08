@@ -179,14 +179,19 @@ public class WordItem {
 
     /**
      * Получает текстовое описание статуса
-     */
+
     public String getStatusText() {
         if (difficulty == 3) return "НОВОЕ СЛОВО";
         if (difficulty == 2) return "ИЗУЧАЕТСЯ";
         if (difficulty == 1) return "ВЫУЧЕНО";
         return "НЕИЗВЕСТНО";
+    } */
+    public int getStatusText() {
+        if (difficulty == 3) return R.string.word_status_new;
+        if (difficulty == 2) return R.string.word_status_learning;
+        if (difficulty == 1) return R.string.word_status_learned;
+        return R.string.word_status_unknown;
     }
-
     public int getStatusColor() {
         if (difficulty == 3) return 0xFF625fba; // Фиолетовый
         if (difficulty == 2) return 0xFFbabba9; // Серый

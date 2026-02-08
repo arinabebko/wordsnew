@@ -182,20 +182,21 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
 
         private void updateRepetitionUI(WordItem word) {
             if (statusText != null) {
+                // ЗАМЕНА: Используем метод из WordItem, возвращающий ID ресурса
                 statusText.setText(word.getStatusText());
+
+                // Цвет можно оставить как был (программный) или брать из word
                 statusText.setBackgroundColor(getStatusColor(word));
             }
+
             if (nextReviewText != null) {
-                nextReviewText.setText(SimpleRepetitionSystem.getNextReviewText(word));
+                // ЗАМЕНА: Передаем Context (через itemView) и само слово
+                nextReviewText.setText(SimpleRepetitionSystem.getNextReviewText(itemView.getContext(), word));
             }
 
-
-            // Отладочная информация
+            // Отладочная информация (логи можно оставить для себя)
             Log.d("CardDebug", "Слово: " + word.getWord() +
-                    ", этап: " + word.getReviewStage() +
-                    ", показов: " + word.getConsecutiveShows() +
-                    ", сложность: " + word.getDifficulty() +
-                    ", след. дата: " + word.getNextReviewDate());
+                    ", этап: " + word.getReviewStage());
         }
 
         // ВРЕМЕННЫЕ МЕТОДЫ (пока нет полноценной системы):

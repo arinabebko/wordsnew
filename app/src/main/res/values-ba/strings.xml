@@ -197,4 +197,34 @@
     <string name="stats_btn_search">Эҙләү</string>
     <string name="stats_btn_add">Өҫтәү</string>
     <string name="stats_word_added">Һүҙ өҫтәлде!</string>
+
+
+    <string name="review_remaining_times">Тағы %1$d тапҡыр ҡабатларға</string>
+    <string name="review_now">Хәҙер</string>
+
+    <plurals name="review_in_days">
+        <item quantity="one">%1$d көндән ҡабатларға</item>
+        <item quantity="other">%1$d көндән ҡабатларға</item>
+    </plurals>
+
+    <string name="word_status_new">ЯҢЫҺҮҘ</string>
+    <string name="word_status_learning">ӨЙРӘНЕЛӘ</string>
+    <string name="word_status_learned">ҮҘЛӘШТЕРЕЛГӘН</string>
+    <string name="word_status_unknown">БИЛДӘҺЕҘ</string>
+
+
+
+    <string name="dialog_add_word_title">Яңы һүҙ өҫтәү</string>
+    <string name="lib_spinner_format">%1$s (%2$d һүҙ)</string>
+    <string name="error_empty_word">Һүҙҙе керетегеҙ</string>
+    <string name="error_empty_translation">Тәржемәһен керетегеҙ</string>
+    <string name="error_no_libs">Тәүҙә китапхана булдырығыҙ</string>
+    <string name="error_select_lib">Китапхананы һайлағыҙ</string>
+
+    <string name="hint_word">Һүҙ</string>
+    <string name="hint_translation">Тәржемә</string>
+    <string name="hint_note">Төшөрмә (мотлаҡ түгел)</string>
+    <string name="btn_add">Өҫтәргә</string>
+    <string name="no_libs_message">Һеҙҙең әле китапханаларығыҙ юҡ</string>
+    <string name="btn_go_to_libs">Китапханаларға күсергә</string>
 </resources>

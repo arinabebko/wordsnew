@@ -108,7 +108,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         private TextView wordCountText;
         private TextView categoryText;
         private Switch activeSwitch;
-        private ImageButton infoButton;
+        // private ImageButton infoButton;
         private ImageButton manageButton;
         private WordLibrary currentLibrary;
 
@@ -126,16 +126,16 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             wordCountText = itemView.findViewById(R.id.libraryWordCount);
             categoryText = itemView.findViewById(R.id.libraryCategory);
             activeSwitch = itemView.findViewById(R.id.librarySwitch);
-            infoButton = itemView.findViewById(R.id.infoButton);
+            //infoButton = itemView.findViewById(R.id.infoButton);
             manageButton = itemView.findViewById(R.id.manageButton);
-
+/*
             // Обработчик кнопки информации
             infoButton.setOnClickListener(v -> {
                 if (listener != null && currentLibrary != null) {
                     listener.onLibraryInfoClicked(currentLibrary);
                 }
             });
-
+*/
             // Обработчик кнопки управления
             manageButton.setOnClickListener(v -> {
                 if (listener != null && currentLibrary != null) {

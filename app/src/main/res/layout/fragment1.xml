@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#211B20"
-    android:padding="24dp">
+    android:padding="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -127,13 +127,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="start"
+                android:textColor="#FF8C8C"
+
                 android:textSize="24sp"
                 app:backgroundTint="@null"
-                android:textColor="#211B20"
-                android:background="@drawable/background_gradient"
+                android:background="@drawable/gradient_button"
                 android:fontFamily="@font/jura_font_wght"
                 android:textStyle="bold" />
-
             <ProgressBar
                 android:id="@+id/loadingProgressBar"
                 android:layout_width="32dp"
@@ -160,7 +160,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center"
-            android:background="@drawable/status_background"
+            android:background="#302631"
             android:padding="12dp"
             android:layout_marginEnd="8dp"
             android:clickable="true"

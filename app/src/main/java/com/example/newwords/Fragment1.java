@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -115,8 +117,9 @@ public class Fragment1 extends Fragment {
     private void setupStartButton(View view) {
         Button startButton = view.findViewById(R.id.startButton);
         ProgressBar progressBar = view.findViewById(R.id.loadingProgressBar);
-
+        final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
         startButton.setOnClickListener(v -> {
+            v.startAnimation(clickAnim);
             // Если уже обрабатываем клик - игнорируем
             if (isProcessingClick) {
                 return;
@@ -204,14 +207,18 @@ public class Fragment1 extends Fragment {
     }
 
     private void setupBottomButtons(View view) {
-        // Находим новые кнопки по правильным ID
         LinearLayout searchButtonLayout = view.findViewById(R.id.searchButtonLayout);
         LinearLayout addButtonLayout = view.findViewById(R.id.addButtonLayout);
+
+        // Загружаем анимацию
+        final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
 
         // Обработчик кнопки поиска
         searchButtonLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Прыжок!
+                v.startAnimation(clickAnim);
                 openSearchFragment();
             }
         });
@@ -220,6 +227,8 @@ public class Fragment1 extends Fragment {
         addButtonLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Прыжок!
+                v.startAnimation(clickAnim);
                 showAddWordDialog();
             }
         });

@@ -21,7 +21,8 @@ import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
-
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -101,7 +102,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             learnedButton.setOnClickListener(v -> {
                 if (adapter != null) {
                     adapter.swipeRight();
-                  //  updateProgress();
+                    //  updateProgress();
                 }
             });
         }
@@ -110,7 +111,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             reviewButton.setOnClickListener(v -> {
                 if (adapter != null) {
                     adapter.swipeLeft();
-                  //  updateProgress();
+                    //  updateProgress();
                 }
             });
         }
@@ -526,15 +527,22 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      * Настраивает кнопки управления для карточек
      */
     private void setupControlButtons() {
-        // Находим кнопки в макете
         View view = getView();
         if (view == null) return;
 
         ImageButton learnedButton = view.findViewById(R.id.learnedButton);
         ImageButton reviewButton = view.findViewById(R.id.reviewButton);
 
+        // 1. Загружаем анимацию "пружинки"
+        // Используй getContext() или v.getContext()
+        final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
+
         if (learnedButton != null && reviewButton != null) {
+
             learnedButton.setOnClickListener(v -> {
+                // 2. Запускаем анимацию сразу при клике
+                v.startAnimation(clickAnim);
+
                 if (adapter != null) {
                     adapter.swipeRight();
                     updateProgress();
@@ -542,13 +550,16 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             });
 
             reviewButton.setOnClickListener(v -> {
+                // 3. И здесь тоже запускаем анимацию
+                v.startAnimation(clickAnim);
+
                 if (adapter != null) {
                     adapter.swipeLeft();
                     updateProgress();
                 }
             });
 
-            Log.d(TAG, "Кнопки управления настроены");
+            Log.d(TAG, "Кнопки управления настроены с анимацией");
         } else {
             Log.w(TAG, "Кнопки управления не найдены в макете");
         }
