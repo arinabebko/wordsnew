@@ -88,6 +88,21 @@
                     android:paddingVertical="4dp"
                     android:layout_marginStart="8dp" />
 
+
+                <TextView
+                    android:id="@+id/librarySubcategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+
+                    android:textColor="#625fba"
+                    android:textSize="12sp"
+                    android:background="@drawable/tag_bg"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginStart="8dp"
+                   />
+
+
             </LinearLayout>
 
             <LinearLayout

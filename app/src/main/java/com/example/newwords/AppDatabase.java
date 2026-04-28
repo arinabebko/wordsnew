@@ -13,7 +13,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract LocalLibraryDao libraryDao();
     public abstract LocalWordDao wordDao();
     public abstract UserStatsDao statsDao(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
-
+    @TypeConverters({Converters.class})
     private static volatile AppDatabase INSTANCE;
 
     public static AppDatabase getInstance(Context context) {

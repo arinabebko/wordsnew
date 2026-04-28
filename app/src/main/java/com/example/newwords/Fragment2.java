@@ -560,8 +560,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         } else {
             filteredLibraries.clear();
             for (WordLibrary library : availableLibraries) {
-                String name = library.getName() != null ? library.getName().toLowerCase() : "";
-                String description = library.getDescription() != null ? library.getDescription().toLowerCase() : "";
+                String name = library.getName() != null ? library.getLocalizedName().toLowerCase() : "";
+                String description = library.getDescription() != null ? library.getLocalizedDescription().toLowerCase() : "";
                 String category = library.getCategory() != null ? library.getCategory().toLowerCase() : "";
 
                 String queryLower = query.toLowerCase();
@@ -959,7 +959,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         LibraryWordsFragment wordsFragment = LibraryWordsFragment.newInstance(
                 library.getLibraryId(),
-                library.getName(),
+                library.getLocalizedName(),
                 isCustomLibrary
         );
 
@@ -971,7 +971,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         }
     }
     private void showAddWordDialog(WordLibrary library) {
-        AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getName());
+        AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getLocalizedName());
         dialog.setOnWordAddedListener(new AddWordDialog.OnWordAddedListener() {
             @Override
             public void onWordAdded(String word, String translation, String note) {

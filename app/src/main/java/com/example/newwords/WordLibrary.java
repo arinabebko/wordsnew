@@ -2,12 +2,17 @@ package com.example.newwords;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class WordLibrary {
     private String libraryId;
-    private String name;
-    private String description;
+
+    // СЛОВАРИ: теперь соответствуют структуре в Firebase и LocalWordLibrary
+    private Map<String, String> name;
+    private Map<String, String> description;
+    private Map<String, String> subcategory;
+
     private int wordCount;
     private String category;
     private String languageFrom;
@@ -17,136 +22,116 @@ public class WordLibrary {
     private Date createdAt;
     private String createdBy;
 
-
-
-    // НОВОЕ: храним активность для каждого языка
+    // Состояния активности по языкам
     private Map<String, Boolean> languageActiveStates = new HashMap<>();
-
-
-    // === НОВЫЕ МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ АКТИВНОСТЬЮ ПО ЯЗЫКАМ ===
-
-    /**
-     * Установить активность для конкретного языка
-     */
-    public void setActiveForLanguage(String languageCode, boolean active) {
-        if (languageActiveStates == null) {
-            languageActiveStates = new HashMap<>();
-        }
-        languageActiveStates.put(languageCode, active);
-    }
-
-    /**
-     * Получить активность для конкретного языка
-     */
-    public boolean isActiveForLanguage(String languageCode) {
-        if (languageActiveStates == null) {
-            return false;
-        }
-        Boolean active = languageActiveStates.get(languageCode);
-        return active != null ? active : false;
-    }
-
-    /**
-     * Получить все состояния по языкам
-     */
-    public Map<String, Boolean> getLanguageActiveStates() {
-        if (languageActiveStates == null) {
-            languageActiveStates = new HashMap<>();
-        }
-        return languageActiveStates;
-    }
-
-    /**
-     * Установить все состояния по языкам
-     */
-    public void setLanguageActiveStates(Map<String, Boolean> states) {
-        this.languageActiveStates = states;
-    }
 
     // Конструктор по умолчанию для Firestore
     public WordLibrary() {
-        // Инициализируем поля пустыми строками по умолчанию
-        this.name = "";
-        this.description = "";
+        this.name = new HashMap<>();
+        this.description = new HashMap<>();
+        this.subcategory = new HashMap<>();
         this.category = "custom";
-        this.languageFrom = "en";
-        this.languageTo = "ru";
         this.languageActiveStates = new HashMap<>();
-        this.languageActiveStates.put("en", false); // английский
-        this.languageActiveStates.put("ba", false); // башкирский
     }
 
-    // Конструктор с параметрами
-    public WordLibrary(String name, String description, int wordCount,
-                       String category, String languageFrom, String languageTo) {
-        // ЗАЩИТА ОТ NULL: инициализируем все строковые поля
-        this.name = name != null ? name : "";
-        this.description = description != null ? description : "";
-        this.wordCount = wordCount;
-        this.category = category != null ? category : "custom";
-        this.languageFrom = languageFrom != null ? languageFrom : "en";
-        this.languageTo = languageTo != null ? languageTo : "ru";
-        this.isPublic = true;
-        this.isActive = false;
-        this.createdAt = new Date();
+    // === УМНЫЕ МЕТОДЫ ДЛЯ АДАПТЕРА (UI) ===
+
+    public String getLocalizedName() {
+        if (name == null || name.isEmpty()) return "";
+
+        String lang = Locale.getDefault().getLanguage();
+        // 1. Если есть название на языке телефона, берем его
+        if (name.containsKey(lang)) return name.get(lang);
+
+        // 2. Если нет (для пользовательских либ), берем самое первое, что ввел юзер
+        // values().iterator().next() достает первую попавшуюся строку из словаря
+        return name.values().iterator().next();
     }
 
-    // === ГЕТТЕРЫ ===
+    public String getLocalizedDescription() {
+        if (description == null || description.isEmpty()) return "";
+
+        String lang = Locale.getDefault().getLanguage();
+        if (description.containsKey(lang)) return description.get(lang);
+
+        // Берем любое доступное описание
+        return description.values().iterator().next();
+    }
+
+
+
+    // === ГЕТТЕРЫ И СЕТТЕРЫ ДЛЯ МАР (Чтобы не было ошибок в Repository) ===
+
+    public Map<String, String> getName() { return name; }
+    public void setName(Map<String, String> name) { this.name = name; }
+
+    public Map<String, String> getDescription() { return description; }
+    public void setDescription(Map<String, String> description) { this.description = description; }
+
+    public Map<String, String> getSubcategory() { return subcategory; }
+    public void setSubcategory(Map<String, String> subcategory) { this.subcategory = subcategory; }
+
+    // === МЕТОДЫ АКТИВНОСТИ (Важно для совместимости с твоим Room и Repository) ===
+
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+
+    // Дублируем для кеширования (так как твой код ищет именно эти названия)
+    public boolean getIsActive() { return isActive; }
+    public void setIsActive(boolean isActive) { this.isActive = isActive; }
+
+    // === ОСТАЛЬНЫЕ ПОЛЯ ===
+
     public String getLibraryId() { return libraryId != null ? libraryId : ""; }
-    public String getName() { return name != null ? name : ""; }
-    public String getDescription() { return description != null ? description : ""; }
+    public void setLibraryId(String libraryId) { this.libraryId = libraryId; }
+
     public int getWordCount() { return wordCount; }
-    public String getCategory() { return category != null ? category : "custom"; }
-    public String getLanguageFrom() { return languageFrom != null ? languageFrom : "en"; }
-    public String getLanguageTo() { return languageTo != null ? languageTo : "ru"; }
-    public boolean isPublic() { return isPublic; }
-    public Date getCreatedAt() { return createdAt; }
-    public String getCreatedBy() { return createdBy != null ? createdBy : ""; }
-
-    // Добавляем методы для активности
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
-    }
-
-    // === СЕТТЕРЫ ===
-    public void setLibraryId(String libraryId) { this.libraryId = libraryId != null ? libraryId : ""; }
-    public void setName(String name) { this.name = name != null ? name : ""; }
-    public void setDescription(String description) { this.description = description != null ? description : ""; }
     public void setWordCount(int wordCount) { this.wordCount = wordCount; }
-    public void setCategory(String category) { this.category = category != null ? category : "custom"; }
-    public void setLanguageFrom(String languageFrom) { this.languageFrom = languageFrom != null ? languageFrom : "en"; }
-    public void setLanguageTo(String languageTo) { this.languageTo = languageTo != null ? languageTo : "ru"; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getLanguageFrom() { return languageFrom; }
+    public void setLanguageFrom(String languageFrom) { this.languageFrom = languageFrom; }
+
+    public String getLanguageTo() { return languageTo; }
+    public void setLanguageTo(String languageTo) { this.languageTo = languageTo; }
+    public void setActiveForLanguage(String languageCode, boolean active) {
+        if (languageActiveStates == null) languageActiveStates = new HashMap<>();
+        languageActiveStates.put(languageCode, active);
+    }
+    public boolean isPublic() { return isPublic; }
     public void setPublic(boolean aPublic) { isPublic = aPublic; }
+
+    public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy != null ? createdBy : ""; }
 
-    // === ДОБАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ДЛЯ КЕША МЕТОДЫ ===
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
-    /**
-     * Для кеширования - проверка активности библиотеки
-     */
-    public boolean getIsActive() {
-        return isActive;
+    public Map<String, Boolean> getLanguageActiveStates() { return languageActiveStates; }
+    public void setLanguageActiveStates(Map<String, Boolean> states) { this.languageActiveStates = states; }
+    public String getLocalizedSubcategory() {
+        // 1. Если словаря нет или он пустой — возвращаем пустоту
+        if (subcategory == null || subcategory.isEmpty()) return "";
+
+        String lang = Locale.getDefault().getLanguage();
+
+        // 2. Сначала ищем на языке телефона (например, "ru")
+        if (subcategory.containsKey(lang)) return subcategory.get(lang);
+
+        // 3. Если нет, ищем на русском (запасной вариант для системных либ)
+        if (subcategory.containsKey("ru")) return subcategory.get("ru");
+
+        // 4. Если и этого нет, берем любое первое значение, которое там есть
+        return subcategory.values().iterator().next();
     }
-
-    /**
-     * Для кеширования - установка активности
-     */
-    public void setIsActive(boolean isActive) {
-        this.isActive = isActive;
-    }
-
     @Override
     public String toString() {
         return "WordLibrary{" +
-                "name='" + name + '\'' +
-                ", wordCount=" + wordCount +
+                "id='" + libraryId + '\'' +
+                ", localizedName='" + getLocalizedName() + '\'' +
                 ", category='" + category + '\'' +
-                ", isActive=" + isActive +
                 '}';
     }
 }

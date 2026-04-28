@@ -6,6 +6,7 @@ import androidx.room.TypeConverters;
 import androidx.annotation.NonNull;
 
 import java.util.Date;
+import java.util.Map;
 
 @Entity(tableName = "local_libraries")
 @TypeConverters(Converters.class)
@@ -13,8 +14,10 @@ public class LocalWordLibrary {
     @PrimaryKey
     @NonNull
     private String libraryId;
-    private String name;
-    private String description;
+    private Map<String, String> name;
+    private Map<String, String> description;
+    private Map<String, String> subcategory;
+
     private int wordCount;
     private String category;
     private String languageFrom;
@@ -48,8 +51,9 @@ public class LocalWordLibrary {
     // === ГЕТТЕРЫ ===
     @NonNull
     public String getLibraryId() { return libraryId; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
+    public Map<String, String> getName() { return name; }
+    public Map<String, String> getDescription() { return description; }
+    public Map<String, String> getSubcategory() { return subcategory; }
     public int getWordCount() { return wordCount; }
     public String getCategory() { return category; }
     public String getLanguageFrom() { return languageFrom; }
@@ -62,8 +66,9 @@ public class LocalWordLibrary {
 
     // === СЕТТЕРЫ ===
     public void setLibraryId(@NonNull String libraryId) { this.libraryId = libraryId; }
-    public void setName(String name) { this.name = name; }
-    public void setDescription(String description) { this.description = description; }
+    public void setName(Map<String, String> name) { this.name = name; }
+    public void setDescription(Map<String, String> description) { this.description = description; }
+    public void setSubcategory(Map<String, String> subcategory) { this.subcategory = subcategory; }
     public void setWordCount(int wordCount) { this.wordCount = wordCount; }
     public void setCategory(String category) { this.category = category; }
     public void setLanguageFrom(String languageFrom) { this.languageFrom = languageFrom; }

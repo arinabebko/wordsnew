@@ -57,28 +57,29 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         this.libraries.addAll(newLibraries);
         notifyDataSetChanged();
     }
-    public void filterLibraries(String query, List<WordLibrary> allLibraries, String languageCode) {
+    /**
+    public void filterLibraries(String query, List<WordLibrary> allLibraries) {
         this.libraries.clear();
 
-        for (WordLibrary library : allLibraries) {
-            // Проверяем язык библиотеки
-            String libraryLanguage = library.getLanguageTo();
-            boolean languageMatches = languageCode == null ||
-                    libraryLanguage == null ||
-                    libraryLanguage.equals(languageCode);
+        if (query.isEmpty()) {
+            this.libraries.addAll(allLibraries);
+        } else {
+            String lowerQuery = query.toLowerCase();
+            for (WordLibrary library : allLibraries) {
 
-            // Проверяем поисковый запрос
-            boolean queryMatches = query.isEmpty() ||
-                    library.getName().toLowerCase().contains(query.toLowerCase()) ||
-                    library.getDescription().toLowerCase().contains(query.toLowerCase());
+                // ИСПРАВЛЕНИЕ ТУТ: вызываем getLocalizedName() вместо getName()
+                // и getLocalizedDescription() вместо getDescription()
+                String name = library.getLocalizedName().toLowerCase();
+                String description = library.getLocalizedDescription().toLowerCase();
 
-            if (languageMatches && queryMatches) {
-                this.libraries.add(library);
+                if (name.contains(lowerQuery) || description.contains(lowerQuery)) {
+                    this.libraries.add(library);
+                }
             }
         }
         notifyDataSetChanged();
     }
-    /**
+
      * Обновляет карту активных библиотек
      */
     public void updateActiveLibraries(Map<String, Boolean> activeLibraries) {
@@ -89,6 +90,27 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
     /**
      * Принудительно обновляет состояние переключателя для библиотеки
      */
+
+    public void filterLibraries(String query, List<WordLibrary> allLibraries) {
+        this.libraries.clear();
+        String lowerQuery = query.toLowerCase().trim();
+
+        for (WordLibrary library : allLibraries) {
+            // 1. Получаем текст на текущем языке устройства
+            String name = library.getLocalizedName().toLowerCase();
+            String description = library.getLocalizedDescription().toLowerCase();
+
+            // 2. Проверяем, подходит ли под поиск
+            boolean matchesQuery = lowerQuery.isEmpty() ||
+                    name.contains(lowerQuery) ||
+                    description.contains(lowerQuery);
+
+            if (matchesQuery) {
+                this.libraries.add(library);
+            }
+        }
+        notifyDataSetChanged();
+    }
     public void updateLibraryState(String libraryId, boolean isActive) {
         if (activeLibraries.containsKey(libraryId)) {
             activeLibraries.put(libraryId, isActive);
@@ -107,6 +129,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         private TextView descriptionText;
         private TextView wordCountText;
         private TextView categoryText;
+        private TextView subcategoryText;
         private Switch activeSwitch;
         // private ImageButton infoButton;
         private ImageButton manageButton;
@@ -126,6 +149,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             wordCountText = itemView.findViewById(R.id.libraryWordCount);
             categoryText = itemView.findViewById(R.id.libraryCategory);
             activeSwitch = itemView.findViewById(R.id.librarySwitch);
+            subcategoryText = itemView.findViewById(R.id.librarySubcategory);
             //infoButton = itemView.findViewById(R.id.infoButton);
             manageButton = itemView.findViewById(R.id.manageButton);
 /*
@@ -155,7 +179,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
                 // Или более надежно:
                 // boolean originalState = activeLibraries.getOrDefault(currentLibrary.getLibraryId(), false);
 
-                Log.d("LibraryAdapter", "Переключение библиотеки: " + currentLibrary.getName() +
+                Log.d("LibraryAdapter", "Переключение библиотеки: " + currentLibrary.getLocalizedName() +
                         " с " + originalState + " на " + isChecked);
 
 
@@ -213,33 +237,48 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             currentLibrary = library;
             isUpdating = true;
 
-            nameText.setText(library.getName());
-            descriptionText.setText(library.getDescription());
-            wordCountText.setText(library.getWordCount() + " слов");
+            nameText.setText(library.getLocalizedName());
+            descriptionText.setText(library.getLocalizedDescription());
+
+            // --- ОБНОВЛЕННЫЙ БЛОК СУБКАТЕГОРИИ ---
+            String sub = library.getLocalizedSubcategory();
+            // Показываем, если это системная либа И текст субкатегории не пустой
+            // Оставь только проверку на наличие текста
+            if (sub != null && !sub.isEmpty()) {
+                subcategoryText.setText(sub);
+                subcategoryText.setVisibility(View.VISIBLE);
+            } else {
+                subcategoryText.setVisibility(View.GONE);
+            }
+            // -------------------------------------
+            int count = library.getWordCount();
+            // Используем itemView вместо holder.itemView
+            String formattedWordCount = itemView.getContext().getResources().getQuantityString(
+                    R.plurals.word_count_plurals,
+                    count,
+                    count
+            );
+            wordCountText.setText(formattedWordCount);
+            //wordCountText.setText(library.getWordCount() + " слов");
             categoryText.setText(getCategoryDisplayName(library.getCategory()));
 
-            // ИСПРАВЛЕНИЕ: используем activeLibraries как основной источник
             boolean isActive = activeLibraries.containsKey(library.getLibraryId())
                     ? activeLibraries.get(library.getLibraryId())
                     : library.isActive();
 
             activeSwitch.setChecked(isActive);
 
-            Log.d("LibraryAdapter", "Привязка библиотеки: " + library.getName() +
-                    ", активна: " + isActive + " (из activeLibraries: " +
-                    activeLibraries.containsKey(library.getLibraryId()) +
-                    "), ID: " + library.getLibraryId());
+            // Логируем уже локализованное имя
+            Log.d("LibraryAdapter", "Привязка: " + library.getLocalizedName() + ", активна: " + isActive);
 
             isUpdating = false;
 
-            // Показываем badge для пользовательских библиотек
             if (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")) {
                 showCustomLibraryBadge();
             } else {
                 hideCustomLibraryBadge();
             }
 
-            // Показываем кнопку управления только для пользовательских библиотек
             if (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")) {
                 manageButton.setVisibility(View.VISIBLE);
             } else {
@@ -286,23 +325,24 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
     /**
      * Фильтрует библиотеки по запросу
-     */
+
     public void filterLibraries(String query, List<WordLibrary> allLibraries) {
+        this.libraries.clear();
         if (query.isEmpty()) {
-            this.libraries.clear();
             this.libraries.addAll(allLibraries);
         } else {
-            this.libraries.clear();
+            String lowerQuery = query.toLowerCase();
             for (WordLibrary library : allLibraries) {
-                if (library.getName().toLowerCase().contains(query.toLowerCase()) ||
-                        library.getDescription().toLowerCase().contains(query.toLowerCase())) {
+                // Ищем в локализованном имени и описании
+                if (library.getLocalizedName().toLowerCase().contains(lowerQuery) ||
+                        library.getLocalizedDescription().toLowerCase().contains(lowerQuery)) {
                     this.libraries.add(library);
                 }
             }
         }
         notifyDataSetChanged();
     }
-
+   */
     public interface OnLibraryActionListener {
         // Убрали старый метод onLibraryToggled - больше не нужен
 

@@ -1299,10 +1299,14 @@ public class WordRepository {
     private LocalWordLibrary convertToLocal(WordLibrary web) {
         LocalWordLibrary local = new LocalWordLibrary();
         local.setLibraryId(web.getLibraryId());
+
+        // Теперь это передача Map в Map — всё корректно
         local.setName(web.getName());
         local.setDescription(web.getDescription());
+        local.setSubcategory(web.getSubcategory()); // Не забываем про новое поле
+
         local.setCategory(web.getCategory());
-        local.setLanguageFrom(web.getLanguageFrom()); // Проверь названия геттеров
+        local.setLanguageTo(web.getLanguageTo());
         local.setWordCount(web.getWordCount());
         local.setActive(web.isActive());
         return local;
@@ -1314,10 +1318,14 @@ public class WordRepository {
         for (LocalWordLibrary local : locals) {
             WordLibrary web = new WordLibrary();
             web.setLibraryId(local.getLibraryId());
+
+            // Перекладываем Map
             web.setName(local.getName());
             web.setDescription(local.getDescription());
+            web.setSubcategory(local.getSubcategory());
+
             web.setCategory(local.getCategory());
-            web.setLanguageFrom(local.getLanguageFrom());
+            web.setLanguageTo(local.getLanguageTo());
             web.setWordCount(local.getWordCount());
             web.setActive(local.isActive());
             webs.add(web);
@@ -1356,9 +1364,17 @@ public class WordRepository {
      */
     public void createCustomLibrary(String name, String description, String category, String language,
                                     OnLibraryCreatedListener listener) {
+        // 1. Упаковываем введенные пользователем данные в Map
+        Map<String, String> nameMap = new HashMap<>();
+        nameMap.put(language, name); // Название будет храниться под ключом выбранного языка
+
+        Map<String, String> descMap = new HashMap<>();
+        descMap.put(language, description);
+
+        // 2. Формируем данные для Firestore (в папку пользователя)
         Map<String, Object> libraryData = new HashMap<>();
-        libraryData.put("name", name);
-        libraryData.put("description", description);
+        libraryData.put("name", nameMap); // <-- Теперь это Map, а не String!
+        libraryData.put("description", descMap); // <-- Тоже Map
         libraryData.put("category", category);
         libraryData.put("wordCount", 0);
         libraryData.put("languageFrom", language);
@@ -1372,10 +1388,11 @@ public class WordRepository {
                 .collection("custom_libraries")
                 .add(libraryData)
                 .addOnSuccessListener(documentReference -> {
+                    // В коде приложения тоже обновляем объект
                     WordLibrary library = new WordLibrary();
                     library.setLibraryId(documentReference.getId());
-                    library.setName(name);
-                    library.setDescription(description);
+                    library.setName(nameMap); // Передаем Map
+                    library.setDescription(descMap); // Передаем Map
                     library.setCategory(category);
                     library.setWordCount(0);
                     library.setLanguageFrom(language);
@@ -1384,7 +1401,6 @@ public class WordRepository {
                 })
                 .addOnFailureListener(listener::onError);
     }
-
 
 
     public void toggleFavorite(WordItem word, OnSuccessListener successListener) {

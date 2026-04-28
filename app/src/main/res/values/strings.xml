@@ -242,9 +242,14 @@
     <string name="word_status_learned">ВЫУЧЕНО</string>
     <string name="word_status_unknown">НЕИЗВЕСТНО</string>
 
+    <plurals name="word_count_plurals">
+        <item quantity="one">%d слово</item>
+        <item quantity="few">%d слова</item>
+        <item quantity="many">%d слов</item>
+        <item quantity="other">%d слов</item>
+    </plurals>
 
-
-
+    <string name="btn_start">Старт</string>
     <string name="dialog_add_word_title">Добавить новое слово</string>
     <string name="lib_spinner_format">%1$s (%2$d слов)</string>
     <string name="error_empty_word">Введите слово</string>

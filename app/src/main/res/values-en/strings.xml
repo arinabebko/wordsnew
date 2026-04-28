@@ -234,8 +234,11 @@
     <string name="word_status_learned">LEARNED</string>
     <string name="word_status_unknown">UNKNOWN</string>
 
-
-
+    <string name="btn_start">Start</string>
+    <plurals name="word_count_plurals">
+        <item quantity="one">%d word</item>
+        <item quantity="other">%d words</item>
+    </plurals>
     <string name="dialog_add_word_title">Add new word</string>
     <string name="lib_spinner_format">%1$s (%2$d words)</string>
     <string name="error_empty_word">Enter a word</string>

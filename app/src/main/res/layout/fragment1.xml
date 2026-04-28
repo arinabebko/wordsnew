@@ -126,7 +126,7 @@
                 android:id="@+id/startButton"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="start"
+                android:text="@string/btn_start"
                 android:textColor="#FF8C8C"
 
                 android:textSize="24sp"

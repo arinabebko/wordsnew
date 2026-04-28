@@ -212,8 +212,11 @@
     <string name="word_status_learned">ҮҘЛӘШТЕРЕЛГӘН</string>
     <string name="word_status_unknown">БИЛДӘҺЕҘ</string>
 
-
-
+    <string name="btn_start">Башларға</string>
+    <plurals name="word_count_plurals">
+        <item quantity="one">%d һүҙ</item>
+        <item quantity="other">%d һүҙ</item>
+    </plurals>
     <string name="dialog_add_word_title">Яңы һүҙ өҫтәү</string>
     <string name="lib_spinner_format">%1$s (%2$d һүҙ)</string>
     <string name="error_empty_word">Һүҙҙе керетегеҙ</string>
