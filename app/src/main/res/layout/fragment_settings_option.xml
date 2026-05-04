@@ -14,7 +14,8 @@
         android:textSize="28sp"
         android:textColor="#8CA0FF"
         android:fontFamily="@font/jura_font_wght"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="22dp"
+        android:layout_marginTop="42dp"
         android:layout_gravity="center" />
 
     <LinearLayout
@@ -26,7 +27,7 @@
         android:elevation="4dp"
         android:clipToOutline="true"
         android:backgroundTintMode="src_in"
-        android:backgroundTint="#302631">
+        android:backgroundTint="#211B20">
 
         <TextView
             android:layout_width="wrap_content"
@@ -42,7 +43,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/profile_settings_tv_username_placeholder"
-            android:textColor="#FFFFFF"
+            android:textColor="#FF8C8C"
             android:textSize="20sp"
             android:fontFamily="@font/jura_font_wght"
             android:textStyle="bold"
@@ -68,11 +69,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/profile_settings_et_new_name_hint"
-            android:textColor="#FFFFFF"
+            android:textColor="#E78F8F"
             android:textColorHint="#A2B2FF"
             android:textSize="16sp"
             android:minHeight="48dp"
-            android:backgroundTint="#5539D0"
+            android:fontFamily="@font/jura_font_wght"
+            android:backgroundTint="#554A445C"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -89,15 +91,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/profile_settings_btn_save"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#5539D0"
+            android:textColor="#E78F8F"
+            app:backgroundTint="@null"
+            android:background="@drawable/gradient_button"
+
             android:fontFamily="@font/jura_font_wght"
             android:layout_marginBottom="32dp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#554A445C"
+            android:background="#E78F8F"
             android:layout_marginBottom="24dp" />
 
         <TextView
@@ -122,7 +126,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/profile_settings_tv_ui_lang_label"
-                android:textColor="#FFFFFF"
+                android:textColor="#A2B2FF"
                 android:textSize="16sp"
                 android:fontFamily="@font/jura_font_wght" />
 
@@ -131,11 +135,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/profile_settings_tv_ui_lang_current"
-                android:textColor="#A2B2FF"
-                android:textSize="16sp"
+                android:textColor="#E78F8F"
+                android:textSize="14sp"
                 android:fontFamily="@font/jura_font_wght"
                 android:padding="8dp"
-                android:background="#5539D0"
+                app:backgroundTint="@null"
+                android:background="@drawable/gradient_button"
                 android:clickable="true"
                 android:focusable="true" />
 

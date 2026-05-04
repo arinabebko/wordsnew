@@ -41,7 +41,8 @@ public class Fragment3 extends Fragment {
     private void initViews(View view) {
         userNameTextView = view.findViewById(R.id.userNameTextView);
         userEmailTextView = view.findViewById(R.id.userEmailTextView);
-        avatarImageView = view.findViewById(R.id.avatarImageView);
+      avatarImageView = view.findViewById(R.id.avatarImageView);
+        //todo
     }
 
     private void loadUserData() {

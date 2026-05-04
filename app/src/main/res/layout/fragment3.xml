@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,48 +8,53 @@
     android:padding="16dp">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#3C374A"
-        android:padding="24dp"
+        android:layout_height="143dp"
+        android:layout_marginTop="70dp"
         android:layout_marginBottom="24dp"
-        android:gravity="center"
+
+        app:backgroundTint="@null"
+        android:background="@drawable/gradient_button"
+
+
+        android:backgroundTintMode="src_in"
         android:clipToOutline="true"
         android:elevation="4dp"
-        android:layout_marginTop="40dp"
-        android:backgroundTintMode="src_in"
-        android:backgroundTint="#4A445C">
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
 
         <ImageView
             android:id="@+id/avatarImageView"
             android:layout_width="96dp"
             android:layout_height="96dp"
-            android:src="@drawable/ic_avatar_placeholder"
-            android:scaleType="centerCrop"
             android:layout_gravity="center"
             android:background="@drawable/circle_background"
-            android:padding="8dp" />
+            android:padding="8dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_avatar_placeholder"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/userNameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
             android:text="@string/profile_tv_username_placeholder"
             android:textColor="#8CA0FF"
-            android:textSize="24sp"
-            android:layout_marginTop="16dp"
-            android:layout_gravity="center"/>
+            android:textSize="24sp" />
 
         <TextView
             android:id="@+id/userEmailTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/jura_font_wght"
             android:text="@string/profile_tv_email_placeholder"
             android:textColor="#8CA0FF"
-            android:textSize="14sp"
-            android:layout_marginTop="4dp"
-            android:layout_gravity="center"/>
+            android:textSize="14sp" />
     </LinearLayout>
 
     <TextView
@@ -58,6 +63,7 @@
         android:layout_height="wrap_content"
         android:text="@string/profile_tv_option_settings"
         android:textColor="#8CA0FF"
+        android:fontFamily="@font/jura_font_wght"
         android:textSize="18sp"
         android:paddingVertical="8dp" />
 
@@ -67,8 +73,10 @@
         android:layout_height="wrap_content"
         android:text="@string/profile_tv_option_notifications"
         android:textColor="#8CA0FF"
+        android:fontFamily="@font/jura_font_wght"
         android:textSize="18sp"
         android:paddingVertical="8dp" />
+
 
     <TextView
         android:id="@+id/loginParamsOption"
@@ -76,6 +84,7 @@
         android:layout_height="wrap_content"
         android:text="@string/profile_tv_option_login_params"
         android:textColor="#8CA0FF"
+        android:fontFamily="@font/jura_font_wght"
         android:textSize="18sp"
         android:paddingVertical="8dp" />
 

@@ -6,15 +6,19 @@
     android:orientation="vertical"
     android:background="#211B20"
     android:padding="24dp"
-    android:gravity="center">
-
+    android:gravity="center"
+    >
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_weight="1" />
     <TextView
         android:id="@+id/notificationsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/notif_settings_header"
         android:textSize="20sp"
-        android:textColor="#b5b5e7"
+        android:textColor="#8CA0FF"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginBottom="24dp"/>
 
@@ -59,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/notif_settings_tv_reminder_at"
-                android:textColor="#e7b5a9"
+                android:textColor="#8CA0FF"
                 android:fontFamily="@font/jura_font_wght"
                 android:textSize="16sp"/>
 
@@ -70,8 +74,9 @@
                 android:minHeight="48dp"
                 android:inputType="time"
                 android:text="19:00"
-                android:textColor="#211B20"
-                android:background="#fcb6b0"
+                android:textColor="#e7b5a9"
+
+                android:background="@drawable/gradient_button"
                 android:gravity="center"
                 android:padding="8dp"
                 android:layout_marginStart="8dp"
@@ -92,4 +97,9 @@
             android:buttonTint="#e7b5a9"
             android:padding="8dp"/>
     </RadioGroup>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="87dp"
+        android:layout_weight="1.5" />
 </LinearLayout>

@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:text="@string/auth_params_tv_header"
         android:textSize="24sp"
-        android:textColor="#b5b5e7"
+        android:textColor="#8CA0FF"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginTop="50dp"
         android:layout_marginBottom="28dp"/>
@@ -52,9 +52,10 @@
         android:layout_height="wrap_content"
         android:text="@string/auth_params_btn_change_pass"
         app:backgroundTint="@null"
-        android:textColor="#211B20"
+        android:textColor="#e7b5a9"
         android:textSize="16sp"
-        android:background="#e7b5a9"
+
+        android:background="@drawable/gradient_button"
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginBottom="24dp"/>
 
@@ -78,16 +79,16 @@
         android:id="@+id/deleteAccountLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/auth_params_tv_delete_account"
-        android:textColor="#ff8c8c"
-        android:textSize="14sp"
-        android:fontFamily="@font/jura_font_wght"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="208dp"
         android:clickable="true"
         android:focusable="true"
-        android:paddingTop="16dp"
-        android:paddingBottom="16dp"
+        android:fontFamily="@font/jura_font_wght"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"/>
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        android:text="@string/auth_params_tv_delete_account"
+        android:textColor="#ff8c8c"
+        android:textSize="14sp" />
 </LinearLayout>

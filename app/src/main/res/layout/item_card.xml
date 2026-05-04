@@ -17,6 +17,7 @@
         android:paddingHorizontal="12dp"
         android:paddingVertical="4dp"
         android:layout_centerHorizontal="true"
+        android:fontFamily="@font/jura_font_wght"
         android:layout_marginTop="32dp"/>
 
     <ImageButton
@@ -49,24 +50,28 @@
 
         <TextView
             android:id="@+id/wordText"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="spring"
+            android:text="spring flower"
             android:textColor="#625fba"
             android:textSize="44sp"
-            android:fontFamily="@font/jura_font_wght"
-            android:layout_gravity="center_horizontal"/>
+            android:fontFamily="@font/exo_regular"
+            android:textStyle="normal"
+            android:gravity="center"
+            android:textAlignment="center" />
 
         <TextView
             android:id="@+id/hintText"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="весна"
+            android:text="весенний цветок"
             android:textColor="#625fba"
             android:textSize="28sp"
-            android:fontFamily="@font/jura_font_wght"
+            android:fontFamily="@font/exo_regular"
+            android:textStyle="normal"
             android:layout_marginTop="26dp"
-            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:textAlignment="center"
             android:visibility="gone"/>
 
     </LinearLayout>

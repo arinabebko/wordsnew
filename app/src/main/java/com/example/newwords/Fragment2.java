@@ -747,15 +747,15 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 boolean hasActive = hasActiveLibraries();
                 startLearningButton.setEnabled(hasActive);
                 startLearningButton.setAlpha(hasActive ? 1.0f : 0.5f);
-
-                if (hasActive) {
-                    int activeCount = getActiveLibrariesCount();
+                //todo
+               // if (hasActive) {
+                 //   int activeCount = getActiveLibrariesCount();
                     // ⭐ Используем ресурс с числовым параметром
-                    startLearningButton.setText(getString(R.string.lib_btn_start_with_count, activeCount));
-                } else {
+                   // startLearningButton.setText(getString(R.string.lib_btn_start_with_count, activeCount));
+                //} else {
                     // ⭐ Используем обычный ресурс кнопки
                     startLearningButton.setText(R.string.lib_select_btn_start);
-                }
+                //}
             });
         }
     }

@@ -144,14 +144,18 @@
 
         </FrameLayout>
     </LinearLayout>
-
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#FF8C8C"
+        android:alpha="0.8" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
         android:padding="16dp"
-        android:background="#302631">
+        android:background="#211B20">
 
         <LinearLayout
             android:id="@+id/searchButtonLayout"
@@ -160,7 +164,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center"
-            android:background="#302631"
+            android:background="#211B20"
             android:padding="12dp"
             android:layout_marginEnd="8dp"
             android:clickable="true"
@@ -183,7 +187,12 @@
                 android:fontFamily="@font/jura_font_wght" />
 
         </LinearLayout>
-
+        <View
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:background="#FF8C8C"
+            android:alpha="0.5" />
         <LinearLayout
             android:id="@+id/addButtonLayout"
             android:layout_width="0dp"
@@ -191,7 +200,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center"
-            android:background="#302631"
+            android:background="#211B20"
             android:padding="12dp"
             android:layout_marginStart="8dp"
             android:clickable="true"
