@@ -108,13 +108,13 @@ public class SimpleRepetitionSystem {
     }
     /**
      * Нужно ли показывать слово в текущей сессии
-     */
+
     public static boolean shouldShowInSession(WordItem word) {
         // Показываем если слово готово к повторению И не достигло максимального этапа
-        boolean isDue = word.isDueForReview();
+       boolean isDue = word.isDueForReview();
         boolean isNotFullyLearned = word.getReviewStage() < MAX_STAGE;
-
         boolean shouldShow = isDue && isNotFullyLearned;
+       // boolean shouldShow = isNotFullyLearned;
 
         Log.d(TAG, "Проверка показа: " + word.getWord() +
                 ", готово: " + isDue +
@@ -122,8 +122,21 @@ public class SimpleRepetitionSystem {
                 ", показывать: " + shouldShow);
 
         return shouldShow;
-    }
+    }  ВРЕМЕННО*/
+    public static boolean shouldShowInSession(WordItem word) {
+        // ВРЕМЕННО: показываем ВСЕ слова, кроме выученных (stage >= 6)
+        // Это нужно, чтобы проверить, что карточки вообще работают
+        boolean isNotFullyLearned = word.getReviewStage() < MAX_STAGE;
 
+        // Если слово выучено (stage >= 6) - не показываем
+        if (!isNotFullyLearned) {
+            Log.d(TAG, "❌ НЕ ПОКАЗЫВАЕМ (выучено): " + word.getWord());
+            return false;
+        }
+
+        Log.d(TAG, "✅ ПОКАЗЫВАЕМ (временно все): " + word.getWord());
+        return true;
+    }
     /**
      * Получает текст для отображения следующего повторения
      */

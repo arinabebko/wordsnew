@@ -18,14 +18,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.util.ArrayList;
 import java.util.List;
+
+
+// ... импорты те же ...
 
 public class Fragment1 extends Fragment {
 
     private TextView daysTextView, wordsInProgressTextView, wordsLearnedTextView, goodJobTextView;
     private WordRepository wordRepository;
     private boolean isProcessingClick = false;
-    private static final long BUTTON_COOLDOWN = 2000; // 2 секунды
+    private static final long BUTTON_COOLDOWN = 2000;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -33,19 +38,10 @@ public class Fragment1 extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment1, container, false);
 
-        // Инициализируем репозиторий
         wordRepository = new WordRepository(getContext());
-
-        // Находим все TextView
         initViews(view);
-
-        // Загружаем статистику
         loadUserStats();
-
-        // Настраиваем кнопку start
         setupStartButton(view);
-
-        // Настраиваем кнопки поиска и добавления
         setupBottomButtons(view);
 
         return view;
@@ -75,15 +71,10 @@ public class Fragment1 extends Fragment {
 
     private void updateStatsUI(UserStats stats) {
         if (getActivity() == null) return;
-
         getActivity().runOnUiThread(() -> {
-            // Используем getString с форматированием для дней
             daysTextView.setText(getString(R.string.stats_streak_days, stats.getStreakDays()));
-
-            // Числа оставляем просто числами, но текст берем из ресурсов
             wordsInProgressTextView.setText(" " + stats.getWordsInProgress());
             wordsLearnedTextView.setText(" " + stats.getWordsLearned());
-
             updateMotivationalMessage(stats);
         });
     }
@@ -112,49 +103,36 @@ public class Fragment1 extends Fragment {
         goodJobTextView.setText(messageResId);
     }
 
-
-
     private void setupStartButton(View view) {
         Button startButton = view.findViewById(R.id.startButton);
         ProgressBar progressBar = view.findViewById(R.id.loadingProgressBar);
         final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
+
         startButton.setOnClickListener(v -> {
             v.startAnimation(clickAnim);
-            // Если уже обрабатываем клик - игнорируем
-            if (isProcessingClick) {
-                return;
-            }
+            if (isProcessingClick) return;
 
-            // Устанавливаем флаг
             isProcessingClick = true;
-
-            // Визуальная обратная связь
             startButton.setEnabled(false);
             startButton.setAlpha(0.5f);
             progressBar.setVisibility(View.VISIBLE);
 
-            // Показываем сообщение
-            Toast.makeText(getContext(), R.string.stats_loading_study, Toast.LENGTH_SHORT).show();
-
-            // Запускаем с задержкой
             startButton.postDelayed(() -> {
                 checkIfWordsAvailable();
 
-                // Восстанавливаем кнопку через 2 секунды
                 startButton.postDelayed(() -> {
                     isProcessingClick = false;
                     startButton.setEnabled(true);
                     startButton.setAlpha(1f);
                     progressBar.setVisibility(View.GONE);
                 }, BUTTON_COOLDOWN);
-            }, 500); // Небольшая задержка перед вызовом checkIfWordsAvailable
+            }, 500);
         });
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Сбрасываем состояние при возвращении
         if (getView() != null) {
             Button startButton = getView().findViewById(R.id.startButton);
             ProgressBar progressBar = getView().findViewById(R.id.loadingProgressBar);
@@ -163,32 +141,71 @@ public class Fragment1 extends Fragment {
             startButton.setEnabled(true);
             startButton.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
-
-
             loadUserStats();
         }
     }
 
+    private void setupBottomButtons(View view) {
+        LinearLayout searchButtonLayout = view.findViewById(R.id.searchButtonLayout);
+        LinearLayout addButtonLayout = view.findViewById(R.id.addButtonLayout);
+        final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
+
+        searchButtonLayout.setOnClickListener(v -> {
+            v.startAnimation(clickAnim);
+            openSearchFragment();
+        });
+
+        addButtonLayout.setOnClickListener(v -> {
+            v.startAnimation(clickAnim);
+            showAddWordDialog();
+        });
+    }
+
+    private void openSearchFragment() {
+        SearchWordsFragment searchFragment = new SearchWordsFragment();
+        requireActivity().getSupportFragmentManager().beginTransaction()
+                .replace(android.R.id.content, searchFragment)
+                .addToBackStack("search_navigation")
+                .commit();
+    }
+
+    private void showAddWordDialog() {
+        AddWordWithLibraryDialog dialog = AddWordWithLibraryDialog.newInstance();
+        dialog.setOnWordAddedListener((word, translation, note, libraryId) -> {
+            WordItem newWord = new WordItem(word, translation, note);
+            wordRepository.addWordToCustomLibrary(libraryId, newWord, new WordRepository.OnWordAddedListener() {
+                @Override
+                public void onWordAdded(WordItem addedWord) {
+                    Toast.makeText(getContext(), R.string.stats_word_added, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    String errorMsg = getString(R.string.word_add_error_toast) + ": " + e.getMessage();
+                    Toast.makeText(getContext(), errorMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+        dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
+    }
+/*
+    // ✅ ИСПРАВЛЕННЫЙ МЕТОД — берем ТОЛЬКО активные слова
     private void checkIfWordsAvailable() {
-        // Сначала получаем текущий язык
         LanguageManager languageManager = new LanguageManager(getContext());
         String currentLanguage = languageManager.getCurrentLanguage();
 
-        Log.d("Fragment1", "Проверка слов для языка: " + currentLanguage);
-
-        // Используем новую версию метода с языком
+        // ✅ ИСПРАВЛЕНО: Используем правильный метод загрузки ТОЛЬКО активных слов
         wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d("Fragment1", "Для языка " + currentLanguage + " найдено слов: " + words.size());
+                Log.d("Fragment1", "Загружено слов для изучения: " + words.size() + ", язык: " + currentLanguage);
 
                 if (words.isEmpty()) {
+                    // Показываем сообщение, что нет слов
                     Toast.makeText(getContext(), R.string.stats_no_words, Toast.LENGTH_LONG).show();
-                      } else {
-                    // Создаем фрагмент с указанием языка
-                    WordsFragment startFragment = WordsFragment.newInstance(currentLanguage);
-
-                    // Открываем его
+                } else {
+                    // Передаем слова во фрагмент
+                    WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
                     requireActivity().getSupportFragmentManager().beginTransaction()
                             .replace(android.R.id.content, startFragment)
                             .addToBackStack("fragment1_navigation")
@@ -198,80 +215,91 @@ public class Fragment1 extends Fragment {
 
             @Override
             public void onError(Exception e) {
-                Log.e("Fragment1", "Ошибка загрузки слов для языка " + currentLanguage, e);
+                Log.e("Fragment1", "Ошибка загрузки слов", e);
                 Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
-
-
             }
         });
     }
+*/
 
-    private void setupBottomButtons(View view) {
-        LinearLayout searchButtonLayout = view.findViewById(R.id.searchButtonLayout);
-        LinearLayout addButtonLayout = view.findViewById(R.id.addButtonLayout);
+    //todo
+    // ❌ УДАЛИТЬ ЭТОТ МЕТОД — он больше не нужен и сверхум тож
 
-        // Загружаем анимацию
-        final Animation clickAnim = AnimationUtils.loadAnimation(getContext(), R.anim.button_click);
-
-        // Обработчик кнопки поиска
-        searchButtonLayout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Прыжок!
-                v.startAnimation(clickAnim);
-                openSearchFragment();
-            }
-        });
-
-        // Обработчик кнопки добавления
-        addButtonLayout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Прыжок!
-                v.startAnimation(clickAnim);
-                showAddWordDialog();
-            }
-        });
-    }
-
-    private void openSearchFragment() {
-        // Создаем фрагмент поиска
-        SearchWordsFragment searchFragment = new SearchWordsFragment();
-
-        // Открываем фрагмент поиска
-        requireActivity().getSupportFragmentManager().beginTransaction()
-                .replace(android.R.id.content, searchFragment)
-                .addToBackStack("search_navigation")
-                .commit();
-    }
-
-    //@Override
+    // private void loadDirectlyFromFirebase(String currentLanguage) { ... }
 
 
-    private void showAddWordDialog() {
-        // Используем диалог с выбором библиотеки
-        AddWordWithLibraryDialog dialog = AddWordWithLibraryDialog.newInstance();
-        dialog.setOnWordAddedListener(new AddWordWithLibraryDialog.OnWordAddedListener() {
-            @Override
-            public void onWordAdded(String word, String translation, String note, String libraryId) {
-                // Создаем новое слово
-                WordItem newWord = new WordItem(word, translation, note);
 
-                // Добавляем слово в выбранную библиотеку
-                wordRepository.addWordToCustomLibrary(libraryId, newWord, new WordRepository.OnWordAddedListener() {
+    private void checkIfWordsAvailable() {
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String currentLanguage = languageManager.getCurrentLanguage();
+
+        // ✅ СНАЧАЛА пытаемся загрузить из кеша (мгновенно)
+        wordRepository.getWordsWithProgressFromCache(currentLanguage,
+                new WordRepository.OnWordsLoadedListener() {
                     @Override
-                    public void onWordAdded(WordItem addedWord) {
-                        Toast.makeText(getContext(), R.string.stats_word_added, Toast.LENGTH_SHORT).show();
+                    public void onWordsLoaded(List<WordItem> words) {
+                        if (!words.isEmpty()) {
+                            Log.d("Fragment1", "✅ МГНОВЕННО: загружено " + words.size() + " слов из кеша");
+
+                            // Скрываем спиннер
+                            hideLoading();
+
+                            // Открываем фрагмент с карточками
+                            WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
+                            requireActivity().getSupportFragmentManager().beginTransaction()
+                                    .replace(android.R.id.content, startFragment)
+                                    .addToBackStack("fragment1_navigation")
+                                    .commit();
+                        } else {
+                            // Кеш пуст - пробуем загрузить из Firebase
+                            Log.d("Fragment1", "⚠️ Кеш пуст, загружаем из Firebase...");
+                            loadFromFirebase(currentLanguage);
+                        }
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        String errorMsg = getString(R.string.word_add_error_toast) + ": " + e.getMessage();
-                        Toast.makeText(getContext(), errorMsg, Toast.LENGTH_SHORT).show();
+                        Log.e("Fragment1", "❌ Ошибка загрузки из кеша", e);
+                        loadFromFirebase(currentLanguage);
                     }
                 });
-            }
-        });
-        dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
+    }
+
+    private void loadFromFirebase(String currentLanguage) {
+        wordRepository.getWordsWithProgress(currentLanguage,
+                new WordRepository.OnWordsWithProgressListener() {
+                    @Override
+                    public void onWordsLoaded(List<WordItem> words) {
+                        hideLoading();
+
+                        if (words.isEmpty()) {
+                            Toast.makeText(getContext(), R.string.stats_no_words, Toast.LENGTH_LONG).show();
+                        } else {
+                            WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
+                            requireActivity().getSupportFragmentManager().beginTransaction()
+                                    .replace(android.R.id.content, startFragment)
+                                    .addToBackStack("fragment1_navigation")
+                                    .commit();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        hideLoading();
+                        Log.e("Fragment1", "Ошибка загрузки", e);
+                        Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void hideLoading() {
+        if (getView() != null) {
+            ProgressBar progressBar = getView().findViewById(R.id.loadingProgressBar);
+            Button startButton = getView().findViewById(R.id.startButton);
+            progressBar.setVisibility(View.GONE);
+            startButton.setEnabled(true);
+            startButton.setAlpha(1f);
+            isProcessingClick = false;
+        }
     }
 }

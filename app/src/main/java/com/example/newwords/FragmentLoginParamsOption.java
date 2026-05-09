@@ -228,7 +228,7 @@ public class FragmentLoginParamsOption extends Fragment {
                     goToLoginActivity();
                 },
                 e -> {
-                    Log.e("Logout", "❌ Ошибка очистки кеша, но выходим", e);
+                    Log.e("Logout", "❌ Ошибка очистки кеша, но выходим", (Throwable) e);
                     mAuth.signOut();
                     goToLoginActivity();
                 }

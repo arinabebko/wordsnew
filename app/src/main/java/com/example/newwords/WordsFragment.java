@@ -38,56 +38,13 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     private ProgressBar progressBar;
     private TextView progressText;
     private String currentLanguage = "en"; // по умолчанию
-
+    private static final String ARG_WORDS = "words_list";  // ← ДОБАВЬ ЭТУ СТРОКУ
     private static final String TAG = "WordsFragment";
 
-    // Создать новый экземпляр с указанием языка
-    public static WordsFragment newInstance(String currentLanguage) {
-        WordsFragment fragment = new WordsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_LANGUAGE, currentLanguage);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    private boolean hasPassedWords = false;
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
-        // Получаем переданный язык
-        if (getArguments() != null) {
-            currentLanguage = getArguments().getString(ARG_LANGUAGE, "en");
-            Log.d(TAG, "📱 WordsFragment создан для языка: " + currentLanguage);
-        }
-    }
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_words, container, false);
 
-        // Инициализируем репозиторий
-        wordRepository = new WordRepository(getContext());
-
-        // Находим View элементы
-        viewPager2 = view.findViewById(R.id.viewPager2);
-        progressBar = view.findViewById(R.id.progressBar);
-
-        // Добавим TextView для прогресса (нужно добавить в макет)
-        progressText = view.findViewById(R.id.progressText);
-
-        // Настраиваем кнопку назад
-        setupBackButton(view);
-
-        // Настраиваем свайпы
-        setupSwipeGestures(view);
-
-        // Загружаем слова из Firebase
-        loadWordsFromFirebase();
-
-        return view;
-    }
 
     /**
      * Настраивает жесты свайпа
@@ -173,8 +130,15 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      */
     /**
      * Обрабатывает загруженные слова (вынес в отдельный метод для чистоты)
-     */
+
     private void processLoadedWords(List<WordItem> words) {
+        Log.d(TAG, "!!! processLoadedWords ВЫЗВАН с " + words.size() + " словами !!!");
+
+        if (words == null || words.isEmpty()) {
+            Log.e(TAG, "processLoadedWords: слова пустые!");
+            return;
+        }
+
         Log.d(TAG, "Загружено слов: " + words.size());
 
         wordList.clear();
@@ -214,6 +178,58 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
                 setupViewPagerWithWords(sessionWords);
             }
         }
+
+    private void processLoadedWords(List<WordItem> words) {
+        Log.d(TAG, "=== processLoadedWords ВЫЗВАН ===");
+        Log.d(TAG, "Загружено слов всего: " + words.size());
+
+        // ВРЕМЕННО: берем первые 20 слов без всякой фильтрации
+        List<WordItem> sessionWords = new ArrayList<>();
+        int maxWords = 90;
+
+        for (int i = 0; i < Math.min(maxWords, words.size()); i++) {
+            WordItem w = words.get(i);
+            sessionWords.add(w);
+            Log.d(TAG, "Добавляю слово " + i + ": " + w.getWord() + ", libraryId=" + w.getLibraryId());
+        }
+
+        Log.d(TAG, "Слов для отображения: " + sessionWords.size());
+
+        if (sessionWords.isEmpty()) {
+            Log.d(TAG, "Нет слов для изучения");
+            showNoWordsState();
+        } else {
+            setupViewPagerWithWords(sessionWords);
+        }
+
+        showLoading(false);
+    }  }ВРЕМЕННО*/
+
+    private void processLoadedWords(List<WordItem> words) {
+        Log.d(TAG, "=== processLoadedWords ВЫЗВАН ===");
+        Log.d(TAG, "Загружено слов всего: " + words.size());
+
+        // ✅ ПРАВИЛЬНАЯ ФИЛЬТРАЦИЯ через getWordsForSession
+        List<WordItem> sessionWords = getWordsForSession(words);
+
+        Log.d(TAG, "Слов для отображения после фильтрации: " + sessionWords.size());
+
+        // Логируем КАЖДОЕ слово, которое попало в сессию
+        for (int i = 0; i < sessionWords.size(); i++) {
+            WordItem w = sessionWords.get(i);
+            Log.d(TAG, "✅ Слово " + i + " в сессии: " + w.getWord() +
+                    ", stage=" + w.getReviewStage() +
+                    ", due=" + w.isDueForReview());
+        }
+
+        if (sessionWords.isEmpty()) {
+            Log.d(TAG, "Нет слов для изучения (после фильтрации)");
+            showNoWordsState();
+        } else {
+            setupViewPagerWithWords(sessionWords);
+        }
+
+        showLoading(false);
     }
     /**
      * Обновляет статистику "слов в процессе изучения"
@@ -285,32 +301,32 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      * Загружает слова из Firebase с учетом текущего языка
      */
     private void loadWordsFromFirebase() {
-        Log.d(TAG, "Начинаем загрузку слов из Firebase для языка: " + currentLanguage);
+        Log.d(TAG, "🚀 УМНАЯ загрузка для языка: " + currentLanguage);
         showLoading(true);
 
-        // СНАЧАЛА проверяем/создаем структуру word_progress
-        wordRepository.ensureWordProgressStructure(new WordRepository.OnSuccessListener() {
+        // ВЫЗЫВАЕМ SMART-МЕТОД (сначала кеш, потом фоном Firebase)
+        wordRepository.loadWordsSmart(currentLanguage, new WordRepository.OnWordsLoadedListener() {
             @Override
-            public void onSuccess() {
-                Log.d(TAG, "✅ Структура word_progress готова, загружаем слова для языка: " + currentLanguage);
+            public void onWordsLoaded(List<WordItem> words) {
+                Log.d(TAG, "📦 ПОЛУЧЕНЫ СЛОВА: " + words.size() + " шт.");
 
-                // ТЕПЕРЬ загружаем слова для конкретного языка
-                wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
-                    @Override
-                    public void onWordsLoaded(List<WordItem> words) {
-                        Log.d(TAG, "✅ Для языка " + currentLanguage + " загружено: " + words.size() + " слов");
-                        processLoadedWords(words);
-                        showLoading(false);
-                    }
+                if (words.isEmpty()) {
+                    Log.d(TAG, "⚠️ Слов нет, показываем пустое состояние");
+                    showNoWordsState();
+                    showLoading(false);
+                    return;
+                }
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "❌ Ошибка загрузки слов для языка " + currentLanguage, e);
+                // Обрабатываем слова (фильтрация для сессии и т.д.)
+                processLoadedWords(words);
+                showLoading(false);
+            }
 
-
-                        showLoading(false);
-                    }
-                });
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки", e);
+                showNoWordsState();
+                showLoading(false);
             }
         });
     }
@@ -374,46 +390,42 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
     /**
      * Выбирает слова для текущей сессии изучения
      */
+
     private List<WordItem> getWordsForSession(List<WordItem> allWords) {
         List<WordItem> sessionWords = new ArrayList<>();
-        final int maxWords = 20; // ← СДЕЛАТЬ final
+        final int maxWords = 90;
 
-        Log.d(TAG, "=== ВЫБОР СЛОВ ДЛЯ СЕССИИ ===");
+        Log.d(TAG, "=== ВЫБОР СЛОВ ДЛЯ СЕССИИ ==================================");
         Log.d(TAG, "Всего слов доступно: " + allWords.size());
 
-        // Используем final переменные для счетчиков
-        final int[] counters = {0, 0, 0, 0}; // [new, due, learned, inProgress]
-
-        // 1. Собираем слова которые нужно показать СЕЙЧАС
         for (WordItem word : allWords) {
-            if (SimpleRepetitionSystem.shouldShowInSession(word)) {
+            // Логируем КАЖДОЕ слово и все его параметры
+            boolean isDue = word.isDueForReview();
+            boolean isNotFullyLearned = word.getReviewStage() < 6;
+            boolean isNew = word.isNew();
+            boolean shouldShow = SimpleRepetitionSystem.shouldShowInSession(word);
+
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Log.d(TAG, "Слово: " + word.getWord());
+            Log.d(TAG, "  reviewStage: " + word.getReviewStage());
+            Log.d(TAG, "  consecutiveShows: " + word.getConsecutiveShows());
+            Log.d(TAG, "  nextReviewDate: " + word.getNextReviewDate());
+            Log.d(TAG, "  isDue (дата прошла?): " + isDue);
+            Log.d(TAG, "  isNotFullyLearned (stage<6?): " + isNotFullyLearned);
+            Log.d(TAG, "  isNew: " + isNew);
+            Log.d(TAG, "  shouldShow ИТОГ: " + shouldShow);
+
+            if (shouldShow) {
                 sessionWords.add(word);
-
-                // Логируем тип слова
-                if (word.isNew()) {
-                    counters[0]++;
-                } else {
-                    counters[1]++;
-                }
-
+                Log.d(TAG, "  ✅ ДОБАВЛЕНО В СЕССИЮ");
                 if (sessionWords.size() >= maxWords) break;
-            } else if (word.isLearned()) {
-                counters[2]++;
-            }
-
-            // Считаем слова в процессе
-            if (!word.isLearned()) {
-                counters[3]++;
+            } else {
+                Log.d(TAG, "  ❌ НЕ ДОБАВЛЕНО");
             }
         }
 
-        Log.d(TAG, "Статистика сессии:");
-        Log.d(TAG, " - Новые слова: " + counters[0]);
-        Log.d(TAG, " - Для повторения: " + counters[1]);
-        Log.d(TAG, " - Выученные (не показываем): " + counters[2]);
-        Log.d(TAG, " - Слов в процессе: " + counters[3]);
-        Log.d(TAG, " - Всего для сессии: " + sessionWords.size());
-
+        Log.d(TAG, "============================================================");
+        Log.d(TAG, "Всего для сессии: " + sessionWords.size());
         return sessionWords;
     }
     /**
@@ -1119,4 +1131,79 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
             });
         }
     }
+
+
+
+
+
+
+    // Создать новый экземпляр с указанием языка
+    public static WordsFragment newInstance(String currentLanguage) {
+        WordsFragment fragment = new WordsFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_LANGUAGE, currentLanguage);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    // НОВЫЙ МЕТОД - создает фрагмент с готовыми словами
+    public static WordsFragment newInstanceWithWords(List<WordItem> words, String currentLanguage) {
+        WordsFragment fragment = new WordsFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_LANGUAGE, currentLanguage);
+        args.putParcelableArrayList(ARG_WORDS, new ArrayList<>(words));  // Теперь работает
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (getArguments() != null) {
+            currentLanguage = getArguments().getString(ARG_LANGUAGE, "en");
+            Log.d(TAG, "📱 WordsFragment создан для языка: " + currentLanguage);
+
+            // Получаем переданные слова
+            ArrayList<WordItem> passedWords = getArguments().getParcelableArrayList(ARG_WORDS);
+            if (passedWords != null && !passedWords.isEmpty()) {
+                Log.d(TAG, "📦 Использую переданные слова: " + passedWords.size() + " шт.");
+                // Сохраняем слова для использования в onCreateView
+                wordList.clear();
+                wordList.addAll(passedWords);
+                hasPassedWords = true;
+            }
+        }
+    }
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_words, container, false);
+
+        wordRepository = new WordRepository(getContext());
+
+        viewPager2 = view.findViewById(R.id.viewPager2);
+        progressBar = view.findViewById(R.id.progressBar);
+        progressText = view.findViewById(R.id.progressText);
+
+        setupBackButton(view);
+        setupSwipeGestures(view);
+
+        // Если есть переданные слова - используем их
+        if (hasPassedWords && !wordList.isEmpty()) {
+            Log.d(TAG, "📦 Использую переданные слова в onCreateView: " + wordList.size());
+            processLoadedWords(wordList);
+            showLoading(false);
+        } else {
+            loadWordsFromFirebase();
+        }
+
+        return view;
+    }
+
+    //надо будет потом испрваить ноооо не сейяас бох с ним
+
+
 }

@@ -49,8 +49,7 @@ public interface LocalLibraryDao {
     @Query("SELECT * FROM local_libraries WHERE isActive = 1")
     List<LocalWordLibrary> getActiveLibraries();
 
-    @Query("UPDATE local_libraries SET isActive = :isActive WHERE libraryId = :libraryId")
-    void updateLibraryActiveStatus(String libraryId, boolean isActive);
+
 
     @Query("SELECT COUNT(*) FROM local_libraries WHERE libraryId = :libraryId AND isActive = 1")
     int isLibraryActive(String libraryId);
@@ -68,5 +67,9 @@ public interface LocalLibraryDao {
     @Query("UPDATE local_libraries SET wordCount = CASE WHEN wordCount > 0 THEN wordCount - 1 ELSE 0 END WHERE libraryId = :libraryId")
     void decrementWordCount(String libraryId);
 
-
+    @Query("SELECT * FROM local_libraries WHERE languageFrom = :language")
+    List<LocalWordLibrary> getLibrariesByLanguage(String language);
+    // LocalLibraryDao.java
+    @Query("UPDATE local_libraries SET isActive = :isActive WHERE libraryId = :libraryId")
+    void updateLibraryActiveStatus(String libraryId, boolean isActive);
 }

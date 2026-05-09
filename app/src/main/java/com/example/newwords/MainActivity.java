@@ -1,5 +1,7 @@
 package com.example.newwords;
 
+import static android.content.ContentValues.TAG;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -7,13 +9,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -21,8 +20,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.appcheck.FirebaseAppCheck;
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
-import com.example.newwords.ViewPagerAdapter;
 import androidx.core.splashscreen.SplashScreen;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private static final int PERMISSION_REQUEST_CODE = 100;
 
+    // ✅ ОБЪЯВЛЯЕМ РЕПОЗИТОРИЙ
+    private WordRepository wordRepository;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -38,10 +41,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // ✅ ИНИЦИАЛИЗИРУЕМ РЕПОЗИТОРИЙ
+        wordRepository = new WordRepository(this);
 
-
-
-        // Инициализация App Check с Play Integrity API должна идти до любых вызовов Firebase
+        // Инициализация App Check с Play Integrity API
         FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
         firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance());
 
@@ -49,14 +52,15 @@ public class MainActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (currentUser == null) {
-            // Пользователь не авторизован — запускаем LoginActivity
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
-            finish(); // чтобы закрыть MainActivity
-            return; // важно завершить метод, чтобы не показать основной экран
+            finish();
+            return;
         }
 
-        // если пользователь авторизован — остаёмся в MainActivity и показываем основной контент
+        // ✅ ЗАПУСКАЕМ ПРЕДЗАГРУЗКУ КЕША (фоном)
+        preloadCacheForAllLanguages();
+
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
@@ -85,16 +89,34 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // ⬇️⬇️⬇️ ОБРАБАТЫВАЕМ INTENT ПРИ ЗАПУСКЕ ИЗ УВЕДОМЛЕНИЯ ⬇️⬇️⬇️
         handleNotificationIntent(getIntent());
-
         requestNotificationPermission();
+    }
+
+    // ✅ МЕТОД ВЫНЕСЕН ИЗ onCreate (на уровень класса)
+    private void preloadCacheForAllLanguages() {
+        Log.d(TAG, "🚀 ПРЕДЗАГРУЗКА КЕША для всех языков");
+
+        String[] languages = {"ba", "en", "ru"};
+
+        for (String lang : languages) {
+            wordRepository.syncWordsFromFirebaseForLanguage(lang, new WordRepository.OnWordsLoadedListener() {
+                @Override
+                public void onWordsLoaded(List<WordItem> words) {
+                    Log.d(TAG, "✅ Предзагружено " + words.size() + " слов для языка " + lang);
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Log.e(TAG, "❌ Ошибка предзагрузки для " + lang, e);
+                }
+            });
+        }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        // ⬇️⬇️⬇️ ОБРАБАТЫВАЕМ, ЕСЛИ ПРИЛОЖЕНИЕ УЖЕ БЫЛО ЗАПУЩЕНО ⬇️⬇️⬇️
         handleNotificationIntent(intent);
     }
 
@@ -103,23 +125,16 @@ public class MainActivity extends AppCompatActivity {
             String fragmentToOpen = intent.getStringExtra("OPEN_FRAGMENT");
 
             if ("FRAGMENT_1".equals(fragmentToOpen)) {
-                // Открываем фрагмент 1 (первую вкладку)
                 openFragment1();
-
-                // Показываем сообщение (опционально)
                 Toast.makeText(this, "Добро пожаловать! Пора учить слова! 📚", Toast.LENGTH_SHORT).show();
-
                 Log.d("MainActivity", "Приложение открыто из уведомления, переходим на фрагмент 1");
             }
         }
     }
 
     private void openFragment1() {
-        // Устанавливаем первую вкладку (индекс 0)
         if (viewPager != null) {
-            viewPager.setCurrentItem(0, false); // false - без анимации
-
-            // Также обновляем bottom navigation
+            viewPager.setCurrentItem(0, false);
             if (bottomNavigationView != null) {
                 bottomNavigationView.setSelectedItemId(R.id.navigation_page1);
             }
@@ -146,24 +161,17 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Разрешение получено
                 Toast.makeText(this, "Уведомления включены", Toast.LENGTH_SHORT).show();
             } else {
-                // Разрешение не получено
                 Toast.makeText(this, "Уведомления отключены", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    /**
-     * Переключает на вкладку библиотек (Fragment2)
-     */
     public void switchToLibraryTab() {
         if (viewPager != null) {
-            viewPager.setCurrentItem(1); // 1 - это индекс Fragment2
+            viewPager.setCurrentItem(1);
         }
-
-        // Также можно добавить анимацию или дополнительную логику
         if (bottomNavigationView != null) {
             bottomNavigationView.setSelectedItemId(R.id.navigation_page2);
         }
