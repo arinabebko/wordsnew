@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#211B20"
+    android:padding="24dp">
+
+
+    <!-- Слово -->
+    <TextView
+        android:id="@+id/wordText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Word"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:fontFamily="@font/jura_font_wght" />
+
+    <!-- Перевод -->
+    <TextView
+        android:id="@+id/translationText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Translation"
+        android:textSize="18sp"
+        android:textColor="#B0B0B0"
+        android:gravity="center"
+        android:fontFamily="@font/jura_font_wght" />
+
+    <!-- Разделитель -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="24dp"
+        android:background="#3D3D3D" />
+
+    <!-- Заметка -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📝 Заметка"
+        android:textColor="#E0E0E0"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/noteText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Note"
+        android:textSize="16sp"
+        android:textColor="#FFFFFF"
+        android:padding="12dp"
+        android:background="#2A2A2A"
+        android:radius="8dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Дата добавления -->
+    <TextView
+        android:id="@+id/dateAddedText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📅 Дата"
+        android:textSize="14sp"
+        android:textColor="#B0B0B0"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Коллекция -->
+    <TextView
+        android:id="@+id/libraryText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📚 Коллекция"
+        android:textSize="14sp"
+        android:textColor="#B0B0B0"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Добавьте после libraryText -->
+    <TextView
+        android:id="@+id/wordTypeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✏️ Пользовательское слово"
+        android:textSize="12sp"
+        android:textColor="#B0B0B0"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
+    <!-- Кнопки действий -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/playButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="🔊 Слушать"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2A2A2A" />
+
+        <Button
+            android:id="@+id/editButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="✏️ Редактировать"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2A2A2A" />
+
+        <Button
+            android:id="@+id/deleteButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="🗑 Удалить"
+            android:textColor="#FF6B6B"
+            android:backgroundTint="#2A2A2A" />
+
+    </LinearLayout>
+
+</LinearLayout>

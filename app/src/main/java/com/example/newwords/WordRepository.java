@@ -1621,5 +1621,103 @@ public class WordRepository {
         }
         listener.onWordsLoaded(words);
     }
+
+    public interface OnWordUpdatedListener {
+        void onWordUpdated();
+        void onError(Exception e);
+    }
+    // В класс WordRepository добавьте этот метод
+    public void updateWord(WordItem word, OnWordUpdatedListener listener) {
+        if (word.getWordId() == null) {
+            listener.onError(new Exception("ID слова не может быть null"));
+            return;
+        }
+
+        if (userId == null || userId.equals("anonymous")) {
+            listener.onError(new Exception("Пользователь не авторизован"));
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("word", word.getWord());
+        updates.put("translation", word.getTranslation());
+        updates.put("note", word.getNote());
+        updates.put("isFavorite", word.isFavorite());
+
+        // ОПРЕДЕЛЯЕМ ГДЕ ХРАНИТСЯ СЛОВО
+        Task<Void> updateTask;
+
+        if (word.getLibraryId() != null && !word.getLibraryId().isEmpty()) {
+            // Слово находится в пользовательской библиотеке
+            Log.d(TAG, "Обновление слова в библиотеке: " + word.getLibraryId());
+            updateTask = db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(word.getLibraryId())
+                    .collection("words")
+                    .document(word.getWordId())
+                    .update(updates);
+        } else if (word.isCustomWord()) {
+            // Кастомное слово не в библиотеке
+            Log.d(TAG, "Обновление кастомного слова");
+            updateTask = db.collection("users")
+                    .document(userId)
+                    .collection("custom_words")
+                    .document(word.getWordId())
+                    .update(updates);
+        } else {
+            // Публичное слово - нельзя редактировать
+            listener.onError(new Exception("Нельзя редактировать публичные слова"));
+            return;
+        }
+
+        updateTask.addOnSuccessListener(aVoid -> {
+            Log.d(TAG, "✅ Слово обновлено в Firebase: " + word.getWord());
+            updateWordInLocal(word);
+            listener.onWordUpdated();
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "❌ Ошибка обновления слова", e);
+
+            // Если документ не найден, пробуем найти в другом месте
+            if (e.getMessage().contains("NOT_FOUND")) {
+                Log.d(TAG, "Пробуем найти слово в альтернативном месте...");
+                tryToFindAndUpdateWord(word, updates, listener);
+            } else {
+                listener.onError(e);
+            }
+        });
+    }
+
+    // Вспомогательный метод для поиска слова в разных коллекциях
+    private void tryToFindAndUpdateWord(WordItem word, Map<String, Object> updates, OnWordUpdatedListener listener) {
+        // Пробуем обновить в custom_words
+        db.collection("users")
+                .document(userId)
+                .collection("custom_words")
+                .document(word.getWordId())
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Слово найдено и обновлено в custom_words");
+                    word.setLibraryId(null);
+                    updateWordInLocal(word);
+                    listener.onWordUpdated();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Слово не найдено нигде", e);
+                    listener.onError(new Exception("Слово не найдено в базе данных"));
+                });
+    }
+    // Добавьте этот метод в класс WordRepository
+    private void updateWordInLocal(WordItem word) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                LocalWordItem localWord = convertToLocalWord(word);
+                localDb.wordDao().updateWord(localWord);
+                Log.d(TAG, "💾 Слово обновлено в Room: " + word.getWord());
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка обновления слова в Room", e);
+            }
+        });
+    }
 }
 

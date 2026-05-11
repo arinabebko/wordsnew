@@ -18,7 +18,13 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
     private WordRepository wordRepository;
     private boolean showDeleteButton;
     private OnWordDeleteListener deleteListener;
+    private OnWordClickListener clickListener; // ДОБАВЛЕНО
     private String currentLibraryId; // ID текущей библиотеки (если есть)
+
+    // ДОБАВЛЕНО: интерфейс для кликов по слову
+    public interface OnWordClickListener {
+        void onWordClick(WordItem word);
+    }
 
     public WordListAdapter(List<WordItem> wordList, WordRepository wordRepository, boolean showDeleteButton) {
         this.wordList = wordList;
@@ -47,6 +53,13 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         WordItem wordItem = wordList.get(position);
         holder.bind(wordItem);
+
+        // ДОБАВЛЕНО: устанавливаем обработчик клика на всю карточку
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onWordClick(wordItem);
+            }
+        });
     }
 
     @Override
@@ -73,6 +86,11 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
         this.deleteListener = listener;
     }
 
+    // ДОБАВЛЕНО: устанавливаем слушатель кликов
+    public void setOnWordClickListener(OnWordClickListener listener) {
+        this.clickListener = listener;
+    }
+
     public class ViewHolder extends RecyclerView.ViewHolder {
         private TextView wordText;
         private TextView translationText;
@@ -96,8 +114,8 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
             // Обработчик удаления
             deleteButton.setOnClickListener(v -> deleteWord());
 
-            // Обработчик клика на всю строку
-            itemView.setOnClickListener(v -> showWordDetails());
+            // УДАЛЕНО: обработчик клика на всю строку перенесен в onBindViewHolder
+            // чтобы избежать дублирования и правильно передавать слово
         }
 
         public void bind(WordItem wordItem) {
@@ -123,6 +141,9 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
             } else {
                 deleteButton.setVisibility(View.GONE);
             }
+
+            // ДОБАВЛЕНО: сброс старых слушателей, чтобы избежать утечек
+            itemView.setOnClickListener(null);
         }
 
         private void toggleFavorite() {
@@ -215,15 +236,7 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
             }
         }
 
-        private void showWordDetails() {
-            if (currentWordItem != null) {
-                String details = currentWordItem.getWord() + " - " + currentWordItem.getTranslation();
-                if (currentWordItem.getNote() != null && !currentWordItem.getNote().isEmpty()) {
-                    details += "\n\n" + currentWordItem.getNote();
-                }
-                Toast.makeText(itemView.getContext(), details, Toast.LENGTH_LONG).show();
-            }
-        }
+        // УДАЛЕНО: showWordDetails() - больше не нужен, используем детальное окно
 
         private void updateFavoriteIcon(boolean isFavorite) {
             // Убираем любой фон, который мог остаться (особенно желтый)

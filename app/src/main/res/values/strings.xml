@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">newwords</string>
+    <string name="app_name">vocabPlus</string>
 
     <string name="login_tv_welcome">Здравствуй!</string>
     <string name="login_et_email">Email</string>

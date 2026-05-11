@@ -11,6 +11,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
+        android:paddingTop="27dp"
         android:gravity="center_vertical"
         android:background="#211B20">
 
@@ -36,6 +37,7 @@
             <EditText
                 android:id="@+id/searchEditText"
                 android:layout_width="0dp"
+
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:hint="@string/word_search_et_hint"
