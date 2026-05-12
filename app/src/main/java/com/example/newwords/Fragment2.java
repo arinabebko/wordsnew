@@ -281,9 +281,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
         });
     }
-    /**
-     * Загружает активные библиотеки пользователя для текущего языка
-     */
+    @Override
+    public void onLibraryViewClicked(WordLibrary library) {
+        Log.d(TAG, "Просмотр публичной библиотеки: " + library.getName());
+        showLibraryWords(library); // Используем тот же метод, что и для просмотра слов в кастомной
+    }
     /**
      * Загружает активные библиотеки пользователя для текущего языка
      */
@@ -960,7 +962,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         LibraryWordsFragment wordsFragment = LibraryWordsFragment.newInstance(
                 library.getLibraryId(),
                 library.getLocalizedName(),
-                isCustomLibrary
+                isCustomLibrary  // Этот параметр определяет, показывать ли кнопку добавления слов
         );
 
         if (getActivity() != null) {
