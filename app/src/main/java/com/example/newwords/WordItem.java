@@ -114,17 +114,31 @@ public class WordItem implements Parcelable, Serializable {
     }
 
     public int getStatusText() {
-        if (difficulty == 3) return R.string.word_status_new;
-        if (difficulty == 2) return R.string.word_status_learning;
-        if (difficulty == 1) return R.string.word_status_learned;
-        return R.string.word_status_unknown;
+        if (reviewStage == 0) {
+            if (consecutiveShows == 0) {
+                return R.string.word_status_new;
+            } else {
+                return R.string.word_status_learning;
+            }
+        } else if (reviewStage >= 6) {
+            return R.string.word_status_learned;
+        } else {
+            return R.string.word_status_learning;
+        }
     }
 
     public int getStatusColor() {
-        if (difficulty == 3) return 0xFF625fba;
-        if (difficulty == 2) return 0xFFbabba9;
-        if (difficulty == 1) return 0xFF4CAF50;
-        return 0xFF625fba;
+        if (reviewStage == 0) {
+            if (consecutiveShows == 0) {
+                return 0xFF625fba; // Фиолетовый - новые
+            } else {
+                return 0xFFbabba9; // Серый - в процессе
+            }
+        } else if (reviewStage >= 6) {
+            return 0xFF4CAF50; // Зеленый - выучено
+        } else {
+            return 0xFFbabba9; // Серый - в процессе
+        }
     }
 
     // === PARCELABLE Implementation ===

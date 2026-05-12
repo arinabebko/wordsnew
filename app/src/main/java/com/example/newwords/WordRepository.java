@@ -363,6 +363,7 @@ public class WordRepository {
     }
 
     private void loadBasicRepetitionFields(WordItem word, QueryDocumentSnapshot document) {
+        // difficulty
         if (document.contains("difficulty")) {
             Object difficulty = document.get("difficulty");
             if (difficulty instanceof Long) {
@@ -372,6 +373,37 @@ public class WordRepository {
             }
         } else {
             word.setDifficulty(3);
+        }
+
+        // ✅ ДОБАВЛЯЕМ: reviewStage из документа (если есть)
+        if (document.contains("reviewStage")) {
+            Object reviewStage = document.get("reviewStage");
+            if (reviewStage instanceof Long) {
+                word.setReviewStage(((Long) reviewStage).intValue());
+            } else if (reviewStage instanceof Integer) {
+                word.setReviewStage((Integer) reviewStage);
+            }
+        } else {
+            word.setReviewStage(0);
+        }
+
+        // ✅ ДОБАВЛЯЕМ: nextReviewDate из документа (если есть)
+        if (document.contains("nextReviewDate")) {
+            word.setNextReviewDate(document.getDate("nextReviewDate"));
+        } else {
+            word.setNextReviewDate(new Date());
+        }
+
+        // ✅ ДОБАВЛЯЕМ: consecutiveShows из документа
+        if (document.contains("consecutiveShows")) {
+            Object shows = document.get("consecutiveShows");
+            if (shows instanceof Long) {
+                word.setConsecutiveShows(((Long) shows).intValue());
+            } else if (shows instanceof Integer) {
+                word.setConsecutiveShows((Integer) shows);
+            }
+        } else {
+            word.setConsecutiveShows(0);
         }
     }
 
@@ -388,6 +420,8 @@ public class WordRepository {
         Log.d(TAG, "=== СОХРАНЕНИЕ ПРОГРЕССА ===");
         Log.d(TAG, "Слово: " + word.getWord());
         Log.d(TAG, "Stage: " + word.getReviewStage());
+        Log.d(TAG, "ConsecutiveShows: " + word.getConsecutiveShows());
+        Log.d(TAG, "NextReviewDate: " + word.getNextReviewDate());
 
         if (userId == null || userId.equals("anonymous")) {
             saveWordProgressToLocal(word);
@@ -412,13 +446,20 @@ public class WordRepository {
         progress.put("lastReviewed", new Date());
         progress.put("updatedAt", new Date());
 
+        // ✅ ВАЖНО: Используем set, а не update (создаст документ если нет)
         db.collection("users")
                 .document(userId)
                 .collection("word_progress")
                 .document(word.getWordId())
                 .set(progress, SetOptions.merge())
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ Прогресс сохранен в Firebase"))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Ошибка сохранения в Firebase", e));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Прогресс сохранен в Firebase для: " + word.getWord());
+                    Log.d(TAG, "   - reviewStage: " + word.getReviewStage());
+                    Log.d(TAG, "   - nextReviewDate: " + word.getNextReviewDate());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Ошибка сохранения в Firebase: " + e.getMessage());
+                });
 
         saveWordProgressToLocal(word);
     }
@@ -429,18 +470,20 @@ public class WordRepository {
             return;
         }
 
-        // Обновляем в Firebase
+        // ✅ ВАЖНО: Сохраняем прогресс ВСЕГДА в word_progress
+        updateUserWordProgress(word); // ← ЭТО ДОЛЖНО ВЫЗЫВАТЬСЯ ВСЕГДА!
+
         Map<String, Object> updates = new HashMap<>();
         updates.put("isFavorite", word.isFavorite());
         updates.put("word", word.getWord());
         updates.put("translation", word.getTranslation());
         updates.put("note", word.getNote());
 
-        Task<Void> updateTask;
+        Task<Void> updateTask = null;
 
-        // Определяем где хранится слово
+        // Определяем где хранится слово ДЛЯ isFavorite
         if (word.getLibraryId() != null && !word.getLibraryId().isEmpty() && word.isCustomWord()) {
-            // Пользовательская библиотека
+            // Пользовательская библиотека - обновляем isFavorite там
             updateTask = db.collection("users")
                     .document(userId)
                     .collection("custom_libraries")
@@ -456,7 +499,7 @@ public class WordRepository {
                     .document(word.getWordId())
                     .update(updates);
         } else {
-            // Публичное слово - обновляем прогресс, но не само слово
+            // ✅ Публичное слово - обновляем ТОЛЬКО word_progress
             updateTask = db.collection("users")
                     .document(userId)
                     .collection("word_progress")
@@ -464,15 +507,17 @@ public class WordRepository {
                     .update(updates);
         }
 
-        updateTask.addOnSuccessListener(aVoid -> {
-            Log.d(TAG, "✅ isFavorite обновлен в Firebase: " + word.isFavorite());
-            // ОБЯЗАТЕЛЬНО обновляем в локальной БД
+        if (updateTask != null) {
+            updateTask.addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "✅ Слово обновлено в Firebase: " + word.getWord());
+                updateWordInLocal(word);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "❌ Ошибка обновления, но пробуем обновить локально", e);
+                updateWordInLocal(word);
+            });
+        } else {
             updateWordInLocal(word);
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "❌ Ошибка обновления isFavorite", e);
-            // Пробуем обновить хотя бы локально
-            updateWordInLocal(word);
-        });
+        }
     }
 
     // ========== МЕТОДЫ ДЛЯ FRAGMENT1 ==========
@@ -548,18 +593,22 @@ public class WordRepository {
                                 word.setWordId(document.getId());
                                 word.setLibraryId(document.getReference().getParent().getParent().getId());
 
-                                // ✅ ВАЖНО: Устанавливаем флаг кастомности
-                                String libraryId = word.getLibraryId();
-                                boolean isCustomLibrary = isLibraryCustom(libraryId);
+                                // ✅ ФИКС 1: Устанавливаем флаг кастомности
+                                boolean isCustomLibrary = isLibraryCustom(word.getLibraryId());
                                 word.setCustomWord(isCustomLibrary);
 
-                                // ✅ ВАЖНО: Загружаем isFavorite из документа (если есть)
+                                // ✅ ФИКС 2: Загружаем isFavorite из документа
                                 if (document.contains("isFavorite")) {
                                     Boolean isFav = document.getBoolean("isFavorite");
                                     word.setFavorite(isFav != null && isFav);
                                 } else {
-                                    word.setFavorite(false); // По умолчанию
+                                    word.setFavorite(false);
                                 }
+
+                                // ✅ ФИКС 3: Загружаем прогресс (reviewStage, nextReviewDate и т.д.)
+                                // НО! Эти поля обычно в word_progress, а не в слове
+                                // Поэтому пока ставим дефолтные значения, позже загрузим из word_progress
+                                loadBasicRepetitionFields(word, document);
 
                                 allWords.add(word);
                             }
@@ -567,7 +616,13 @@ public class WordRepository {
                     }
 
                     Log.d(TAG, "✅ Загружено " + allWords.size() + " слов из Firebase");
-                    listener.onWordsLoaded(allWords);
+
+                    // ✅ ФИКС 4: ОТДЕЛЬНО загружаем прогресс из word_progress
+                    if (allWords.isEmpty()) {
+                        listener.onWordsLoaded(allWords);
+                    } else {
+                        loadFavoritesAndProgress(allWords, listener);
+                    }
                 }).addOnFailureListener(listener::onError);
             }
 
@@ -578,12 +633,35 @@ public class WordRepository {
             }
         });
     }
+    private void loadFavoritesAndProgress(List<WordItem> words, OnWordsLoadedListener listener) {
+        if (words.isEmpty()) {
+            listener.onWordsLoaded(words);
+            return;
+        }
+
+        // Загружаем прогресс (там есть и isFavorite, и reviewStage)
+        loadAllWordsProgress(words, new OnWordsWithProgressListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> wordsWithProgress) {
+                // Теперь у слов есть и isFavorite, и reviewStage, и nextReviewDate
+                Log.d(TAG, "✅ Загружен прогресс для " + wordsWithProgress.size() + " слов");
+                listener.onWordsLoaded(wordsWithProgress);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "⚠️ Ошибка загрузки прогресса, используем слова без прогресса", e);
+                listener.onWordsLoaded(words);
+            }
+        });
+    }
 
     // Вспомогательный метод для проверки, кастомная ли библиотека
     private boolean isLibraryCustom(String libraryId) {
-        // Можно кэшировать в Map для производительности
-        // Сейчас просто заглушка - нужно реализовать проверку
-        return libraryId != null && libraryId.startsWith("custom_");
+        if (libraryId == null) return false;
+        // Проверяем по префиксу или по наличию в custom_libraries
+        // Простой способ: если libraryId НЕ начинается с "lib_" - значит кастомная
+        return !libraryId.startsWith("lib_");
     }
 
     public void getUserActiveLibraries(OnLibrariesLoadedListener listener) {
@@ -633,27 +711,7 @@ public class WordRepository {
         });
     }
 
-    private void loadFavoritesAndProgress(List<WordItem> words, OnWordsLoadedListener listener) {
-        if (words.isEmpty()) {
-            listener.onWordsLoaded(words);
-            return;
-        }
 
-        // Загружаем прогресс (там есть и isFavorite)
-        loadAllWordsProgress(words, new OnWordsWithProgressListener() {
-            @Override
-            public void onWordsLoaded(List<WordItem> wordsWithProgress) {
-                // Теперь у слов есть и isFavorite, и reviewStage, и nextReviewDate
-                listener.onWordsLoaded(wordsWithProgress);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                // Если ошибка, загружаем хотя бы без прогресса
-                listener.onWordsLoaded(words);
-            }
-        });
-    }
     public void syncFavoriteStatus(String wordId, boolean isFavorite) {
         if (userId.equals("anonymous")) return;
 
@@ -1241,9 +1299,6 @@ public class WordRepository {
         getUserActiveLibraries(new OnLibrariesLoadedListener() {
             @Override
             public void onLibrariesLoaded(List<WordLibrary> allLibraries) {
-                Log.d(TAG, "📚 Всего библиотек: " + allLibraries.size());
-
-                // Фильтруем библиотеки по нужному языку
                 List<WordLibrary> filteredLibraries = new ArrayList<>();
                 for (WordLibrary lib : allLibraries) {
                     if (language.equals(lib.getLanguageFrom())) {
@@ -1253,14 +1308,10 @@ public class WordRepository {
                 }
 
                 if (filteredLibraries.isEmpty()) {
-                    Log.d(TAG, "⚠️ Нет библиотек для языка: " + language);
-                    if (listener != null) {
-                        listener.onWordsLoaded(new ArrayList<>());
-                    }
+                    if (listener != null) listener.onWordsLoaded(new ArrayList<>());
                     return;
                 }
 
-                // Загружаем слова из каждой библиотеки
                 List<WordItem> allWords = new ArrayList<>();
                 List<Task<QuerySnapshot>> tasks = new ArrayList<>();
 
@@ -1278,46 +1329,41 @@ public class WordRepository {
                                 word.setWordId(document.getId());
                                 word.setLibraryId(document.getReference().getParent().getParent().getId());
 
-                                // Устанавливаем флаг кастомности
                                 boolean isCustomLibrary = isLibraryCustom(word.getLibraryId());
                                 word.setCustomWord(isCustomLibrary);
+
+                                // ✅ Загружаем базовый прогресс из документа слова
+                                loadBasicRepetitionFields(word, document);
 
                                 allWords.add(word);
                             }
                         }
                     }
 
-                    Log.d(TAG, "🌐 Загружено из Firebase: " + allWords.size() + " слов для языка " + language);
+                    Log.d(TAG, "🌐 Загружено из Firebase: " + allWords.size() + " слов");
 
                     if (allWords.isEmpty()) {
-                        // Если нет слов, просто сохраняем библиотеки
                         saveActiveLibrariesToCache(filteredLibraries);
-                        if (listener != null) {
-                            listener.onWordsLoaded(allWords);
-                        }
+                        if (listener != null) listener.onWordsLoaded(allWords);
                         return;
                     }
 
-                    // ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Загружаем прогресс (isFavorite, reviewStage и т.д.)
+                    // ✅ Загружаем прогресс из word_progress и сохраняем в кеш
                     loadAllWordsProgressForSync(allWords, filteredLibraries, listener);
-
                 }).addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Ошибка синхронизации для языка " + language, e);
-                    if (listener != null) {
-                        listener.onError(e);
-                    }
+                    Log.e(TAG, "❌ Ошибка синхронизации", e);
+                    if (listener != null) listener.onError(e);
                 });
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "❌ Ошибка загрузки библиотек для языка " + language, e);
-                if (listener != null) {
-                    listener.onError(e);
-                }
+                if (listener != null) listener.onError(e);
             }
         });
     }
+
+
 
     // Новый метод для загрузки прогресса при синхронизации
     private void loadAllWordsProgressForSync(List<WordItem> words, List<WordLibrary> filteredLibraries, OnWordsLoadedListener listener) {

@@ -100,8 +100,15 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         if (currentPosition < wordList.size()) {
             WordItem currentWord = wordList.get(currentPosition);
 
+            Log.d("StackCardAdapter", "=== SWIPE RIGHT (ВЫУЧИЛ) ===");
+            Log.d("StackCardAdapter", "Слово ДО: " + currentWord.getWord() +
+                    ", stage=" + currentWord.getReviewStage() +
+                    ", shows=" + currentWord.getConsecutiveShows());
+
             // Обрабатываем в системе повторений
             SimpleRepetitionSystem.processAnswer(currentWord, true);
+
+            Log.d("StackCardAdapter", "Слово ПОСЛЕ processAnswer: stage=" + currentWord.getReviewStage());
 
             // Сохраняем в базу
             wordRepository.updateWord(currentWord);
