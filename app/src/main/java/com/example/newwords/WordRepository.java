@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import com.google.firebase.firestore.Query;
 
 public class WordRepository {
     private final FirebaseFirestore db;
@@ -423,8 +424,55 @@ public class WordRepository {
     }
 
     public void updateWord(WordItem word) {
-        if (word.getWordId() == null) return;
-        updateUserWordProgress(word);
+        if (word.getWordId() == null) {
+            Log.e(TAG, "❌ updateWord: wordId = null");
+            return;
+        }
+
+        // Обновляем в Firebase
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("isFavorite", word.isFavorite());
+        updates.put("word", word.getWord());
+        updates.put("translation", word.getTranslation());
+        updates.put("note", word.getNote());
+
+        Task<Void> updateTask;
+
+        // Определяем где хранится слово
+        if (word.getLibraryId() != null && !word.getLibraryId().isEmpty() && word.isCustomWord()) {
+            // Пользовательская библиотека
+            updateTask = db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(word.getLibraryId())
+                    .collection("words")
+                    .document(word.getWordId())
+                    .update(updates);
+        } else if (word.isCustomWord()) {
+            // Кастомное слово (не в библиотеке)
+            updateTask = db.collection("users")
+                    .document(userId)
+                    .collection("custom_words")
+                    .document(word.getWordId())
+                    .update(updates);
+        } else {
+            // Публичное слово - обновляем прогресс, но не само слово
+            updateTask = db.collection("users")
+                    .document(userId)
+                    .collection("word_progress")
+                    .document(word.getWordId())
+                    .update(updates);
+        }
+
+        updateTask.addOnSuccessListener(aVoid -> {
+            Log.d(TAG, "✅ isFavorite обновлен в Firebase: " + word.isFavorite());
+            // ОБЯЗАТЕЛЬНО обновляем в локальной БД
+            updateWordInLocal(word);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "❌ Ошибка обновления isFavorite", e);
+            // Пробуем обновить хотя бы локально
+            updateWordInLocal(word);
+        });
     }
 
     // ========== МЕТОДЫ ДЛЯ FRAGMENT1 ==========
@@ -499,19 +547,43 @@ public class WordRepository {
                                 WordItem word = document.toObject(WordItem.class);
                                 word.setWordId(document.getId());
                                 word.setLibraryId(document.getReference().getParent().getParent().getId());
+
+                                // ✅ ВАЖНО: Устанавливаем флаг кастомности
+                                String libraryId = word.getLibraryId();
+                                boolean isCustomLibrary = isLibraryCustom(libraryId);
+                                word.setCustomWord(isCustomLibrary);
+
+                                // ✅ ВАЖНО: Загружаем isFavorite из документа (если есть)
+                                if (document.contains("isFavorite")) {
+                                    Boolean isFav = document.getBoolean("isFavorite");
+                                    word.setFavorite(isFav != null && isFav);
+                                } else {
+                                    word.setFavorite(false); // По умолчанию
+                                }
+
                                 allWords.add(word);
                             }
                         }
                     }
+
+                    Log.d(TAG, "✅ Загружено " + allWords.size() + " слов из Firebase");
                     listener.onWordsLoaded(allWords);
                 }).addOnFailureListener(listener::onError);
             }
 
             @Override
             public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки активных библиотек", e);
                 listener.onError(e);
             }
         });
+    }
+
+    // Вспомогательный метод для проверки, кастомная ли библиотека
+    private boolean isLibraryCustom(String libraryId) {
+        // Можно кэшировать в Map для производительности
+        // Сейчас просто заглушка - нужно реализовать проверку
+        return libraryId != null && libraryId.startsWith("custom_");
     }
 
     public void getUserActiveLibraries(OnLibrariesLoadedListener listener) {
@@ -545,6 +617,94 @@ public class WordRepository {
                 });
     }
 
+    public void getWordsWithProgressFromFirebase(String language, OnWordsLoadedListener listener) {
+        // 1. Загружаем слова из библиотек
+        getWordsFromActiveLibrariesFirebase(language, new OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                // 2. Загружаем избранное и прогресс из word_progress
+                loadFavoritesAndProgress(words, listener);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                listener.onError(e);
+            }
+        });
+    }
+
+    private void loadFavoritesAndProgress(List<WordItem> words, OnWordsLoadedListener listener) {
+        if (words.isEmpty()) {
+            listener.onWordsLoaded(words);
+            return;
+        }
+
+        // Загружаем прогресс (там есть и isFavorite)
+        loadAllWordsProgress(words, new OnWordsWithProgressListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> wordsWithProgress) {
+                // Теперь у слов есть и isFavorite, и reviewStage, и nextReviewDate
+                listener.onWordsLoaded(wordsWithProgress);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                // Если ошибка, загружаем хотя бы без прогресса
+                listener.onWordsLoaded(words);
+            }
+        });
+    }
+    public void syncFavoriteStatus(String wordId, boolean isFavorite) {
+        if (userId.equals("anonymous")) return;
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("isFavorite", isFavorite);
+        data.put("updatedAt", new Date());
+
+        // 1. Обновляем в word_progress (для публичных слов)
+        db.collection("users")
+                .document(userId)
+                .collection("word_progress")
+                .document(wordId)
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ isFavorite синхронизирован в word_progress: " + isFavorite);
+                    updateWordFavoriteLocal(wordId, isFavorite);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "❌ Ошибка синхронизации word_progress", e));
+
+        // 2. ТАКЖЕ ищем слово в custom_libraries и обновляем там
+        findAndUpdateFavoriteInCustomLibraries(wordId, isFavorite);
+    }
+
+    private void findAndUpdateFavoriteInCustomLibraries(String wordId, boolean isFavorite) {
+        // Ищем во всех пользовательских библиотеках
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .get()
+                .addOnSuccessListener(libraries -> {
+                    for (QueryDocumentSnapshot library : libraries) {
+                        String libraryId = library.getId();
+                        db.collection("users")
+                                .document(userId)
+                                .collection("custom_libraries")
+                                .document(libraryId)
+                                .collection("words")
+                                .document(wordId)
+                                .update("isFavorite", isFavorite)
+                                .addOnSuccessListener(aVoid ->
+                                        Log.d(TAG, "✅ isFavorite обновлен в библиотеке " + libraryId))
+                                .addOnFailureListener(e -> {}); // игнорируем, если слова нет в этой библиотеке
+                    }
+                });
+    }
+
+    private void updateWordFavoriteLocal(String wordId, boolean isFavorite) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            localDb.wordDao().updateFavoriteStatus(wordId, isFavorite);
+        });
+    }
     private void loadLibrariesInfo(List<String> libraryIds, OnLibrariesLoadedListener listener) {
         if (libraryIds.isEmpty()) {
             listener.onLibrariesLoaded(new ArrayList<>());
@@ -1117,6 +1277,11 @@ public class WordRepository {
                                 WordItem word = document.toObject(WordItem.class);
                                 word.setWordId(document.getId());
                                 word.setLibraryId(document.getReference().getParent().getParent().getId());
+
+                                // Устанавливаем флаг кастомности
+                                boolean isCustomLibrary = isLibraryCustom(word.getLibraryId());
+                                word.setCustomWord(isCustomLibrary);
+
                                 allWords.add(word);
                             }
                         }
@@ -1124,15 +1289,18 @@ public class WordRepository {
 
                     Log.d(TAG, "🌐 Загружено из Firebase: " + allWords.size() + " слов для языка " + language);
 
-                    // СОХРАНЯЕМ В КЕШ (это самое важное!)
-                    saveWordsToCache(allWords);
-
-                    // Сохраняем активные библиотеки
-                    saveActiveLibrariesToCache(filteredLibraries);
-
-                    if (listener != null) {
-                        listener.onWordsLoaded(allWords);
+                    if (allWords.isEmpty()) {
+                        // Если нет слов, просто сохраняем библиотеки
+                        saveActiveLibrariesToCache(filteredLibraries);
+                        if (listener != null) {
+                            listener.onWordsLoaded(allWords);
+                        }
+                        return;
                     }
+
+                    // ✅ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Загружаем прогресс (isFavorite, reviewStage и т.д.)
+                    loadAllWordsProgressForSync(allWords, filteredLibraries, listener);
+
                 }).addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Ошибка синхронизации для языка " + language, e);
                     if (listener != null) {
@@ -1147,6 +1315,106 @@ public class WordRepository {
                 if (listener != null) {
                     listener.onError(e);
                 }
+            }
+        });
+    }
+
+    // Новый метод для загрузки прогресса при синхронизации
+    private void loadAllWordsProgressForSync(List<WordItem> words, List<WordLibrary> filteredLibraries, OnWordsLoadedListener listener) {
+        if (userId.equals("anonymous")) {
+            // Анонимный пользователь - сохраняем без прогресса
+            saveWordsToCache(words);
+            saveActiveLibrariesToCache(filteredLibraries);
+            if (listener != null) {
+                listener.onWordsLoaded(words);
+            }
+            return;
+        }
+
+        List<String> wordIds = new ArrayList<>();
+        Map<String, WordItem> wordMap = new HashMap<>();
+        for (WordItem word : words) {
+            if (word.getWordId() != null && !word.getWordId().isEmpty()) {
+                wordIds.add(word.getWordId());
+                wordMap.put(word.getWordId(), word);
+            }
+        }
+
+        if (wordIds.isEmpty()) {
+            saveWordsToCache(words);
+            saveActiveLibrariesToCache(filteredLibraries);
+            if (listener != null) {
+                listener.onWordsLoaded(words);
+            }
+            return;
+        }
+
+        // Разбиваем на пачки по 25 (Firestore лимит)
+        final int BATCH_SIZE = 25;
+        List<List<String>> batches = new ArrayList<>();
+        for (int i = 0; i < wordIds.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, wordIds.size());
+            batches.add(new ArrayList<>(wordIds.subList(i, end)));
+        }
+
+        Log.d(TAG, "📦 Загружаем прогресс для " + wordIds.size() + " слов, пачек: " + batches.size());
+
+        // Загружаем прогресс для всех слов
+        loadProgressBatchesForSync(batches, wordMap, words, filteredLibraries, listener);
+    }
+
+    private void loadProgressBatchesForSync(List<List<String>> batches,
+                                            Map<String, WordItem> wordMap,
+                                            List<WordItem> words,
+                                            List<WordLibrary> filteredLibraries,
+                                            OnWordsLoadedListener listener) {
+
+        List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+        for (List<String> batch : batches) {
+            tasks.add(db.collection("users")
+                    .document(userId)
+                    .collection("word_progress")
+                    .whereIn("__name__", batch)
+                    .get());
+        }
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+            for (Object result : results) {
+                if (result instanceof QuerySnapshot) {
+                    QuerySnapshot snapshot = (QuerySnapshot) result;
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        WordItem word = wordMap.get(doc.getId());
+                        if (word != null) {
+                            // Применяем прогресс к слову (включая isFavorite)
+                            applyProgressToWord(word, doc);
+                        }
+                    }
+                }
+            }
+
+            // Устанавливаем дефолтный прогресс для слов, у которых нет данных
+            for (WordItem word : words) {
+                if (word.getReviewStage() == 0 && word.getConsecutiveShows() == 0) {
+                    initializeDefaultProgress(word);
+                }
+            }
+
+            // ✅ ТЕПЕРЬ СОХРАНЯЕМ В КЕШ С ПРОГРЕССОМ
+            saveWordsToCache(words);
+            saveActiveLibrariesToCache(filteredLibraries);
+
+            Log.d(TAG, "✅ Синхронизация завершена, сохранено в кеш: " + words.size() + " слов");
+
+            if (listener != null) {
+                listener.onWordsLoaded(words);
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "❌ Ошибка загрузки прогресса, сохраняем без прогресса", e);
+            // В случае ошибки сохраняем хотя бы слова
+            saveWordsToCache(words);
+            saveActiveLibrariesToCache(filteredLibraries);
+            if (listener != null) {
+                listener.onWordsLoaded(words);
             }
         });
     }
@@ -1559,6 +1827,8 @@ public class WordRepository {
                         word.setReviewStage(localWord.getReviewStage());
                         word.setConsecutiveShows(localWord.getConsecutiveShows());
                         word.setNextReviewDate(localWord.getNextReviewDate());
+                        // ✅ ДОБАВЛЯЕМ ЗАГРУЗКУ isFavorite ИЗ ЛОКАЛЬНОЙ БД
+                        word.setFavorite(localWord.isFavorite());
                         loadedCount++;
                     } else {
                         initializeDefaultProgress(word);
@@ -1607,6 +1877,13 @@ public class WordRepository {
         if (doc.contains("correctAnswers")) {
             Long val = doc.getLong("correctAnswers");
             if (val != null) word.setCorrectAnswers(val.intValue());
+        }
+        // ✅ ДОБАВЛЯЕМ ЗАГРУЗКУ isFavorite
+        if (doc.contains("isFavorite")) {
+            Boolean isFav = doc.getBoolean("isFavorite");
+            if (isFav != null) {
+                word.setFavorite(isFav);
+            }
         }
     }
 

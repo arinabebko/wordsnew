@@ -150,9 +150,10 @@ public class WordListAdapter extends RecyclerView.Adapter<WordListAdapter.ViewHo
             if (currentWordItem != null) {
                 boolean newFavoriteState = !currentWordItem.isFavorite();
                 currentWordItem.setFavorite(newFavoriteState);
-
                 updateFavoriteIcon(newFavoriteState);
-                wordRepository.updateWord(currentWordItem);
+
+                // ✅ ПРАВИЛЬНО: вызываем syncFavoriteStatus
+                wordRepository.syncFavoriteStatus(currentWordItem.getWordId(), newFavoriteState);
 
                 String message = newFavoriteState ? "★ Добавлено в избранное" : "☆ Убрано из избранного";
                 Toast.makeText(itemView.getContext(), message + ": " + currentWordItem.getWord(), Toast.LENGTH_SHORT).show();

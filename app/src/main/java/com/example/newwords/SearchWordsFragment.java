@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +29,7 @@ public class SearchWordsFragment extends Fragment implements
         WordListAdapter.OnWordClickListener {
 
     private static final String TAG = "SearchWordsFragment";
+    private static final String ARG_LANGUAGE = "current_language";
 
     private RecyclerView wordsRecyclerView;
     private WordListAdapter wordAdapter;
@@ -39,7 +41,21 @@ public class SearchWordsFragment extends Fragment implements
     private EditText searchEditText;
     private ImageButton backButton;
     private ImageButton clearButton;
+  //  private ImageButton favoriteFilterButton; // ✅ НОВЫЙ ЭЛЕМЕНТ
     private TextToSpeechManager ttsManager;
+    private String currentLanguage = "en";
+    private ImageView favoriteFilterButton;
+
+    // ✅ Флаг для отслеживания режима фильтрации
+    private boolean isShowingFavoritesOnly = false;
+
+    public static SearchWordsFragment newInstance(String language) {
+        SearchWordsFragment fragment = new SearchWordsFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_LANGUAGE, language);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Nullable
     @Override
@@ -48,12 +64,18 @@ public class SearchWordsFragment extends Fragment implements
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_search_words, container, false);
 
+        if (getArguments() != null) {
+            currentLanguage = getArguments().getString(ARG_LANGUAGE, "en");
+        }
+        Log.d(TAG, "SearchWordsFragment создан для языка: " + currentLanguage);
+
         wordRepository = new WordRepository(getContext());
         ttsManager = TextToSpeechManager.getInstance(getContext());
 
         initViews(view);
         setupRecyclerView();
         setupSearch();
+        setupFavoriteFilter(); // ✅ НОВЫЙ МЕТОД
         loadAllUserWords();
 
         return view;
@@ -66,6 +88,7 @@ public class SearchWordsFragment extends Fragment implements
         searchEditText = view.findViewById(R.id.searchEditText);
         backButton = view.findViewById(R.id.backButton);
         clearButton = view.findViewById(R.id.clearButton);
+        favoriteFilterButton = view.findViewById(R.id.favoriteFilterButton);
 
         backButton.setOnClickListener(v -> {
             if (getActivity() != null) {
@@ -81,7 +104,95 @@ public class SearchWordsFragment extends Fragment implements
         if (args != null && args.containsKey("initial_query")) {
             String initialQuery = args.getString("initial_query");
             searchEditText.setText(initialQuery);
-            filterWords(initialQuery);
+            // ✅ ЗАМЕНИТЕ filterWords на applyFilter
+            applyFilter();
+        }
+    }
+
+    // ✅ НОВЫЙ МЕТОД: настройка кнопки фильтрации избранного
+    private void setupFavoriteFilter() {
+        favoriteFilterButton.setOnClickListener(v -> {
+            // Переключаем режим фильтрации
+            isShowingFavoritesOnly = !isShowingFavoritesOnly;
+
+            // Обновляем иконку кнопки
+            updateFavoriteFilterIcon();
+
+            // Применяем фильтрацию
+            applyFilter();
+
+            // Показываем уведомление
+            String message = isShowingFavoritesOnly ?
+                    "Показаны только избранные слова" :
+                    "Показаны все слова";
+            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    // ✅ Обновление иконки кнопки избранного
+    private void updateFavoriteFilterIcon() {
+        // ОЧИЩАЕМ ЛЮБЫЕ ФИЛЬТРЫ ЦВЕТА
+        favoriteFilterButton.clearColorFilter();
+
+        if (isShowingFavoritesOnly) {
+            Log.d(TAG, "Устанавливаю иконку ic_full_heart_icon");
+            favoriteFilterButton.setImageResource(R.drawable.ic_full_heart_icon);
+            // НЕ применяем colorFilter, используем цвет из самой иконки
+        } else {
+            Log.d(TAG, "Устанавливаю иконку ic_empty_heart_icon");
+            favoriteFilterButton.setImageResource(R.drawable.ic_empty_heart_icon);
+        }
+
+        // Убираем фон (если есть какая-то заливка)
+        favoriteFilterButton.setBackgroundResource(android.R.color.transparent);
+    }
+
+    // ✅ Применение текущих фильтров (поиск + избранное)
+    private void applyFilter() {
+        String query = searchEditText.getText().toString();
+
+        if (query.isEmpty() && !isShowingFavoritesOnly) {
+            // Без фильтров - показываем все
+            filteredWords.clear();
+            filteredWords.addAll(allWords);
+        } else {
+            filteredWords.clear();
+            String queryLower = query.toLowerCase();
+
+            for (WordItem word : allWords) {
+                // Проверяем фильтр избранного
+                boolean matchesFavorite = !isShowingFavoritesOnly || word.isFavorite();
+
+                // Проверяем поисковый запрос
+                boolean matchesSearch = query.isEmpty() ||
+                        (word.getWord() != null && word.getWord().toLowerCase().contains(queryLower)) ||
+                        (word.getTranslation() != null && word.getTranslation().toLowerCase().contains(queryLower)) ||
+                        (word.getNote() != null && word.getNote().toLowerCase().contains(queryLower));
+
+                if (matchesFavorite && matchesSearch) {
+                    filteredWords.add(word);
+                }
+            }
+        }
+
+        // Обновляем адаптер
+        wordAdapter.updateWords(filteredWords);
+
+        // Показываем/скрываем пустое состояние
+        if (filteredWords.isEmpty()) {
+            String emptyMessage;
+            if (isShowingFavoritesOnly && query.isEmpty()) {
+                emptyMessage = "Нет избранных слов\nДобавьте слова в избранное, нажав на сердечко";
+            } else if (isShowingFavoritesOnly && !query.isEmpty()) {
+                emptyMessage = "Нет избранных слов по запросу \"" + query + "\"";
+            } else if (!query.isEmpty()) {
+                emptyMessage = "Слова по запросу \"" + query + "\" не найдены";
+            } else {
+                emptyMessage = "У вас пока нет слов для изучения на этом языке";
+            }
+            showEmptyState(true, emptyMessage);
+        } else {
+            showEmptyState(false, "");
         }
     }
 
@@ -100,8 +211,8 @@ public class SearchWordsFragment extends Fragment implements
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterWords(s.toString());
                 updateClearButtonVisibility(s.toString());
+                applyFilter(); // ✅ Используем общий метод applyFilter
             }
 
             @Override
@@ -116,31 +227,30 @@ public class SearchWordsFragment extends Fragment implements
     }
 
     private void loadAllUserWords() {
-        Log.d(TAG, "Загрузка всех слов пользователя...");
+        Log.d(TAG, "Загрузка всех слов пользователя для языка: " + currentLanguage);
         showLoading(true);
 
-        wordRepository.getWordsFromActiveLibrariesFirebase("en", new WordRepository.OnWordsLoadedListener() {
+        wordRepository.getWordsWithProgressFromFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Успешно загружено слов: " + words.size());
+                Log.d(TAG, "Успешно загружено слов: " + words.size() + " для языка " + currentLanguage);
 
                 allWords.clear();
                 allWords.addAll(words);
-                filteredWords.clear();
-                filteredWords.addAll(allWords);
 
+                // ✅ Применяем фильтры после загрузки
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         if (allWords.isEmpty()) {
-                            showEmptyState(true, "У вас пока нет слов для изучения");
+                            showEmptyState(true, "У вас пока нет слов для изучения на этом языке");
                         } else {
-                            showEmptyState(false, "");
-                            wordAdapter.updateWords(filteredWords);
+                            applyFilter(); // ✅ Применяем фильтры (поиск + избранное)
 
+                            // Восстанавливаем текст поиска если был
                             Bundle args = getArguments();
                             if (args != null && args.containsKey("initial_query")) {
                                 String initialQuery = args.getString("initial_query");
-                                filterWords(initialQuery);
+                                searchEditText.setText(initialQuery);
                             }
                         }
                         showLoading(false);
@@ -161,41 +271,7 @@ public class SearchWordsFragment extends Fragment implements
         });
     }
 
-    private void filterWords(String query) {
-        if (query.isEmpty()) {
-            filteredWords.clear();
-            filteredWords.addAll(allWords);
-        } else {
-            filteredWords.clear();
-            String queryLower = query.toLowerCase();
-
-            for (WordItem word : allWords) {
-                String wordText = word.getWord() != null ? word.getWord().toLowerCase() : "";
-                String translation = word.getTranslation() != null ? word.getTranslation().toLowerCase() : "";
-                String note = word.getNote() != null ? word.getNote().toLowerCase() : "";
-
-                if (wordText.contains(queryLower) ||
-                        translation.contains(queryLower) ||
-                        note.contains(queryLower)) {
-                    filteredWords.add(word);
-                }
-            }
-        }
-
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                wordAdapter.updateWords(filteredWords);
-
-                if (filteredWords.isEmpty() && !query.isEmpty()) {
-                    showEmptyState(true, "Слова по запросу \"" + query + "\" не найдены");
-                } else if (filteredWords.isEmpty()) {
-                    showEmptyState(true, "У вас пока нет слов для изучения");
-                } else {
-                    showEmptyState(false, "");
-                }
-            });
-        }
-    }
+    // ✅ УДАЛЯЕМ старый метод filterWords, заменяем на applyFilter
 
     private void showLoading(boolean show) {
         if (getActivity() != null) {
@@ -228,23 +304,8 @@ public class SearchWordsFragment extends Fragment implements
 
     @Override
     public void onWordDeleted(WordItem word) {
-        allWords.remove(word);
-        filteredWords.remove(word);
-
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                wordAdapter.updateWords(filteredWords);
-
-                if (filteredWords.isEmpty()) {
-                    String currentQuery = searchEditText.getText().toString();
-                    if (!currentQuery.isEmpty()) {
-                        showEmptyState(true, "Слова по запросу \"" + currentQuery + "\" не найдены");
-                    } else {
-                        showEmptyState(true, "У вас пока нет слов для изучения");
-                    }
-                }
-            });
-        }
+        allWords.remove(word);        // ← ЭТО НУЖНО (удаляем из главного списка)
+        applyFilter();                 // ← ЭТО ПЕРЕСОЗДАСТ filteredWords заново
     }
 
     @Override
@@ -258,13 +319,11 @@ public class SearchWordsFragment extends Fragment implements
     @Override
     public void onPause() {
         super.onPause();
-        // TTS не закрываем
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // TTS не закрываем
     }
 
     @Override
@@ -313,7 +372,6 @@ public class SearchWordsFragment extends Fragment implements
             return;
         }
 
-        // Простой диалог редактирования
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Редактировать слово: " + word.getWord());
 
@@ -345,9 +403,10 @@ public class SearchWordsFragment extends Fragment implements
                                 int index = allWords.indexOf(word);
                                 if (index != -1) {
                                     allWords.set(index, word);
-                                    filterWords(searchEditText.getText().toString());
+                                    applyFilter(); // ← ЗАМЕНИТЕ filterWords на applyFilter
                                 }
                                 Toast.makeText(getContext(), "Слово обновлено", Toast.LENGTH_SHORT).show();
+
                             });
                         }
                     }
@@ -388,10 +447,7 @@ public class SearchWordsFragment extends Fragment implements
                                         if (getActivity() != null) {
                                             getActivity().runOnUiThread(() -> {
                                                 allWords.remove(word);
-                                                filteredWords.remove(word);
-                                                wordAdapter.updateWords(filteredWords);
-                                                showEmptyState(filteredWords.isEmpty(),
-                                                        filteredWords.isEmpty() ? "Слово удалено" : "");
+                                                applyFilter(); // ✅ Обновляем фильтры
                                                 Toast.makeText(getContext(), "Слово удалено", Toast.LENGTH_SHORT).show();
                                             });
                                         }
@@ -411,10 +467,7 @@ public class SearchWordsFragment extends Fragment implements
                                         if (getActivity() != null) {
                                             getActivity().runOnUiThread(() -> {
                                                 allWords.remove(word);
-                                                filteredWords.remove(word);
-                                                wordAdapter.updateWords(filteredWords);
-                                                showEmptyState(filteredWords.isEmpty(),
-                                                        filteredWords.isEmpty() ? "Слово удалено" : "");
+                                                applyFilter(); // ✅ Обновляем фильтры
                                                 Toast.makeText(getContext(), "Слово удалено", Toast.LENGTH_SHORT).show();
                                             });
                                         }

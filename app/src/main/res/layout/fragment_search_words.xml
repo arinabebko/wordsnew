@@ -4,6 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:paddingTop="27dp"
+
     android:background="#211B20">
 
     <LinearLayout
@@ -11,7 +13,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:paddingTop="27dp"
+        android:paddingTop="57dp"
         android:gravity="center_vertical"
         android:background="#211B20">
 
@@ -37,7 +39,6 @@
             <EditText
                 android:id="@+id/searchEditText"
                 android:layout_width="0dp"
-
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:hint="@string/word_search_et_hint"
@@ -60,6 +61,15 @@
                 android:contentDescription="@string/word_search_desc_clear" />
 
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/favoriteFilterButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_empty_heart_icon"
+            android:padding="12dp"
+            app:tint="#CE5D5D"
+            android:contentDescription="Показать избранные" />
 
     </LinearLayout>
 

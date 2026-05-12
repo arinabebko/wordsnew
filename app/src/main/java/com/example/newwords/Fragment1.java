@@ -12,7 +12,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.LinearLayout; // ДОБАВЬ ЭТОТ ИМПОРТ
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,9 +20,6 @@ import androidx.fragment.app.Fragment;
 
 import java.util.ArrayList;
 import java.util.List;
-
-
-// ... импорты те же ...
 
 public class Fragment1 extends Fragment {
 
@@ -161,10 +158,14 @@ public class Fragment1 extends Fragment {
         });
     }
 
+    // ИСПРАВЛЕНО: получаем текущий язык и передаем его в SearchWordsFragment
     private void openSearchFragment() {
-        SearchWordsFragment searchFragment = new SearchWordsFragment();
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String currentLanguage = languageManager.getCurrentLanguage();
+
+        SearchWordsFragment fragment = SearchWordsFragment.newInstance(currentLanguage);
         requireActivity().getSupportFragmentManager().beginTransaction()
-                .replace(android.R.id.content, searchFragment)
+                .replace(android.R.id.content, fragment)
                 .addToBackStack("search_navigation")
                 .commit();
     }
@@ -188,52 +189,12 @@ public class Fragment1 extends Fragment {
         });
         dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
     }
-/*
-    // ✅ ИСПРАВЛЕННЫЙ МЕТОД — берем ТОЛЬКО активные слова
-    private void checkIfWordsAvailable() {
-        LanguageManager languageManager = new LanguageManager(getContext());
-        String currentLanguage = languageManager.getCurrentLanguage();
-
-        // ✅ ИСПРАВЛЕНО: Используем правильный метод загрузки ТОЛЬКО активных слов
-        wordRepository.getWordsFromActiveLibrariesFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
-            @Override
-            public void onWordsLoaded(List<WordItem> words) {
-                Log.d("Fragment1", "Загружено слов для изучения: " + words.size() + ", язык: " + currentLanguage);
-
-                if (words.isEmpty()) {
-                    // Показываем сообщение, что нет слов
-                    Toast.makeText(getContext(), R.string.stats_no_words, Toast.LENGTH_LONG).show();
-                } else {
-                    // Передаем слова во фрагмент
-                    WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
-                    requireActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(android.R.id.content, startFragment)
-                            .addToBackStack("fragment1_navigation")
-                            .commit();
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e("Fragment1", "Ошибка загрузки слов", e);
-                Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-*/
-
-    //todo
-    // ❌ УДАЛИТЬ ЭТОТ МЕТОД — он больше не нужен и сверхум тож
-
-    // private void loadDirectlyFromFirebase(String currentLanguage) { ... }
-
-
 
     private void checkIfWordsAvailable() {
         LanguageManager languageManager = new LanguageManager(getContext());
         String currentLanguage = languageManager.getCurrentLanguage();
 
-        // ✅ СНАЧАЛА пытаемся загрузить из кеша (мгновенно)
+        // Сначала пытаемся загрузить из кеша (мгновенно)
         wordRepository.getWordsWithProgressFromCache(currentLanguage,
                 new WordRepository.OnWordsLoadedListener() {
                     @Override
@@ -241,17 +202,14 @@ public class Fragment1 extends Fragment {
                         if (!words.isEmpty()) {
                             Log.d("Fragment1", "✅ МГНОВЕННО: загружено " + words.size() + " слов из кеша");
 
-                            // Скрываем спиннер
                             hideLoading();
 
-                            // Открываем фрагмент с карточками
                             WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
                             requireActivity().getSupportFragmentManager().beginTransaction()
                                     .replace(android.R.id.content, startFragment)
                                     .addToBackStack("fragment1_navigation")
                                     .commit();
                         } else {
-                            // Кеш пуст - пробуем загрузить из Firebase
                             Log.d("Fragment1", "⚠️ Кеш пуст, загружаем из Firebase...");
                             loadFromFirebase(currentLanguage);
                         }
@@ -296,9 +254,13 @@ public class Fragment1 extends Fragment {
         if (getView() != null) {
             ProgressBar progressBar = getView().findViewById(R.id.loadingProgressBar);
             Button startButton = getView().findViewById(R.id.startButton);
-            progressBar.setVisibility(View.GONE);
-            startButton.setEnabled(true);
-            startButton.setAlpha(1f);
+            if (progressBar != null) {
+                progressBar.setVisibility(View.GONE);
+            }
+            if (startButton != null) {
+                startButton.setEnabled(true);
+                startButton.setAlpha(1f);
+            }
             isProcessingClick = false;
         }
     }
