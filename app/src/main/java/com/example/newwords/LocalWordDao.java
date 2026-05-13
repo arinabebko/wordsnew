@@ -130,4 +130,8 @@ public interface LocalWordDao {
      */
     @Query("SELECT * FROM local_words WHERE libraryId = :libraryId ORDER BY reviewStage ASC, nextReviewDate ASC")
     List<LocalWordItem> getWordsByLibrarySorted(String libraryId);
+
+
+    @Query("SELECT COUNT(*) FROM local_words WHERE libraryId = :libraryId")
+    int getWordsCountByLibrary(String libraryId);
 }

@@ -230,28 +230,21 @@ public class SearchWordsFragment extends Fragment implements
         Log.d(TAG, "Загрузка всех слов пользователя для языка: " + currentLanguage);
         showLoading(true);
 
-        wordRepository.getWordsWithProgressFromFirebase(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+        // ✅ ИСПРАВЛЕНО: используем getWordsFromCacheOnly (только кеш)
+        wordRepository.getWordsFromCacheOnly(currentLanguage, new WordRepository.OnWordsLoadedListener() {
             @Override
             public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "Успешно загружено слов: " + words.size() + " для языка " + currentLanguage);
+                Log.d(TAG, "✅ Загружено из кеша: " + words.size() + " слов для языка " + currentLanguage);
 
                 allWords.clear();
                 allWords.addAll(words);
 
-                // ✅ Применяем фильтры после загрузки
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         if (allWords.isEmpty()) {
                             showEmptyState(true, "У вас пока нет слов для изучения на этом языке");
                         } else {
-                            applyFilter(); // ✅ Применяем фильтры (поиск + избранное)
-
-                            // Восстанавливаем текст поиска если был
-                            Bundle args = getArguments();
-                            if (args != null && args.containsKey("initial_query")) {
-                                String initialQuery = args.getString("initial_query");
-                                searchEditText.setText(initialQuery);
-                            }
+                            applyFilter();
                         }
                         showLoading(false);
                     });
@@ -260,7 +253,7 @@ public class SearchWordsFragment extends Fragment implements
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки слов: " + e.getMessage());
+                Log.e(TAG, "❌ Ошибка загрузки из кеша: " + e.getMessage());
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         showEmptyState(true, "Ошибка загрузки слов");

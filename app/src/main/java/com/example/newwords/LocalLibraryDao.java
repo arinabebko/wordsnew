@@ -57,7 +57,8 @@ public interface LocalLibraryDao {
     @Query("UPDATE local_libraries SET isActive = :active WHERE languageTo = :lang")
     void deactivateAllForLanguage(String lang, boolean active);
 
-    @Query("SELECT * FROM local_libraries WHERE languageTo = :lang AND isActive = 1")
+    // ✅ ПРАВИЛЬНО - ищем по languageFrom
+    @Query("SELECT * FROM local_libraries WHERE languageFrom = :lang AND isActive = 1")
     List<LocalWordLibrary> getActiveLibrariesByLanguage(String lang);
 
     @Query("UPDATE local_libraries SET wordCount = wordCount + 1 WHERE libraryId = :libraryId")

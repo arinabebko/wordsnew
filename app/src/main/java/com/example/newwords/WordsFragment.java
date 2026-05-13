@@ -1,7 +1,10 @@
 package com.example.newwords;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -43,7 +46,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     private boolean hasPassedWords = false;
 
-
+    private boolean isLoading = false;
 
 
     /**
@@ -297,39 +300,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         });
     }
 
-    /**
-     * Загружает слова из Firebase с учетом текущего языка
-     */
-    private void loadWordsFromFirebase() {
-        Log.d(TAG, "🚀 УМНАЯ загрузка для языка: " + currentLanguage);
-        showLoading(true);
 
-        // ВЫЗЫВАЕМ SMART-МЕТОД (сначала кеш, потом фоном Firebase)
-        wordRepository.loadWordsSmart(currentLanguage, new WordRepository.OnWordsLoadedListener() {
-            @Override
-            public void onWordsLoaded(List<WordItem> words) {
-                Log.d(TAG, "📦 ПОЛУЧЕНЫ СЛОВА: " + words.size() + " шт.");
-
-                if (words.isEmpty()) {
-                    Log.d(TAG, "⚠️ Слов нет, показываем пустое состояние");
-                    showNoWordsState();
-                    showLoading(false);
-                    return;
-                }
-
-                // Обрабатываем слова (фильтрация для сессии и т.д.)
-                processLoadedWords(words);
-                showLoading(false);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "❌ Ошибка загрузки", e);
-                showNoWordsState();
-                showLoading(false);
-            }
-        });
-    }
     /**
      * Фильтрует слова по языку библиотеки
      */
@@ -821,6 +792,7 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
      * Показывает/скрывает индикатор загрузки
      */
     private void showLoading(boolean show) {
+        isLoading = show;  // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
                 if (progressBar != null) {
@@ -1183,14 +1155,14 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         View view = inflater.inflate(R.layout.fragment_words, container, false);
 
         wordRepository = new WordRepository(getContext());
-
+        debugRoomDatabase();  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
         viewPager2 = view.findViewById(R.id.viewPager2);
         progressBar = view.findViewById(R.id.progressBar);
         progressText = view.findViewById(R.id.progressText);
 
         setupBackButton(view);
         setupSwipeGestures(view);
-
+        debugCacheContentsForLanguage("ba");
         // Если есть переданные слова - используем их
         if (hasPassedWords && !wordList.isEmpty()) {
             Log.d(TAG, "📦 Использую переданные слова в onCreateView: " + wordList.size());
@@ -1205,5 +1177,280 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     //надо будет потом испрваить ноооо не сейяас бох с ним
 
+    private void debugRoomDatabase() {
+        new Thread(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(getContext());
+
+                // 1. Все библиотеки
+                List<LocalWordLibrary> allLibraries = db.libraryDao().getAllLibraries();
+                Log.d("DEBUG_ROOM", "=== ВСЕ БИБЛИОТЕКИ ===");
+                Log.d("DEBUG_ROOM", "Всего библиотек: " + allLibraries.size());
+                for (LocalWordLibrary lib : allLibraries) {
+                    Log.d("DEBUG_ROOM", "📚 " + lib.getName() +
+                            " | ID: " + lib.getLibraryId() +
+                            " | languageFrom: " + lib.getLanguageFrom() +
+                            " | isActive: " + lib.isActive() +
+                            " | wordCount: " + lib.getWordCount());
+                }
+
+                // 2. Все слова
+                List<LocalWordItem> allWords = db.wordDao().getAllWords();
+                Log.d("DEBUG_ROOM", "=== ВСЕ СЛОВА ===");
+                Log.d("DEBUG_ROOM", "Всего слов: " + allWords.size());
+                for (int i = 0; i < Math.min(10, allWords.size()); i++) {
+                    LocalWordItem w = allWords.get(i);
+                    Log.d("DEBUG_ROOM", "📖 " + w.getWord() + " -> " + w.getTranslation() +
+                            " | libraryId: " + w.getLibraryId());
+                }
+
+                // 3. Слова для конкретной библиотеки
+                List<LocalWordLibrary> baLibraries = db.libraryDao().getLibrariesByLanguage("ba");
+                Log.d("DEBUG_ROOM", "=== БИБЛИОТЕКИ ДЛЯ ЯЗЫКА ba ===");
+                Log.d("DEBUG_ROOM", "Найдено: " + baLibraries.size());
+                for (LocalWordLibrary lib : baLibraries) {
+                    Log.d("DEBUG_ROOM", "📚 " + lib.getName() + " | ID: " + lib.getLibraryId() + " | isActive: " + lib.isActive());
+
+                    // Слова в этой библиотеке
+                    List<LocalWordItem> words = db.wordDao().getWordsByLibrary(lib.getLibraryId());
+                    Log.d("DEBUG_ROOM", "   Слов в этой библиотеке: " + words.size());
+                    for (LocalWordItem w : words) {
+                        Log.d("DEBUG_ROOM", "      - " + w.getWord());
+                    }
+                }
+
+                // 4. Активные библиотеки для ba
+                List<LocalWordLibrary> activeBaLibs = db.libraryDao().getActiveLibrariesByLanguage("ba");
+                Log.d("DEBUG_ROOM", "=== АКТИВНЫЕ БИБЛИОТЕКИ ДЛЯ ba ===");
+                Log.d("DEBUG_ROOM", "Найдено активных: " + activeBaLibs.size());
+                for (LocalWordLibrary lib : activeBaLibs) {
+                    Log.d("DEBUG_ROOM", "📚 " + lib.getName());
+                    List<LocalWordItem> words = db.wordDao().getWordsByLibrary(lib.getLibraryId());
+                    Log.d("DEBUG_ROOM", "   Слов: " + words.size());
+                }
+
+            } catch (Exception e) {
+                Log.e("DEBUG_ROOM", "Ошибка", e);
+            }
+        }).start();
+    }
+    private void checkForUpdatesInBackground() {
+        // Только если есть интернет
+        if (isNetworkAvailable()) {
+            wordRepository.smartSyncForLanguage(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+                @Override
+                public void onWordsLoaded(List<WordItem> freshWords) {
+                    if (!freshWords.isEmpty()) {
+                        Log.d(TAG, "🔄 Фоновое обновление: " + freshWords.size() + " слов");
+                        // Обновляем UI если есть изменения
+                        processLoadedWords(freshWords);
+                    }
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Log.d(TAG, "Фоновое обновление не удалось, используем кеш");
+                }
+            });
+        }
+    }
+
+
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager)
+                getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+    }
+    private void loadFromFirebaseWithTimeout() {
+        // Показываем загрузку
+        showLoading(true);
+
+        // Устанавливаем таймаут 5 секунд
+        android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        Runnable timeoutRunnable = () -> {
+            if (isLoading) {  // ✅ ТЕПЕРЬ РАБОТАЕТ
+                Log.d(TAG, "⏰ Таймаут загрузки, показываем пустое состояние");
+                showNoWordsState();
+                showLoading(false);
+            }
+        };
+        handler.postDelayed(timeoutRunnable, 5000);
+
+        wordRepository.smartSyncForLanguage(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                handler.removeCallbacks(timeoutRunnable);
+                if (!words.isEmpty()) {
+                    processLoadedWords(words);
+                } else {
+                    showNoWordsState();
+                }
+                showLoading(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                handler.removeCallbacks(timeoutRunnable);
+                Log.e(TAG, "❌ Ошибка загрузки", e);
+                showNoWordsState();
+                showLoading(false);
+            }
+        });
+    }
+
+    private void loadWords() {
+        Log.d(TAG, "📖 Загрузка слов для языка: " + currentLanguage);
+
+        // ✅ ТОЛЬКО КЕШ!
+        wordRepository.getWordsFromCacheOnly(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                if (!words.isEmpty()) {
+                    processLoadedWords(words);
+                } else {
+                    showNoWordsState();
+                }
+                showLoading(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка", e);
+                showNoWordsState();
+                showLoading(false);
+            }
+        });
+    }
+
+
+    private void loadWordsFromFirebase() {
+        Log.d(TAG, "🚀 [OFFLINE-FIRST] Загрузка для: " + currentLanguage);
+        showLoading(true);
+
+        // ✅ ТОЛЬКО КЕШ! (никаких сетевых запросов)
+       wordRepository.getWordsFromCacheOnlyForActiveLibraries(currentLanguage,
+        // wordRepository.getWordsFromCacheIgnoreActive(currentLanguage,
+
+
+                new WordRepository.OnWordsLoadedListener() {
+                    @Override
+                    public void onWordsLoaded(List<WordItem> cachedWords) {
+                        if (!cachedWords.isEmpty()) {
+                            Log.d(TAG, "⚡ Из кеша: " + cachedWords.size() + " слов");
+                            processLoadedWords(cachedWords);
+                            showLoading(false);
+
+                            // ✅ ФОНОМ проверяем обновления (если есть интернет)
+                            if (isNetworkAvailable()) {
+                                refreshCacheInBackground();
+                            }
+                        } else {
+                            // Кеша нет — идём в сеть
+                            Log.d(TAG, "📭 Кеш пуст, загружаем из сети...");
+                            loadFromNetworkAndCache();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "❌ Ошибка кеша", e);
+                        loadFromNetworkAndCache();
+                    }
+                });
+    }
+    private void loadFromNetworkAndCache() {
+        Log.d(TAG, "🌐 Загрузка из сети и сохранение в кеш...");
+
+        wordRepository.forceSyncForLanguage(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                if (!words.isEmpty()) {
+                    Log.d(TAG, "✅ Загружено из сети: " + words.size() + " слов, сохранено в кеш");
+                    processLoadedWords(words);
+                } else {
+                    Log.d(TAG, "📭 Нет слов для языка: " + currentLanguage);
+                    showNoWordsState();
+                }
+                showLoading(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка загрузки из сети: " + e.getMessage());
+                showNoWordsState();
+                showLoading(false);
+            }
+        });
+    }
+    private void debugCacheContentsForLanguage(String language) {
+        wordRepository.getWordsFromCacheOnly(language, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                Log.d(TAG, "=== ДЕБАГ КЕША ДЛЯ " + language + " ===");
+                Log.d(TAG, "Всего слов в кеше: " + words.size());
+
+                if (words.isEmpty()) {
+                    Log.d(TAG, "❌ КЕШ ПУСТ!");
+                    return;
+                }
+
+                int dueCount = 0;
+                int newCount = 0;
+                int learnedCount = 0;
+
+                for (WordItem word : words) {
+                    boolean isDue = word.isDueForReview();
+                    boolean isNew = word.isNew();
+                    boolean isLearned = word.isLearned();
+                    boolean shouldShow = SimpleRepetitionSystem.shouldShowInSession(word);
+
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                    Log.d(TAG, "Слово: " + word.getWord());
+                    Log.d(TAG, "  reviewStage: " + word.getReviewStage());
+                    Log.d(TAG, "  nextReviewDate: " + word.getNextReviewDate());
+                    Log.d(TAG, "  isDue: " + isDue);
+                    Log.d(TAG, "  isNew: " + isNew);
+                    Log.d(TAG, "  isLearned: " + isLearned);
+                    Log.d(TAG, "  shouldShowInSession: " + shouldShow);
+
+                    if (shouldShow) dueCount++;
+                    if (isNew) newCount++;
+                    if (isLearned) learnedCount++;
+                }
+
+                Log.d(TAG, "=== ИТОГО ===");
+                Log.d(TAG, "Готовых к показу: " + dueCount);
+                Log.d(TAG, "Новых слов: " + newCount);
+                Log.d(TAG, "Выученных слов: " + learnedCount);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка дебага кеша", e);
+            }
+        });
+    }
+    private void refreshCacheInBackground() {
+        // Фоновое обновление, НЕ трогает UI
+        wordRepository.smartSyncForLanguage(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> freshWords) {
+                if (!freshWords.isEmpty()) {
+                    Log.d(TAG, "🔄 Фоновое обновление: " + freshWords.size() + " слов");
+                    // Только если текущий список пуст — обновляем
+                    if (adapter == null || adapter.getItemCount() == 0) {
+                        processLoadedWords(freshWords);
+                    }
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.d(TAG, "Фоновое обновление не удалось");
+            }
+        });
+    }
 
 }

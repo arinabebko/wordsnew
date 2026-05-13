@@ -3,6 +3,7 @@ package com.example.newwords;
 import static android.content.ContentValues.TAG;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import androidx.core.splashscreen.SplashScreen;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,20 +33,18 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private static final int PERMISSION_REQUEST_CODE = 100;
 
-    // ✅ ОБЪЯВЛЯЕМ РЕПОЗИТОРИЙ
     private WordRepository wordRepository;
+    private boolean isFirstLaunch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ✅ ИНИЦИАЛИЗИРУЕМ РЕПОЗИТОРИЙ
         wordRepository = new WordRepository(this);
 
-        // Инициализация App Check с Play Integrity API
+        // Инициализация App Check
         FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
         firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance());
 
@@ -58,8 +58,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // ✅ ЗАПУСКАЕМ ПРЕДЗАГРУЗКУ КЕША (фоном)
-        preloadCacheForAllLanguages();
+        initializeCacheSmart();
 
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
@@ -77,9 +76,8 @@ public class MainActivity extends AppCompatActivity {
             } else if (id == R.id.navigation_page3) {
                 viewPager.setCurrentItem(2);
                 return true;
-            } else {
-                return false;
             }
+            return false;
         });
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -93,25 +91,105 @@ public class MainActivity extends AppCompatActivity {
         requestNotificationPermission();
     }
 
-    // ✅ МЕТОД ВЫНЕСЕН ИЗ onCreate (на уровень класса)
-    private void preloadCacheForAllLanguages() {
-        Log.d(TAG, "🚀 ПРЕДЗАГРУЗКА КЕША для всех языков");
+    private void initializeCacheSmart() {
+        SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
+        isFirstLaunch = prefs.getBoolean("is_first_launch", true);
 
-        String[] languages = {"ba", "en", "ru"};
+        if (isFirstLaunch) {
+            Log.d(TAG, "🎉 ПЕРВЫЙ ЗАПУСК - загружаем ВСЕ данные в кеш");
+            showLoadingIndicator();
+            loadAllLanguagesForFirstTime();  // ← ИСПРАВЛЕНО: используем новый метод
+        } else {
+            Log.d(TAG, "⚡ Не первый запуск - проверяем наличие кеша");
 
-        for (String lang : languages) {
-            wordRepository.syncWordsFromFirebaseForLanguage(lang, new WordRepository.OnWordsLoadedListener() {
+            wordRepository.checkCacheStatus(new WordRepository.OnCacheStatusListener() {
                 @Override
-                public void onWordsLoaded(List<WordItem> words) {
-                    Log.d(TAG, "✅ Предзагружено " + words.size() + " слов для языка " + lang);
-                }
-
-                @Override
-                public void onError(Exception e) {
-                    Log.e(TAG, "❌ Ошибка предзагрузки для " + lang, e);
+                public void onStatusChecked(int libraryCount, int wordCount,
+                                            int activeLibraryCount, int wordsFromActive) {
+                    if (wordCount == 0) {
+                        Log.w(TAG, "⚠️ Кеш пуст! Перезагружаем...");
+                        showLoadingIndicator();
+                        loadAllLanguagesForFirstTime();
+                    } else {
+                        Log.d(TAG, "✅ Кеш в порядке: " + wordCount + " слов, " + libraryCount + " библиотек");
+                        checkAndRefreshStaleCache();
+                    }
                 }
             });
         }
+    }
+
+    /**
+     * ГЛАВНЫЙ МЕТОД ЗАГРУЗКИ - использует forceLoadWordsForLanguage
+     * который загружает ВСЕ библиотеки и ВСЕ слова для языка
+     */
+    private void loadAllLanguagesForFirstTime() {
+        String[] languages = {"ba", "en", "ru"};
+        AtomicInteger loadedCount = new AtomicInteger(0);
+
+        for (String lang : languages) {
+            // ✅ ИСПРАВЛЕНО: используем forceLoadWordsForLanguage
+            wordRepository.forceLoadWordsForLanguage(lang, new WordRepository.OnSuccessListener() {
+                @Override
+                public void onSuccess() {
+                    int completed = loadedCount.incrementAndGet();
+                    Log.d(TAG, "✅ Загружен " + lang + " (" + completed + "/" + languages.length + ")");
+
+                    if (completed == languages.length) {
+                        finishFirstTimeInitialization();
+                    }
+                }
+            });
+        }
+    }
+
+    private void finishFirstTimeInitialization() {
+        SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
+        prefs.edit().putBoolean("is_first_launch", false).apply();
+
+        hideLoadingIndicator();
+        Log.d(TAG, "🎉 ПЕРВИЧНАЯ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА!");
+
+        // Проверяем результат
+        wordRepository.checkCacheStatus(new WordRepository.OnCacheStatusListener() {
+            @Override
+            public void onStatusChecked(int libraryCount, int wordCount,
+                                        int activeLibraryCount, int wordsFromActive) {
+                Log.d(TAG, "📊 ИТОГОВЫЙ КЕШ: " + libraryCount + " библиотек, " + wordCount + " слов");
+            }
+        });
+    }
+
+    private void checkAndRefreshStaleCache() {
+        if (!isNetworkAvailable()) {
+            Log.d(TAG, "📴 Нет интернета, пропускаем проверку кеша");
+            return;
+        }
+
+        new Thread(() -> {
+            String[] languages = {"ba", "en", "ru"};
+            for (String lang : languages) {
+                if (wordRepository.isCacheStale(lang)) {
+                    Log.d(TAG, "🔄 Кеш устарел для " + lang + ", обновляем фоном");
+                    wordRepository.smartSyncForLanguage(lang, null);
+                }
+            }
+        }).start();
+    }
+
+    private boolean isNetworkAvailable() {
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager)
+                getSystemService(CONNECTIVITY_SERVICE);
+        android.net.NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+    }
+
+    private void showLoadingIndicator() {
+        runOnUiThread(() -> Toast.makeText(this, "Первичная загрузка данных...", Toast.LENGTH_SHORT).show());
+    }
+
+    private void hideLoadingIndicator() {
+        runOnUiThread(() -> Toast.makeText(this, "Готово к работе!", Toast.LENGTH_SHORT).show());
     }
 
     @Override
@@ -123,7 +201,6 @@ public class MainActivity extends AppCompatActivity {
     private void handleNotificationIntent(Intent intent) {
         if (intent != null && intent.hasExtra("OPEN_FRAGMENT")) {
             String fragmentToOpen = intent.getStringExtra("OPEN_FRAGMENT");
-
             if ("FRAGMENT_1".equals(fragmentToOpen)) {
                 openFragment1();
                 Toast.makeText(this, "Добро пожаловать! Пора учить слова! 📚", Toast.LENGTH_SHORT).show();

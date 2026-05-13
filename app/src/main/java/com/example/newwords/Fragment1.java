@@ -190,38 +190,7 @@ public class Fragment1 extends Fragment {
         dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
     }
 
-    private void checkIfWordsAvailable() {
-        LanguageManager languageManager = new LanguageManager(getContext());
-        String currentLanguage = languageManager.getCurrentLanguage();
 
-        // Сначала пытаемся загрузить из кеша (мгновенно)
-        wordRepository.getWordsWithProgressFromCache(currentLanguage,
-                new WordRepository.OnWordsLoadedListener() {
-                    @Override
-                    public void onWordsLoaded(List<WordItem> words) {
-                        if (!words.isEmpty()) {
-                            Log.d("Fragment1", "✅ МГНОВЕННО: загружено " + words.size() + " слов из кеша");
-
-                            hideLoading();
-
-                            WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
-                            requireActivity().getSupportFragmentManager().beginTransaction()
-                                    .replace(android.R.id.content, startFragment)
-                                    .addToBackStack("fragment1_navigation")
-                                    .commit();
-                        } else {
-                            Log.d("Fragment1", "⚠️ Кеш пуст, загружаем из Firebase...");
-                            loadFromFirebase(currentLanguage);
-                        }
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e("Fragment1", "❌ Ошибка загрузки из кеша", e);
-                        loadFromFirebase(currentLanguage);
-                    }
-                });
-    }
 
     private void loadFromFirebase(String currentLanguage) {
         wordRepository.getWordsWithProgress(currentLanguage,
@@ -263,5 +232,80 @@ public class Fragment1 extends Fragment {
             }
             isProcessingClick = false;
         }
+    }
+
+    private void checkIfWordsAvailable() {
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String currentLanguage = languageManager.getCurrentLanguage();
+
+        Log.d("Fragment1", "🔍 ПРОВЕРКА КЕША ДЛЯ ЯЗЫКА: " + currentLanguage);
+
+        // ДИАГНОСТИКА: прямой запрос в Room
+        new Thread(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(getContext());
+
+                // 1. Все библиотеки
+                List<LocalWordLibrary> allLibs = db.libraryDao().getAllLibraries();
+                Log.d("Fragment1", "=== ВСЕ БИБЛИОТЕКИ ===");
+                for (LocalWordLibrary lib : allLibs) {
+                    Log.d("Fragment1", "📚 " + lib.getName() + " | languageFrom: " + lib.getLanguageFrom() + " | isActive: " + lib.isActive());
+                }
+
+                // 2. Активные библиотеки для текущего языка
+                List<LocalWordLibrary> activeLibs = db.libraryDao().getActiveLibrariesByLanguage(currentLanguage);
+                Log.d("Fragment1", "=== АКТИВНЫЕ БИБЛИОТЕКИ ДЛЯ " + currentLanguage + " ===");
+                Log.d("Fragment1", "Найдено: " + activeLibs.size());
+                for (LocalWordLibrary lib : activeLibs) {
+                    Log.d("Fragment1", "📚 " + lib.getName());
+
+                    // Слова в этой библиотеке
+                    List<LocalWordItem> words = db.wordDao().getWordsByLibrary(lib.getLibraryId());
+                    Log.d("Fragment1", "   Слов: " + words.size());
+                    for (LocalWordItem w : words) {
+                        Log.d("Fragment1", "      - " + w.getWord() + " -> " + w.getTranslation());
+                    }
+                }
+
+                // 3. Все слова из активных библиотек (через JOIN)
+                List<LocalWordItem> wordsFromActive = db.wordDao().getWordsFromActiveLibraries();
+                Log.d("Fragment1", "=== СЛОВА ИЗ АКТИВНЫХ БИБЛИОТЕК (JOIN) ===");
+                Log.d("Fragment1", "Всего: " + wordsFromActive.size());
+                for (LocalWordItem w : wordsFromActive) {
+                    Log.d("Fragment1", "📖 " + w.getWord());
+                }
+
+            } catch (Exception e) {
+                Log.e("Fragment1", "Ошибка диагностики", e);
+            }
+        }).start();
+
+        // Обычная проверка
+        wordRepository.getWordsFromCacheOnly(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                hideLoading();
+                Log.d("Fragment1", "📊 getWordsFromCacheOnly вернул: " + words.size() + " слов");
+
+                if (!words.isEmpty()) {
+                    WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
+                    requireActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(android.R.id.content, startFragment)
+                            .addToBackStack("fragment1_navigation")
+                            .commit();
+                } else {
+                    // Если через метод ничего не вернулось, но в Room есть слова - значит проблема в методе
+                    Log.e("Fragment1", "❌ getWordsFromCacheOnly вернул 0, хотя в Room могут быть слова!");
+                    Toast.makeText(getContext(), "Нет слов. Проверьте интернет и перезапустите.", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                hideLoading();
+                Log.e("Fragment1", "Ошибка", e);
+                Toast.makeText(getContext(), "Ошибка загрузки из кеша", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

@@ -39,13 +39,13 @@ public class LocalWordLibrary {
         this.description = library.getDescription();
         this.wordCount = library.getWordCount();
         this.category = library.getCategory();
-        this.languageFrom = library.getLanguageFrom();
+        this.languageFrom = library.getLanguageFrom();  // ✅ ДОБАВИТЬ!
         this.languageTo = library.getLanguageTo();
-        this.isPublic = library.isPublic(); // Используем старый метод
+        this.isPublic = library.isPublic();
         this.createdAt = library.getCreatedAt();
         this.createdBy = library.getCreatedBy();
         this.lastSynced = new Date();
-        this.isActive = library.getIsActive(); // Используем новый метод
+        this.isActive = library.getIsActive();
     }
 
     // === ГЕТТЕРЫ ===
