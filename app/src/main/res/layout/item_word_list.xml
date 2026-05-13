@@ -27,7 +27,8 @@
                 android:text="@string/item_word_tv_word_placeholder"
                 android:textColor="#FFFFFF"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:fontFamily="@font/exo_regular" />
 
             <TextView
                 android:id="@+id/translationText"
@@ -36,7 +37,8 @@
                 android:text="@string/item_word_tv_translation_placeholder"
                 android:textColor="#E0E0E0"
                 android:textSize="16sp"
-                android:layout_marginStart="12dp" />
+                android:layout_marginStart="12dp"
+                android:fontFamily="@font/jura_font_wght" />
 
         </LinearLayout>
 
@@ -49,7 +51,8 @@
             android:textSize="14sp"
             android:layout_marginTop="6dp"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:ellipsize="end"
+            android:fontFamily="@font/jura_font_wght" />
 
     </LinearLayout>
 
@@ -57,6 +60,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
         <ImageButton
             android:id="@+id/favoriteButton"
             android:layout_width="48dp"

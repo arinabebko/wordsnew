@@ -113,17 +113,17 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
             librarySwitch = itemView.findViewById(R.id.librarySwitch);
             manageButton = itemView.findViewById(R.id.manageButton);
 
-            manageButton.setOnClickListener(v -> {
-                if (listener != null && currentLibrary != null) {
-                    boolean isCustom = currentLibrary.getCreatedBy() != null &&
-                            !currentLibrary.getCreatedBy().equals("system");
-                    if (isCustom) {
-                        listener.onLibraryManageClicked(currentLibrary);
-                    } else {
-                        listener.onLibraryViewClicked(currentLibrary);
-                    }
-                }
-            });
+            // manageButton.setOnClickListener(v -> {
+             //   if (listener != null && currentLibrary != null) {
+            //        boolean isCustom = currentLibrary.getCreatedBy() != null &&
+             //               !currentLibrary.getCreatedBy().equals("system");
+            //        if (isCustom) {
+             //           listener.onLibraryManageClicked(currentLibrary);
+              //      } else {
+              //          listener.onLibraryViewClicked(currentLibrary);
+              //      }
+             //   }
+           // });
 
             librarySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isUpdating || currentLibrary == null || listener == null) {
@@ -205,7 +205,32 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
 
             // Показываем кнопку для всех библиотек
             manageButton.setVisibility(View.VISIBLE);
-            manageButton.setImageResource(R.drawable.ic_font_settings);
+
+            // ⭐ РАЗНЫЕ ИКОНКИ ДЛЯ РАЗНЫХ ТИПОВ БИБЛИОТЕК
+            boolean isCustomLibrary = library.getCreatedBy() != null &&
+                    !library.getCreatedBy().equals("system");
+
+            if (isCustomLibrary) {
+                // Кастомная библиотека - иконка настроек (шестеренка)
+                manageButton.setImageResource(R.drawable.ic_font_settings);
+                manageButton.setScaleX(1.0f);  // обычный размер
+                manageButton.setScaleY(1.0f);
+                manageButton.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onLibraryManageClicked(library);
+                    }
+                });
+            } else {
+                // Публичная библиотека - иконка книги (просмотр)
+                manageButton.setImageResource(R.drawable.ic_new_icon_book);
+                manageButton.setScaleX(1.2f);  // увеличиваем на 20%
+                manageButton.setScaleY(1.2f);
+                manageButton.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onLibraryViewClicked(library);
+                    }
+                });
+            }
 
             isUpdating = false;
         }

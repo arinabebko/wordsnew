@@ -12,7 +12,7 @@
         android:layout_height="143dp"
         android:layout_marginTop="70dp"
         android:layout_marginBottom="24dp"
-
+        android:fontFamily="@font/jura_font_wght"
         app:backgroundTint="@null"
         android:background="@drawable/gradient_button"
 

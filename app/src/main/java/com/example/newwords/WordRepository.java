@@ -463,7 +463,20 @@ public class WordRepository {
 
         saveWordProgressToLocal(word);
     }
+    /**
+     * Определяет, является ли библиотека пользовательской (кастомной)
+     */
+    private boolean isCustomLibrary(WordLibrary library) {
+        if (library == null) return false;
+        String createdBy = library.getCreatedBy();
 
+        // Если createdBy не установлен или равен "system" - это системная библиотека
+        if (createdBy == null || createdBy.equals("system")) {
+            return false;
+        }
+        // Иначе - пользовательская (кастомная)
+        return true;
+    }
     public void updateWord(WordItem word) {
         if (word.getWordId() == null) {
             Log.e(TAG, "❌ updateWord: wordId = null");
@@ -580,24 +593,28 @@ public class WordRepository {
                 List<Task<QuerySnapshot>> tasks = new ArrayList<>();
 
                 for (WordLibrary library : filteredLibraries) {
-                    boolean isCustom = library.getCreatedBy() != null && !library.getCreatedBy().equals("system");
+                    // ✅ ИСПРАВЛЕНИЕ: правильное определение кастомности
+                    boolean isCustom = isCustomLibrary(library);
+                    Log.d(TAG, "📚 Библиотека: " + library.getLibraryId() +
+                            ", isCustom=" + isCustom +
+                            ", createdBy=" + library.getCreatedBy());
                     tasks.add(getWordsFromSingleLibrary(library.getLibraryId(), isCustom));
                 }
 
                 Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+                    int idx = 0;
                     for (Object result : results) {
+                        WordLibrary library = filteredLibraries.get(idx);
+                        boolean isCustomLibrary = isCustomLibrary(library);
+
                         if (result instanceof QuerySnapshot) {
                             QuerySnapshot snapshot = (QuerySnapshot) result;
                             for (QueryDocumentSnapshot document : snapshot) {
                                 WordItem word = document.toObject(WordItem.class);
                                 word.setWordId(document.getId());
-                                word.setLibraryId(document.getReference().getParent().getParent().getId());
+                                word.setLibraryId(library.getLibraryId());
+                                word.setCustomWord(isCustomLibrary); // ✅ ПРАВИЛЬНО!
 
-                                // ✅ ФИКС 1: Устанавливаем флаг кастомности
-                                boolean isCustomLibrary = isLibraryCustom(word.getLibraryId());
-                                word.setCustomWord(isCustomLibrary);
-
-                                // ✅ ФИКС 2: Загружаем isFavorite из документа
                                 if (document.contains("isFavorite")) {
                                     Boolean isFav = document.getBoolean("isFavorite");
                                     word.setFavorite(isFav != null && isFav);
@@ -605,19 +622,15 @@ public class WordRepository {
                                     word.setFavorite(false);
                                 }
 
-                                // ✅ ФИКС 3: Загружаем прогресс (reviewStage, nextReviewDate и т.д.)
-                                // НО! Эти поля обычно в word_progress, а не в слове
-                                // Поэтому пока ставим дефолтные значения, позже загрузим из word_progress
                                 loadBasicRepetitionFields(word, document);
-
                                 allWords.add(word);
                             }
                         }
+                        idx++;
                     }
 
                     Log.d(TAG, "✅ Загружено " + allWords.size() + " слов из Firebase");
 
-                    // ✅ ФИКС 4: ОТДЕЛЬНО загружаем прогресс из word_progress
                     if (allWords.isEmpty()) {
                         listener.onWordsLoaded(allWords);
                     } else {
@@ -675,10 +688,14 @@ public class WordRepository {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         List<String> activeLibraryIds = new ArrayList<>();
+                        List<Boolean> isCustomFlags = new ArrayList<>(); // ✅ ЗАПОМИНАЕМ ДЛЯ КАЖДОЙ
+
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String libraryId = document.getString("libraryId");
                             if (libraryId != null && !libraryId.isEmpty()) {
                                 activeLibraryIds.add(libraryId);
+                                // Пока не знаем, кастомная или нет
+                                isCustomFlags.add(false);
                             }
                         }
 
@@ -687,14 +704,113 @@ public class WordRepository {
                             return;
                         }
 
-                        loadLibrariesInfo(activeLibraryIds, listener);
+                        loadLibrariesInfoWithCustomFlag(activeLibraryIds, isCustomFlags, listener);
                     } else {
                         Log.e(TAG, "Ошибка загрузки, пробуем кеш", task.getException());
                         getUserActiveLibrariesOfflineFirst(listener);
                     }
                 });
     }
+    private void loadLibrariesInfoWithCustomFlag(List<String> libraryIds, List<Boolean> customFlags, OnLibrariesLoadedListener listener) {
+        if (libraryIds.isEmpty()) {
+            listener.onLibrariesLoaded(new ArrayList<>());
+            return;
+        }
 
+        List<WordLibrary> activeLibraries = new ArrayList<>();
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+        List<String> pendingCustomLibraryIds = new ArrayList<>(); // ✅ Для отложенной загрузки кастомных
+
+        // Пробуем загрузить все как публичные
+        for (String libraryId : libraryIds) {
+            tasks.add(db.collection("word_libraries").document(libraryId).get());
+        }
+
+        Tasks.whenAllComplete(tasks).addOnCompleteListener(combinedTask -> {
+            int idx = 0;
+            for (Task<DocumentSnapshot> task : tasks) {
+                String libraryId = libraryIds.get(idx);
+
+                if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                    // Нашли в публичных библиотеках
+                    WordLibrary library = task.getResult().toObject(WordLibrary.class);
+                    if (library != null) {
+                        library.setLibraryId(libraryId);
+                        library.setCreatedBy("system");
+                        activeLibraries.add(library);
+                    }
+                } else {
+                    // Не нашли в публичных - значит пользовательская, загрузим позже
+                    pendingCustomLibraryIds.add(libraryId);
+                }
+                idx++;
+            }
+
+            // ✅ Если есть пользовательские библиотеки - загружаем их
+            if (!pendingCustomLibraryIds.isEmpty()) {
+                loadMultipleCustomLibraries(pendingCustomLibraryIds, activeLibraries, listener);
+            } else {
+                // Только публичные
+                listener.onLibrariesLoaded(activeLibraries);
+            }
+        });
+    }
+
+    // ✅ НОВЫЙ МЕТОД для загрузки НЕСКОЛЬКИХ пользовательских библиотек
+    private void loadMultipleCustomLibraries(List<String> customLibraryIds,
+                                             List<WordLibrary> currentList,
+                                             OnLibrariesLoadedListener listener) {
+        if (customLibraryIds.isEmpty()) {
+            listener.onLibrariesLoaded(currentList);
+            return;
+        }
+
+        List<Task<DocumentSnapshot>> customTasks = new ArrayList<>();
+        for (String libraryId : customLibraryIds) {
+            customTasks.add(db.collection("users")
+                    .document(userId)
+                    .collection("custom_libraries")
+                    .document(libraryId)
+                    .get());
+        }
+
+        Tasks.whenAllComplete(customTasks).addOnCompleteListener(task -> {
+            for (Task<DocumentSnapshot> customTask : customTasks) {
+                if (customTask.isSuccessful() && customTask.getResult() != null && customTask.getResult().exists()) {
+                    WordLibrary library = customTask.getResult().toObject(WordLibrary.class);
+                    if (library != null) {
+                        library.setLibraryId(customTask.getResult().getId());
+                        library.setCreatedBy(userId);
+                        currentList.add(library);
+                    }
+                }
+            }
+            listener.onLibrariesLoaded(currentList);
+        });
+    }
+
+    private void loadCustomLibraryById(String libraryId, List<WordLibrary> currentList, OnLibrariesLoadedListener listener) {
+        db.collection("users")
+                .document(userId)
+                .collection("custom_libraries")
+                .document(libraryId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        WordLibrary library = document.toObject(WordLibrary.class);
+                        if (library != null) {
+                            library.setLibraryId(libraryId);
+                            library.setCreatedBy(userId); // ✅ УСТАНАВЛИВАЕМ userId
+                            currentList.add(library);
+                        }
+                    }
+                    listener.onLibrariesLoaded(currentList);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Ошибка загрузки custom library", e);
+                    listener.onLibrariesLoaded(currentList);
+                });
+    }
     public void getWordsWithProgressFromFirebase(String language, OnWordsLoadedListener listener) {
         // 1. Загружаем слова из библиотек
         getWordsFromActiveLibrariesFirebase(language, new OnWordsLoadedListener() {
@@ -1316,8 +1432,8 @@ public class WordRepository {
                 List<Task<QuerySnapshot>> tasks = new ArrayList<>();
 
                 for (WordLibrary lib : filteredLibraries) {
-                    boolean isCustom = lib.getCreatedBy() != null && !lib.getCreatedBy().equals("system");
-                    tasks.add(getWordsFromSingleLibrary(lib.getLibraryId(), isCustom));
+                    boolean isCustomLibrary = isCustomLibrary(lib); // ✅ Используем новый метод
+                    tasks.add(getWordsFromSingleLibrary(lib.getLibraryId(), isCustomLibrary)); // ← isCustomLibrary, не isCustom
                 }
 
                 Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {

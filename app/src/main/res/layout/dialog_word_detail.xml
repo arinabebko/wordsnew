@@ -7,7 +7,6 @@
     android:background="#211B20"
     android:padding="24dp">
 
-
     <!-- Слово -->
     <TextView
         android:id="@+id/wordText"
@@ -47,7 +46,8 @@
         android:text="📝 Заметка"
         android:textColor="#E0E0E0"
         android:textSize="14sp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="8dp"
+        android:fontFamily="@font/jura_font_wght" />
 
     <TextView
         android:id="@+id/noteText"
@@ -59,7 +59,8 @@
         android:padding="12dp"
         android:background="#2A2A2A"
         android:radius="8dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:fontFamily="@font/jura_font_wght" />
 
     <!-- Дата добавления -->
     <TextView
@@ -69,7 +70,8 @@
         android:text="📅 Дата"
         android:textSize="14sp"
         android:textColor="#B0B0B0"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="8dp"
+        android:fontFamily="@font/jura_font_wght" />
 
     <!-- Коллекция -->
     <TextView
@@ -79,9 +81,10 @@
         android:text="📚 Коллекция"
         android:textSize="14sp"
         android:textColor="#B0B0B0"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="24dp"
+        android:fontFamily="@font/jura_font_wght" />
 
-    <!-- Добавьте после libraryText -->
+    <!-- Тип слова -->
     <TextView
         android:id="@+id/wordTypeText"
         android:layout_width="wrap_content"
@@ -90,7 +93,8 @@
         android:textSize="12sp"
         android:textColor="#B0B0B0"
         android:layout_marginTop="8dp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:fontFamily="@font/jura_font_wght" />
 
     <!-- Кнопки действий -->
     <LinearLayout
@@ -108,7 +112,8 @@
             android:layout_marginEnd="8dp"
             android:text="🔊 Слушать"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#2A2A2A" />
+            android:backgroundTint="#2A2A2A"
+            android:fontFamily="@font/jura_font_wght" />
 
         <Button
             android:id="@+id/editButton"
@@ -120,7 +125,8 @@
             android:layout_marginEnd="4dp"
             android:text="✏️ Редактировать"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#2A2A2A" />
+            android:backgroundTint="#2A2A2A"
+            android:fontFamily="@font/jura_font_wght" />
 
         <Button
             android:id="@+id/deleteButton"
@@ -131,7 +137,8 @@
             android:layout_marginStart="8dp"
             android:text="🗑 Удалить"
             android:textColor="#FF6B6B"
-            android:backgroundTint="#2A2A2A" />
+            android:backgroundTint="#2A2A2A"
+            android:fontFamily="@font/jura_font_wght" />
 
     </LinearLayout>
 
