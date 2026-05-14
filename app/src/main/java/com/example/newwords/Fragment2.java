@@ -10,11 +10,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,7 +27,8 @@ import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -933,28 +936,49 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         Toast.makeText(getContext(), info, Toast.LENGTH_LONG).show();
     }
-
     private void showLibraryManagementDialog(WordLibrary library) {
-        // Опции меню из ресурсов
-        String[] options = {
-                getString(R.string.lib_manage_add_word),
-                getString(R.string.lib_manage_view_words),
-                getString(R.string.lib_manage_delete)
-        };
-
+        // Создаем кастомный диалог
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle(getString(R.string.lib_manage_title, library.getName()))
-                .setItems(options, (dialog, which) -> {
-                    switch (which) {
-                        case 0: showAddWordDialog(library); break;
-                        case 1: showLibraryWords(library); break;
-                        case 2: deleteLibrary(library); break;
-                    }
-                })
-                .setNegativeButton(R.string.common_cancel, null)
-                .show();
-    }
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View view = inflater.inflate(R.layout.dialog_library_management, null);
 
+        // Находим элементы
+        TextView titleTextView = view.findViewById(R.id.titleTextView);
+        TextView addWordOption = view.findViewById(R.id.addWordOption);
+        TextView viewWordsOption = view.findViewById(R.id.viewWordsOption);
+        TextView deleteOption = view.findViewById(R.id.deleteOption);
+        Button cancelButton = view.findViewById(R.id.cancelButton);
+
+        // Устанавливаем заголовок
+        titleTextView.setText(getString(R.string.lib_manage_title, library.getLocalizedName()));
+
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        // Убираем стандартный заголовок
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        // Настраиваем клики
+        addWordOption.setOnClickListener(v -> {
+            showAddWordDialog(library);
+            dialog.dismiss();
+        });
+
+        viewWordsOption.setOnClickListener(v -> {
+            showLibraryWords(library);
+            dialog.dismiss();
+        });
+
+        deleteOption.setOnClickListener(v -> {
+            deleteLibrary(library);
+            dialog.dismiss();
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
     private void addWordToLibrary(String libraryId, String word, String translation, String note) {
         WordItem newWord = new WordItem(word, translation, note);
         wordRepository.addWordToCustomLibrary(libraryId, newWord,

@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -44,10 +45,16 @@ public class AddLibraryDialog extends DialogFragment {
         initViews(view);
         setupSpinners();
 
-        builder.setView(view)
-                .setTitle("Создать новую библиотеку");
+        builder.setView(view);
+        // ⭐ УДАЛИТЕ ЭТУ СТРОКУ:
+        // .setTitle("Создать новую библиотеку");
 
-        return builder.create();
+        AlertDialog dialog = builder.create();
+
+        // ⭐ ДОБАВЬТЕ ЭТИ 2 СТРОЧКИ:
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        return dialog;
     }
 
     private void initViews(View view) {

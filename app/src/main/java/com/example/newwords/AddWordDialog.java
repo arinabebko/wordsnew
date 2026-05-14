@@ -5,8 +5,10 @@ import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -56,15 +58,21 @@ public class AddWordDialog extends DialogFragment {
 
         initViews(view);
 
-        // Используем форматную строку: "Добавить слово в: %1$s"
+        // Устанавливаем заголовок в TextView из макета
+        TextView titleTextView = view.findViewById(R.id.titleTextView);
         String title = getString(R.string.word_add_dialog_title, libraryName);
+        titleTextView.setText(title);
 
-        builder.setView(view)
-                .setTitle(title);
+        builder.setView(view);
+        // Убираем стандартный заголовок - НЕ вызываем .setTitle()!
 
-        return builder.create();
+        AlertDialog dialog = builder.create();
+
+        // Убираем стандартный заголовок полностью
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        return dialog;
     }
-
     private void initViews(View view) {
         wordEditText = view.findViewById(R.id.wordEditText);
         translationEditText = view.findViewById(R.id.translationEditText);
