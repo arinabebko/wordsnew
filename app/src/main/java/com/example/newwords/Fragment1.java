@@ -56,7 +56,7 @@ public class Fragment1 extends Fragment {
 
         wordRepository = new WordRepository(getContext());
         initViews(view);
-
+        wordRepository.checkAndResetDailyProgress();
         // Загружаем статистику ИЗ КЕША (мгновенно!)
         loadStatsFromLocalCache();
 

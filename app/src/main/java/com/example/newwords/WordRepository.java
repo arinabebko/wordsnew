@@ -218,73 +218,105 @@ public class WordRepository {
     public void forceLoadWordsForLanguage(String language, OnSuccessListener listener) {
         Log.d(TAG, "💪 ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СЛОВ ДЛЯ: " + language);
 
-        // Получаем ВСЕ библиотеки для этого языка (не только активные)
+        // Загружаем ПУБЛИЧНЫЕ библиотеки
         db.collection("word_libraries")
                 .whereEqualTo("languageFrom", language)
                 .whereEqualTo("isPublic", true)
                 .get()
-                .addOnSuccessListener(snapshot -> {
-                    List<WordLibrary> libraries = new ArrayList<>();
-                    for (DocumentSnapshot doc : snapshot) {
-                        WordLibrary lib = doc.toObject(WordLibrary.class);
-                        if (lib != null) {
-                            lib.setLibraryId(doc.getId());
-                            lib.setCreatedBy("system");
-                            libraries.add(lib);
-                            Log.d(TAG, "📚 Найдена библиотека: " + lib.getName());
-                        }
-                    }
+                .addOnSuccessListener(publicSnapshot -> {
 
-                    if (libraries.isEmpty()) {
-                        Log.d(TAG, "Нет библиотек для языка " + language);
-                        if (listener != null) listener.onSuccess();
-                        return;
-                    }
+                    // Загружаем ПОЛЬЗОВАТЕЛЬСКИЕ библиотеки
+                    db.collection("users")
+                            .document(userId)
+                            .collection("custom_libraries")
+                            .whereEqualTo("languageFrom", language)
+                            .get()
+                            .addOnSuccessListener(customSnapshot -> {
 
-                    // Сохраняем библиотеки в кеш и делаем их активными
-                    for (WordLibrary lib : libraries) {
-                        lib.setActive(true);
-                        updateLibraryLocalStatus(lib.getLibraryId(), true);
-                    }
-                    saveActiveLibrariesToCache(libraries);
+                                List<WordLibrary> libraries = new ArrayList<>();
 
-                    // Загружаем слова для каждой библиотеки
-                    List<Task<QuerySnapshot>> tasks = new ArrayList<>();
-                    for (WordLibrary lib : libraries) {
-                        tasks.add(getWordsFromSingleLibrary(lib.getLibraryId(), false));
-                    }
-
-                    Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
-                        List<WordItem> allWords = new ArrayList<>();
-                        int idx = 0;
-                        for (Object result : results) {
-                            WordLibrary lib = libraries.get(idx);
-                            if (result instanceof QuerySnapshot) {
-                                QuerySnapshot querySnapshot = (QuerySnapshot) result;
-                                for (QueryDocumentSnapshot document : querySnapshot) {
-                                    WordItem word = document.toObject(WordItem.class);
-                                    word.setWordId(document.getId());
-                                    word.setLibraryId(lib.getLibraryId());
-                                    word.setCustomWord(false);
-                                    loadBasicRepetitionFields(word, document);
-                                    allWords.add(word);
+                                // Добавляем публичные библиотеки
+                                for (DocumentSnapshot doc : publicSnapshot) {
+                                    WordLibrary lib = doc.toObject(WordLibrary.class);
+                                    if (lib != null) {
+                                        lib.setLibraryId(doc.getId());
+                                        lib.setCreatedBy("system");
+                                        libraries.add(lib);
+                                        Log.d(TAG, "📚 Найдена ПУБЛИЧНАЯ библиотека: " + lib.getLocalizedName());
+                                    }
                                 }
-                            }
-                            idx++;
-                        }
 
-                        saveWordsToCache(allWords);
-                        saveSyncTime(language);
-                        Log.d(TAG, "✅ Загружено " + allWords.size() + " слов для " + language);
+                                // Добавляем пользовательские библиотеки
+                                for (DocumentSnapshot doc : customSnapshot) {
+                                    WordLibrary lib = doc.toObject(WordLibrary.class);
+                                    if (lib != null) {
+                                        lib.setLibraryId(doc.getId());
+                                        lib.setCreatedBy(userId);
+                                        libraries.add(lib);
+                                        Log.d(TAG, "📚 Найдена ПОЛЬЗОВАТЕЛЬСКАЯ библиотека: " + lib.getLocalizedName() + ", язык=" + lib.getLanguageFrom());
+                                    }
+                                }
 
-                        if (listener != null) listener.onSuccess();
-                    }).addOnFailureListener(e -> {
-                        Log.e(TAG, "Ошибка загрузки слов", e);
-                        if (listener != null) listener.onSuccess();
-                    });
+                                if (libraries.isEmpty()) {
+                                    Log.d(TAG, "Нет библиотек для языка " + language);
+                                    if (listener != null) listener.onSuccess();
+                                    return;
+                                }
+
+                                Log.d(TAG, "📚 ВСЕГО библиотек для " + language + ": " + libraries.size());
+
+                                // Сохраняем библиотеки в кеш и делаем их активными
+                                for (WordLibrary lib : libraries) {
+                                    lib.setActive(true);
+                                    updateLibraryLocalStatus(lib.getLibraryId(), true);
+                                }
+                                saveActiveLibrariesToCache(libraries);
+
+                                // Загружаем слова для каждой библиотеки
+                                List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+                                for (WordLibrary lib : libraries) {
+                                    boolean isCustom = !lib.getCreatedBy().equals("system");
+                                    tasks.add(getWordsFromSingleLibrary(lib.getLibraryId(), isCustom));
+                                }
+
+                                Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+                                    List<WordItem> allWords = new ArrayList<>();
+                                    int idx = 0;
+                                    for (Object result : results) {
+                                        WordLibrary lib = libraries.get(idx);
+                                        if (result instanceof QuerySnapshot) {
+                                            QuerySnapshot querySnapshot = (QuerySnapshot) result;
+                                            for (QueryDocumentSnapshot document : querySnapshot) {
+                                                WordItem word = document.toObject(WordItem.class);
+                                                word.setWordId(document.getId());
+                                                word.setLibraryId(lib.getLibraryId());
+                                                word.setCustomWord(!lib.getCreatedBy().equals("system"));
+                                                loadBasicRepetitionFields(word, document);
+                                                allWords.add(word);
+                                            }
+                                        }
+                                        idx++;
+                                    }
+
+                                    saveWordsToCache(allWords);
+                                    saveSyncTime(language);
+                                    Log.d(TAG, "✅ Загружено " + allWords.size() + " слов для " + language + " (из них пользовательских: " +
+                                            (int) allWords.stream().filter(w -> w.isCustomWord()).count() + ")");
+
+                                    if (listener != null) listener.onSuccess();
+                                }).addOnFailureListener(e -> {
+                                    Log.e(TAG, "Ошибка загрузки слов", e);
+                                    if (listener != null) listener.onSuccess();
+                                });
+
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Ошибка загрузки пользовательских библиотек", e);
+                                if (listener != null) listener.onSuccess();
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Ошибка загрузки библиотек", e);
+                    Log.e(TAG, "Ошибка загрузки публичных библиотек", e);
                     if (listener != null) listener.onSuccess();
                 });
     }
@@ -989,6 +1021,10 @@ public class WordRepository {
                     .get());
         }
 
+
+
+
+
         Tasks.whenAllComplete(customTasks).addOnCompleteListener(task -> {
             for (Task<DocumentSnapshot> customTask : customTasks) {
                 if (customTask.isSuccessful() && customTask.getResult() != null && customTask.getResult().exists()) {
@@ -996,6 +1032,13 @@ public class WordRepository {
                     if (library != null) {
                         library.setLibraryId(customTask.getResult().getId());
                         library.setCreatedBy(userId);
+
+                        // ✅ ДОБАВЬ ЭТОТ ЛОГ:
+                        Log.d("CUSTOM_LIB_DEBUG", "Загружена кастомная библиотека: " +
+                                library.getLocalizedName() +
+                                ", languageFrom=" + library.getLanguageFrom() +
+                                ", category=" + library.getCategory());
+
                         currentList.add(library);
                     }
                 }

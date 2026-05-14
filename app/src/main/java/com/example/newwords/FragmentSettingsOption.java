@@ -1,12 +1,16 @@
 package com.example.newwords;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -43,12 +47,10 @@ public class FragmentSettingsOption extends Fragment {
         this.usernameChangedListener = listener;
     }
 
-    // Убедитесь, что SharedPreferences инициализированы при первом запуске
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Инициализация настроек по умолчанию при первом запуске
         if (getContext() != null) {
             SharedPreferences prefs = getContext().getSharedPreferences("settings", 0);
 
@@ -68,17 +70,11 @@ public class FragmentSettingsOption extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_settings_option, container, false);
 
-        // Инициализация Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // Инициализация View элементов
         initViews(view);
-
-        // Загрузка текущих данных пользователя
         loadCurrentUserData();
-
-        // Настройка обработчиков кликов
         setupClickListeners();
 
         return view;
@@ -97,13 +93,11 @@ public class FragmentSettingsOption extends Fragment {
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (currentUser != null) {
-            // Имя пользователя
             String displayName = currentUser.getDisplayName();
             if (displayName != null && !displayName.isEmpty()) {
                 currentUsernameTextView.setText(displayName);
                 newUsernameEditText.setHint("Текущее: " + displayName);
             } else {
-                // Если имя не установлено
                 String email = currentUser.getEmail();
                 if (email != null && email.contains("@")) {
                     String username = email.substring(0, email.indexOf("@"));
@@ -119,7 +113,6 @@ public class FragmentSettingsOption extends Fragment {
             saveUsernameButton.setAlpha(0.5f);
         }
 
-        // Загрузить другие настройки из SharedPreferences
         loadOtherSettings();
     }
 
@@ -128,13 +121,11 @@ public class FragmentSettingsOption extends Fragment {
 
         SharedPreferences prefs = getContext().getSharedPreferences("settings", 0);
 
-        // Язык
         String language = prefs.getString("language", "Русский");
         if (languageTextView != null) {
             languageTextView.setText(language);
         }
 
-        // Тема
         String theme = prefs.getString("theme", "Темная");
         if (themeTextView != null) {
             themeTextView.setText(theme);
@@ -142,35 +133,21 @@ public class FragmentSettingsOption extends Fragment {
     }
 
     private void setupClickListeners() {
-        // Кнопка сохранения имени
-        saveUsernameButton.setOnClickListener(v -> {
-            saveNewUsername();
-        });
+        saveUsernameButton.setOnClickListener(v -> saveNewUsername());
+        backButton.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
 
-        // Кнопка назад
-        backButton.setOnClickListener(v -> {
-            requireActivity().getSupportFragmentManager().popBackStack();
-        });
-
-        // Смена языка
         if (languageTextView != null) {
-            languageTextView.setOnClickListener(v -> {
-                showLanguageDialog();
-            });
+            languageTextView.setOnClickListener(v -> showLanguageDialog());
         }
 
-        // Смена темы
         if (themeTextView != null) {
-            themeTextView.setOnClickListener(v -> {
-                showThemeDialog();
-            });
+            themeTextView.setOnClickListener(v -> showThemeDialog());
         }
     }
 
     private void saveNewUsername() {
         String newUsername = newUsernameEditText.getText().toString().trim();
 
-        // Валидация
         if (TextUtils.isEmpty(newUsername)) {
             Toast.makeText(getContext(), "Введите новое имя", Toast.LENGTH_SHORT).show();
             newUsernameEditText.requestFocus();
@@ -201,11 +178,9 @@ public class FragmentSettingsOption extends Fragment {
             return;
         }
 
-        // Блокируем кнопку на время выполнения
         saveUsernameButton.setEnabled(false);
         saveUsernameButton.setText("Сохранение...");
 
-        // Обновляем имя в Firebase Auth
         UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                 .setDisplayName(newUsername)
                 .build();
@@ -213,39 +188,24 @@ public class FragmentSettingsOption extends Fragment {
         user.updateProfile(profileUpdates)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        // Обновляем в Firestore
                         updateUsernameInFirestore(user.getUid(), newUsername);
-
-                        // Обновляем UI
                         currentUsernameTextView.setText(newUsername);
                         newUsernameEditText.setText("");
                         newUsernameEditText.setHint("Текущее: " + newUsername);
-
-                        // ⭐⭐⭐ ВАЖНОЕ ИЗМЕНЕНИЕ: Отправляем сигнал об обновлении ⭐⭐⭐
                         sendUsernameUpdateSignal(newUsername);
-
-                        // ⭐⭐⭐ ВАРИАНТ: Показываем сообщение и возвращаемся ⭐⭐⭐
-                      //  Toast.makeText(getContext(), "Имя успешно изменено! Возвращаемся...", Toast.LENGTH_SHORT).show();
-
-
-
-                        // ⭐⭐⭐ ВАРИАНТ Б: Оставляем пользователя в настройках ⭐⭐⭐
-                        // Просто показываем сообщение
-                         Toast.makeText(getContext(), "Имя успешно изменено!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Имя успешно изменено!", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(getContext(),
                                 "Ошибка: " + task.getException().getMessage(),
                                 Toast.LENGTH_SHORT).show();
                     }
 
-                    // Восстанавливаем кнопку
                     saveUsernameButton.setEnabled(true);
                     saveUsernameButton.setText("Сохранить имя");
                 });
     }
-    // Метод для отправки сигнала об обновлении
+
     private void sendUsernameUpdateSignal(String newUsername) {
-        // Вариант 1: Через SharedPreferences
         if (getContext() != null) {
             SharedPreferences prefs = getContext().getSharedPreferences("user_updates", Context.MODE_PRIVATE);
             prefs.edit()
@@ -255,21 +215,16 @@ public class FragmentSettingsOption extends Fragment {
                     .apply();
         }
 
-        // Вариант 2: Через интерфейс (если фрагмент 3 активен)
         if (usernameChangedListener != null) {
             usernameChangedListener.onUsernameChanged(newUsername);
         }
     }
+
     private void updateUsernameInFirestore(String userId, String newUsername) {
         db.collection("users").document(userId)
                 .update("username", newUsername)
-                .addOnSuccessListener(aVoid -> {
-                    // Успешно обновлено в Firestore
-                })
-                .addOnFailureListener(e -> {
-                    // Ошибка обновления в Firestore
-                    // Можно залогировать, но не показывать пользователю
-                });
+                .addOnSuccessListener(aVoid -> {})
+                .addOnFailureListener(e -> {});
     }
 
     private void saveSetting(String key, String value) {
@@ -282,64 +237,132 @@ public class FragmentSettingsOption extends Fragment {
     }
 
     private void showLanguageDialog() {
-        // Названия языков для отображения в списке
-        String[] languages = {"Русский", "English", "Башҡорт"};
-        // Соответствующие коды для системы (ISO 639-1)
-        String[] languageCodes = {"ru", "en", "ba"};
+        // Создаем кастомный диалог вместо стандартного
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View dialogView = inflater.inflate(R.layout.dialog_language_theme, null);
 
-        androidx.appcompat.app.AlertDialog.Builder builder =
-                new androidx.appcompat.app.AlertDialog.Builder(requireContext());
+        TextView titleTextView = dialogView.findViewById(R.id.titleTextView);
+        titleTextView.setText(R.string.settings_label_language);
 
-        builder.setTitle(R.string.settings_label_language)
-                .setItems(languages, (dialog, which) -> {
-                    String selectedLanguage = languages[which];
-                    String selectedCode = languageCodes[which];
+        TextView option1 = dialogView.findViewById(R.id.option1);
+        TextView option2 = dialogView.findViewById(R.id.option2);
+        TextView option3 = dialogView.findViewById(R.id.option3);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
 
-                    // 1. Сохраняем название языка для отображения в UI
-                    saveSetting("language", selectedLanguage);
+        option1.setText("Русский");
+        option2.setText("English");
+        option3.setText("Башҡорт");
 
-                    // Обновляем текст в самом фрагменте сразу
-                    if (languageTextView != null) {
-                        languageTextView.setText(selectedLanguage);
-                    }
+        builder.setView(dialogView);
 
-                    // 2. МЕНЯЕМ ЛОКАЛЬ ПРИЛОЖЕНИЯ
-                    // AppCompatDelegate.setApplicationLocales сам перезапустит активити
-                    // и подтянет нужный strings.xml (values-ru, values-en или values-ba)
-                    setAppLocale(selectedCode);
+        AlertDialog dialog = builder.create();
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
-                    Toast.makeText(getContext(), R.string.settings_toast_language_changed, Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton(R.string.common_cancel, null)
-                .show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        option1.setOnClickListener(v -> {
+            saveSetting("language", "Русский");
+            if (languageTextView != null) {
+                languageTextView.setText("Русский");
+            }
+            setAppLocale("ru");
+            Toast.makeText(getContext(), R.string.settings_toast_language_changed, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        option2.setOnClickListener(v -> {
+            saveSetting("language", "English");
+            if (languageTextView != null) {
+                languageTextView.setText("English");
+            }
+            setAppLocale("en");
+            Toast.makeText(getContext(), R.string.settings_toast_language_changed, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        option3.setOnClickListener(v -> {
+            saveSetting("language", "Башҡорт");
+            if (languageTextView != null) {
+                languageTextView.setText("Башҡорт");
+            }
+            setAppLocale("ba");
+            Toast.makeText(getContext(), R.string.settings_toast_language_changed, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void showThemeDialog() {
-        // Диалог выбора темы
-        String[] themes = {"Темная", "Светлая", "Авто"};
+        // Создаем кастомный диалог вместо стандартного
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View dialogView = inflater.inflate(R.layout.dialog_language_theme, null);
 
-        androidx.appcompat.app.AlertDialog.Builder builder =
-                new androidx.appcompat.app.AlertDialog.Builder(getContext());
+        TextView titleTextView = dialogView.findViewById(R.id.titleTextView);
+        titleTextView.setText("Выберите тему");
 
-        builder.setTitle("Выберите тему")
-                .setItems(themes, (dialog, which) -> {
-                    String selectedTheme = themes[which];
-                    if (themeTextView != null) {
-                        themeTextView.setText(selectedTheme);
-                    }
-                    saveSetting("theme", selectedTheme);
-                    Toast.makeText(getContext(),
-                            "Тема изменена на " + selectedTheme,
-                            Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
+        TextView option1 = dialogView.findViewById(R.id.option1);
+        TextView option2 = dialogView.findViewById(R.id.option2);
+        TextView option3 = dialogView.findViewById(R.id.option3);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+
+        option1.setText("Темная");
+        option2.setText("Светлая");
+        option3.setText("Авто");
+
+        builder.setView(dialogView);
+
+        AlertDialog dialog = builder.create();
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        option1.setOnClickListener(v -> {
+            String selectedTheme = "Темная";
+            if (themeTextView != null) {
+                themeTextView.setText(selectedTheme);
+            }
+            saveSetting("theme", selectedTheme);
+            Toast.makeText(getContext(), "Тема изменена на " + selectedTheme, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        option2.setOnClickListener(v -> {
+            String selectedTheme = "Светлая";
+            if (themeTextView != null) {
+                themeTextView.setText(selectedTheme);
+            }
+            saveSetting("theme", selectedTheme);
+            Toast.makeText(getContext(), "Тема изменена на " + selectedTheme, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        option3.setOnClickListener(v -> {
+            String selectedTheme = "Авто";
+            if (themeTextView != null) {
+                themeTextView.setText(selectedTheme);
+            }
+            saveSetting("theme", selectedTheme);
+            Toast.makeText(getContext(), "Тема изменена на " + selectedTheme, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Обновляем данные при возвращении на фрагмент
         if (mAuth != null && getView() != null) {
             loadCurrentUserData();
         }
@@ -348,18 +371,14 @@ public class FragmentSettingsOption extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Очищаем слушатель при уничтожении вью
         usernameChangedListener = null;
     }
-
-
 
     private void setAppLocale(String languageCode) {
         androidx.core.os.LocaleListCompat appLocale =
                 androidx.core.os.LocaleListCompat.forLanguageTags(languageCode);
         androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale);
 
-        // Добавляем плавный переход для текущего экрана
         if (getActivity() != null) {
             getActivity().overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         }

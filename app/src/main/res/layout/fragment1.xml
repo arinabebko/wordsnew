@@ -102,15 +102,15 @@
 
                 </LinearLayout>
 
-                <!-- ✅ НОВЫЙ БЛОК: Прогресс на сегодня -->
+                <!-- ✅ НОВЫЙ БЛОК: Прогресс на сегодня (без заголовка) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:layout_marginTop="8dp"
                     android:paddingHorizontal="20dp"
-                    android:paddingVertical="12dp"
-            >
+                    android:paddingVertical="12dp">
+
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -119,7 +119,8 @@
                         android:textSize="14sp"
                         android:textColor="#A2B2FF"
                         android:fontFamily="@font/jura_font_wght"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="8dp"
+                        />
 
                     <ProgressBar
                         android:id="@+id/todayProgressBar"
@@ -129,7 +130,8 @@
                         android:max="10"
                         android:progressTint="#8CA0FF"
                         android:progressBackgroundTint="#3D3B40"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="8dp"
+                       />
 
                     <TextView
                         android:id="@+id/todayProgressText"
@@ -138,7 +140,8 @@
                         android:text="0/10 слов сегодня"
                         android:textSize="13sp"
                         android:textColor="#fcb6b0"
-                        android:fontFamily="@font/jura_font_wght" />
+                        android:fontFamily="@font/jura_font_wght"
+                       />
 
                 </LinearLayout>
 

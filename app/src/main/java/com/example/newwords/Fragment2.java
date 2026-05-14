@@ -227,7 +227,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 // ФИЛЬТРУЕМ БИБЛИОТЕКИ ПО languageFrom (оригинальный язык)
                 for (WordLibrary library : libraries) {
                     String libraryOriginalLanguage = library.getLanguageFrom();
-
+                    // ✅ ДОБАВЬ ЭТОТ ЛОГ:
+                    Log.d("FRAGMENT2_DEBUG", "Библиотека: " + library.getLocalizedName() +
+                            ", languageFrom=" + libraryOriginalLanguage +
+                            ", createdBy=" + library.getCreatedBy() +
+                            ", isCustom=" + (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")));
                     if (libraryOriginalLanguage != null && libraryOriginalLanguage.equals(currentLanguage)) {
                         availableLibraries.add(library);
                         Log.d(TAG, "✅ Добавлена библиотека: " + library.getName());
@@ -258,7 +262,16 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                     // Загружаем активные библиотеки пользователя ДЛЯ ТЕКУЩЕГО ЯЗЫКА
                     loadUserActiveLibrariesForCurrentLanguage();
                 }
+                for (WordLibrary library : libraries) {
+                    String libraryOriginalLanguage = library.getLanguageFrom();
+                    Log.d("DEBUG_LANG", "Библиотека: " + library.getName() +
+                            ", languageFrom=" + libraryOriginalLanguage +
+                            ", создана: " + library.getCreatedBy());
 
+                    if (libraryOriginalLanguage != null && libraryOriginalLanguage.equals(currentLanguage)) {
+                        availableLibraries.add(library);
+                    }
+                }
                 // Обновляем состояние кнопки
                 updateStartButtonState();
 
@@ -936,6 +949,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         Toast.makeText(getContext(), info, Toast.LENGTH_LONG).show();
     }
+
     private void showLibraryManagementDialog(WordLibrary library) {
         // Создаем кастомный диалог
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());

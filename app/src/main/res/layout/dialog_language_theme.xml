@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#211B20"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/titleTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#fcb6b0"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/jura_font_wght"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/option1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#A2B2FF"
+        android:textSize="16sp"
+        android:fontFamily="@font/jura_font_wght"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginBottom="8dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#3D3D3D"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/option2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#A2B2FF"
+        android:textSize="16sp"
+        android:fontFamily="@font/jura_font_wght"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginBottom="8dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#3D3D3D"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/option3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#A2B2FF"
+        android:textSize="16sp"
+        android:fontFamily="@font/jura_font_wght"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginBottom="24dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/common_cancel"
+            android:textColor="#625fba"
+            android:fontFamily="@font/jura_font_wght"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+    </LinearLayout>
+
+</LinearLayout>
