@@ -807,40 +807,84 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
 
     // === РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА StackCardAdapter.OnCardActionListener ===
 
+    // === РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА StackCardAdapter.OnCardActionListener ===
+
     @Override
     public void onCardLearned(WordItem word) {
-        Log.d(TAG, "=== ОБРАБОТКА: onCardLearned ===");
+        Log.d(TAG, "=== ВЫУЧЕНО СЛОВО: " + word.getWord() + " ===");
+        Log.d(TAG, "Текущий reviewStage: " + word.getReviewStage());
 
-        // ТОЛЬКО ОДИН вызов - либо onWordLearned, либо onWordReviewed
-        if (SimpleRepetitionSystem.isLearnedWord(word)) {
+        // ⚠️ ВАЖНО: processAnswer() УЖЕ был вызван в адаптере!
+        // Слово уже имеет обновленный reviewStage (0→1 или 1→2 и т.д.)
+
+        // 1. Сохраняем обновленный прогресс в БД
+        wordRepository.updateWord(word);
+
+        // 2. ✅ ПРОВЕРЯЕМ: действительно ли слово ВЫУЧЕНО (stage >= 6)?
+        boolean isReallyLearned = SimpleRepetitionSystem.isLearnedWord(word);
+
+        if (isReallyLearned) {
+            Log.d(TAG, "🎉 СЛОВО ДЕЙСТВИТЕЛЬНО ВЫУЧЕНО! +1 к статистике");
+
+            // ТОЛЬКО ТЕПЕРЬ увеличиваем счетчик выученных слов
             wordRepository.onWordLearned(word.getWordId());
+
+            //Toast.makeText(getContext(), "🎉 Слово выучено! +1 к прогрессу!", Toast.LENGTH_SHORT).show();
         } else {
-            wordRepository.onWordReviewed();
+            Log.d(TAG, "📚 Прогресс сохранен. Слово на этапе: " + word.getReviewStage());
+           // Toast.makeText(getContext(), "✅ Прогресс: этап " + word.getReviewStage() + "/6", Toast.LENGTH_SHORT).show();
         }
 
-        // Обновляем прогресс
-        updateProgress();
-        Toast.makeText(getContext(), "✅ " + word.getWord() + " - выучено!", Toast.LENGTH_SHORT).show();
+        // 3. Обновляем статистику на экране
+        wordRepository.recalculateStatsFromCache(currentLanguage, new WordRepository.OnStatsLoadedListener() {
+            @Override
+            public void onStatsLoaded(UserStats stats) {
+                Log.d(TAG, "✅ Статистика пересчитана: wordsLearned=" + stats.getWordsLearned() +
+                        ", wordsInProgress=" + stats.getWordsInProgress());
+                updateProgress();
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Ошибка пересчета статистики", e);
+                updateProgress();
+            }
+        });
     }
-
-
     @Override
     public void onCardNotLearned(WordItem word) {
         Log.d(TAG, "Слово не выучено: " + word.getWord());
 
-        // УБЕРИТЕ ЭТИ СТРОКИ - они уже вызваны в адаптере:
-        // SimpleRepetitionSystem.processAnswer(word, false);
-        // wordRepository.updateWord(word);
+        // 1. Обновляем прогресс слова
+        wordRepository.updateWord(word);
 
-        // Оставляем только статистику:
+        // 2. Обновляем статистику (только todayProgress)
         wordRepository.onWordReviewed();
 
-        // Обновляем прогресс
-        updateProgress();
+        // 3. ✅ Пересчитываем статистику с нормальным listener
+        wordRepository.recalculateStatsFromCache(currentLanguage, new WordRepository.OnStatsLoadedListener() {
+            @Override
+            public void onStatsLoaded(UserStats stats) {
+                Log.d(TAG, "📊 Статистика пересчитана после ответа: wordsInProgress=" + stats.getWordsInProgress());
+                updateProgress(); // ✅ ЕСТЬ!
+                // Можно обновить UI если нужно
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        // Обновляем прогресс на экране если нужно
+                        updateProgress();
+                    });
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "❌ Ошибка пересчета статистики", e);
+            }
+        });
+
 
         Toast.makeText(getContext(), "🔄 " + word.getWord() + " - повторим позже", Toast.LENGTH_SHORT).show();
     }
-
     @Override
     public void onCardFavoriteToggled(WordItem word, boolean isFavorite) {
         Log.d(TAG, "Избранное изменено: " + word.getWord() + " = " + isFavorite);

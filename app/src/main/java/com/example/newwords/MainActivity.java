@@ -7,6 +7,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         initializeCacheSmart();
+        wordRepository.checkAndResetDailyProgress();
 
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
@@ -98,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         if (isFirstLaunch) {
             Log.d(TAG, "🎉 ПЕРВЫЙ ЗАПУСК - загружаем ВСЕ данные в кеш");
             showLoadingIndicator();
-            loadAllLanguagesForFirstTime();  // ← ИСПРАВЛЕНО: используем новый метод
+            loadAllLanguagesForFirstTime();
         } else {
             Log.d(TAG, "⚡ Не первый запуск - проверяем наличие кеша");
 
@@ -113,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         Log.d(TAG, "✅ Кеш в порядке: " + wordCount + " слов, " + libraryCount + " библиотек");
                         checkAndRefreshStaleCache();
+                        // ✅ Добавляем синхронизацию статистики
+                        syncStatsIfNeeded();
                     }
                 }
             });
@@ -120,15 +125,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Синхронизирует статистику с Firebase при наличии интернета
+     */
+    private void syncStatsIfNeeded() {
+        if (isNetworkAvailable()) {
+            Log.d(TAG, "🔄 Синхронизация статистики с Firebase");
+            wordRepository.syncStatsWithFirebase();
+        }
+    }
+
+    /**
      * ГЛАВНЫЙ МЕТОД ЗАГРУЗКИ - использует forceLoadWordsForLanguage
-     * который загружает ВСЕ библиотеки и ВСЕ слова для языка
      */
     private void loadAllLanguagesForFirstTime() {
         String[] languages = {"ba", "en", "ru"};
         AtomicInteger loadedCount = new AtomicInteger(0);
 
         for (String lang : languages) {
-            // ✅ ИСПРАВЛЕНО: используем forceLoadWordsForLanguage
             wordRepository.forceLoadWordsForLanguage(lang, new WordRepository.OnSuccessListener() {
                 @Override
                 public void onSuccess() {
@@ -149,6 +162,9 @@ public class MainActivity extends AppCompatActivity {
 
         hideLoadingIndicator();
         Log.d(TAG, "🎉 ПЕРВИЧНАЯ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА!");
+
+        // Синхронизируем статистику после первой загрузки
+        syncStatsIfNeeded();
 
         // Проверяем результат
         wordRepository.checkCacheStatus(new WordRepository.OnCacheStatusListener() {

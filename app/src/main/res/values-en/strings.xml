@@ -252,4 +252,28 @@
     <string name="btn_add">Add</string>
     <string name="no_libs_message">You have no libraries yet</string>
     <string name="btn_go_to_libs">Go to libraries</string>
+
+
+
+
+
+
+
+
+
+        <string name="label_note">Note</string>
+        <string name="label_date_added">Date added</string>
+        <string name="label_collection">Collection</string>
+        <string name="label_word_type">Custom word</string>
+
+        <string name="button_listen">Listen</string>
+        <string name="button_edit">Edit</string>
+        <string name="button_delete">Delete</string>
+
+        <string name="placeholder_word">Word</string>
+        <string name="placeholder_translation">Translation</string>
+        <string name="placeholder_note">No note</string>
+        <string name="placeholder_collection">No collection</string>
+        <string name="placeholder_date">No date</string>
+
 </resources>

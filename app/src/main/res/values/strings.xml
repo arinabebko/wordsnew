@@ -263,4 +263,33 @@
     <string name="btn_add">Добавить</string>
     <string name="no_libs_message">У вас пока нет библиотек</string>
     <string name="btn_go_to_libs">Перейти к библиотекам</string>
+
+
+
+
+
+        <!-- Подписи полей -->
+        <string name="label_note">Заметка</string>
+        <string name="label_date_added">Дата добавления</string>
+        <string name="label_collection">Коллекция</string>
+        <string name="label_word_type">Пользовательское слово</string>
+
+        <!-- Кнопки -->
+        <string name="button_listen">Слушать</string>
+        <string name="button_edit">Редактировать</string>
+        <string name="button_delete">Удалить</string>
+
+        <!-- Плейсхолдеры/заглушки -->
+        <string name="placeholder_word">Слово</string>
+        <string name="placeholder_translation">Перевод</string>
+        <string name="placeholder_note">Нет заметки</string>
+        <string name="placeholder_collection">Без коллекции</string>
+        <string name="placeholder_date">Дата не указана</string>
+
+
+
+
+
+
+
 </resources>

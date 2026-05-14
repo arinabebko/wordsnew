@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:layout_marginBottom="70dp">
+            android:layout_marginBottom="40dp">
 
             <TextView
                 android:id="@+id/daysTextView"
@@ -79,7 +79,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -101,6 +102,46 @@
 
                 </LinearLayout>
 
+                <!-- ✅ НОВЫЙ БЛОК: Прогресс на сегодня -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="12dp"
+            >
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Сегодняшний прогресс"
+                        android:textSize="14sp"
+                        android:textColor="#A2B2FF"
+                        android:fontFamily="@font/jura_font_wght"
+                        android:layout_marginBottom="8dp" />
+
+                    <ProgressBar
+                        android:id="@+id/todayProgressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:max="10"
+                        android:progressTint="#8CA0FF"
+                        android:progressBackgroundTint="#3D3B40"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/todayProgressText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/10 слов сегодня"
+                        android:textSize="13sp"
+                        android:textColor="#fcb6b0"
+                        android:fontFamily="@font/jura_font_wght" />
+
+                </LinearLayout>
+
             </LinearLayout>
 
         </LinearLayout>
@@ -115,7 +156,7 @@
             android:fontFamily="@font/jura_font_wght"
             android:textAlignment="center"
             android:textStyle="bold"
-            android:layout_marginBottom="48dp" />
+            android:layout_marginBottom="32dp" />
 
         <FrameLayout
             android:layout_width="200dp"
@@ -128,12 +169,12 @@
                 android:layout_height="match_parent"
                 android:text="@string/btn_start"
                 android:textColor="#FF8C8C"
-
                 android:textSize="24sp"
                 app:backgroundTint="@null"
                 android:background="@drawable/gradient_button"
                 android:fontFamily="@font/jura_font_wght"
                 android:textStyle="bold" />
+
             <ProgressBar
                 android:id="@+id/loadingProgressBar"
                 android:layout_width="32dp"
@@ -144,11 +185,13 @@
 
         </FrameLayout>
     </LinearLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#FF8C8C"
         android:alpha="0.8" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -187,12 +230,14 @@
                 android:fontFamily="@font/jura_font_wght" />
 
         </LinearLayout>
+
         <View
             android:layout_width="1dp"
             android:layout_height="40dp"
             android:layout_gravity="center_vertical"
             android:background="#FF8C8C"
             android:alpha="0.5" />
+
         <LinearLayout
             android:id="@+id/addButtonLayout"
             android:layout_width="0dp"

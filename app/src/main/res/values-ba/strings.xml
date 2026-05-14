@@ -230,4 +230,24 @@
     <string name="btn_add">Өҫтәргә</string>
     <string name="no_libs_message">Һеҙҙең әле китапханаларығыҙ юҡ</string>
     <string name="btn_go_to_libs">Китапханаларға күсергә</string>
+
+
+
+        <string name="label_note">Иҫкәрмә</string>
+        <string name="label_date_added">Өҫтәлгән көн</string>
+        <string name="label_collection">Йыйынтыҡ</string>
+        <string name="label_word_type">Ҡулланыусы һүҙе</string>
+
+        <string name="button_listen">Тыңлау</string>
+        <string name="button_edit">Мөхәррирләү</string>
+        <string name="button_delete">Бөтөрөү</string>
+
+        <string name="placeholder_word">Һүҙ</string>
+        <string name="placeholder_translation">Тәржемә</string>
+        <string name="placeholder_note">Иҫкәрмә юҡ</string>
+        <string name="placeholder_collection">Йыйынтыҡһыҙ</string>
+        <string name="placeholder_date">Көн күрһәтелмәгән</string>
+
+
+
 </resources>

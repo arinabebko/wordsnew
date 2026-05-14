@@ -1,6 +1,14 @@
 package com.example.newwords;
 
+import static android.content.ContentValues.TAG;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,9 +25,10 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class Fragment1 extends Fragment {
 
@@ -27,6 +36,11 @@ public class Fragment1 extends Fragment {
     private WordRepository wordRepository;
     private boolean isProcessingClick = false;
     private static final long BUTTON_COOLDOWN = 2000;
+    private ProgressBar todayProgressBar;
+    private TextView todayProgressText;
+    private static final int DAILY_GOAL = 10;
+    private String currentLanguage;
+    private BroadcastReceiver librariesUpdateReceiver;
 
     @Nullable
     @Override
@@ -35,9 +49,28 @@ public class Fragment1 extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment1, container, false);
 
+        // Получаем текущий язык
+        LanguageManager languageManager = new LanguageManager(getContext());
+        currentLanguage = languageManager.getCurrentLanguage();
+        Log.d(TAG, "onCreateView: currentLanguage = " + currentLanguage);
+
         wordRepository = new WordRepository(getContext());
         initViews(view);
-        loadUserStats();
+
+        // Загружаем статистику ИЗ КЕША (мгновенно!)
+        loadStatsFromLocalCache();
+
+        // Подписываемся на LiveData для реального времени
+        wordRepository.getStatsLiveData().observe(getViewLifecycleOwner(), stats -> {
+            if (stats != null) {
+                updateStatsUI(stats);
+                saveStatsToLocalCache(stats);
+            }
+        });
+
+        // Пересчитываем статистику из активных библиотек ДЛЯ ТЕКУЩЕГО ЯЗЫКА
+        refreshStats();
+
         setupStartButton(view);
         setupBottomButtons(view);
 
@@ -49,19 +82,74 @@ public class Fragment1 extends Fragment {
         wordsInProgressTextView = view.findViewById(R.id.wordsInProgressTextView);
         wordsLearnedTextView = view.findViewById(R.id.wordsLearnedTextView);
         goodJobTextView = view.findViewById(R.id.goodJobTextView);
+        todayProgressBar = view.findViewById(R.id.todayProgressBar);
+        todayProgressText = view.findViewById(R.id.todayProgressText);
     }
 
-    private void loadUserStats() {
-        wordRepository.getUserStats(new WordRepository.OnStatsLoadedListener() {
+    /**
+     * Обновляет статистику для текущего языка
+     */
+    private void refreshStats() {
+        if (wordRepository == null) return;
+
+        wordRepository.recalculateStatsFromCache(currentLanguage, new WordRepository.OnStatsLoadedListener() {
             @Override
             public void onStatsLoaded(UserStats stats) {
+                Log.d(TAG, "✅ Статистика пересчитана: wordsInProgress=" + stats.getWordsInProgress() +
+                        ", wordsLearned=" + stats.getWordsLearned() +
+                        ", todayProgress=" + stats.getTodayProgress());
                 updateStatsUI(stats);
+                saveStatsToLocalCache(stats);
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e("Fragment1", "Ошибка загрузки статистики: " + e.getMessage());
-                showDefaultStats();
+                Log.e(TAG, "Ошибка пересчета статистики", e);
+            }
+        });
+    }
+
+    private void saveStatsToLocalCache(UserStats stats) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                AppDatabase.getInstance(getContext()).statsDao().insertStats(stats);
+                Log.d(TAG, "💾 Статистика сохранена в Room");
+            } catch (Exception e) {
+                Log.e(TAG, "Ошибка сохранения в Room", e);
+            }
+        });
+    }
+
+    private void loadStatsFromLocalCache() {
+        Log.d(TAG, "📦 Загрузка статистики из локального кеша");
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                String userId = wordRepository.getUserId();
+                if (userId == null || userId.equals("anonymous")) {
+                    Log.d(TAG, "Пользователь не авторизован");
+                    new Handler(Looper.getMainLooper()).post(this::showDefaultStats);
+                    return;
+                }
+
+                UserStats localStats = AppDatabase.getInstance(getContext())
+                        .statsDao()
+                        .getStats(userId);
+
+                if (localStats != null) {
+                    Log.d(TAG, "✅ Статистика из Room: wordsInProgress=" + localStats.getWordsInProgress() +
+                            ", wordsLearned=" + localStats.getWordsLearned() +
+                            ", todayProgress=" + localStats.getTodayProgress());
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        updateStatsUI(localStats);
+                    });
+                } else {
+                    Log.d(TAG, "Нет статистики в Room");
+                    new Handler(Looper.getMainLooper()).post(this::showDefaultStats);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Ошибка загрузки из Room", e);
+                new Handler(Looper.getMainLooper()).post(this::showDefaultStats);
             }
         });
     }
@@ -72,6 +160,21 @@ public class Fragment1 extends Fragment {
             daysTextView.setText(getString(R.string.stats_streak_days, stats.getStreakDays()));
             wordsInProgressTextView.setText(" " + stats.getWordsInProgress());
             wordsLearnedTextView.setText(" " + stats.getWordsLearned());
+
+            // Обновляем прогресс-бар
+            int todayProgress = stats.getTodayProgress();
+            int progressPercent = Math.min(todayProgress, DAILY_GOAL);
+            todayProgressBar.setProgress(progressPercent);
+            todayProgressBar.setMax(DAILY_GOAL);
+
+            if (todayProgress >= DAILY_GOAL) {
+                todayProgressText.setText("🎉 Цель достигнута! " + todayProgress + "/" + DAILY_GOAL);
+            } else if (todayProgress >= DAILY_GOAL / 2) {
+                todayProgressText.setText("👍 Отлично! " + todayProgress + "/" + DAILY_GOAL);
+            } else {
+                todayProgressText.setText("📚 " + todayProgress + "/" + DAILY_GOAL + " слов сегодня");
+            }
+
             updateMotivationalMessage(stats);
         });
     }
@@ -82,16 +185,22 @@ public class Fragment1 extends Fragment {
             daysTextView.setText(getString(R.string.stats_streak_days, 0));
             wordsInProgressTextView.setText(" 0");
             wordsLearnedTextView.setText(" 0");
+            todayProgressBar.setProgress(0);
+            todayProgressText.setText("0/" + DAILY_GOAL + " слов сегодня");
             goodJobTextView.setText("let's\nstart!");
         });
     }
 
     private void updateMotivationalMessage(UserStats stats) {
         int messageResId;
+        int todayProgress = stats.getTodayProgress();
+
         if (stats.getStreakDays() >= 7) {
             messageResId = R.string.msg_great_work;
-        } else if (stats.getTodayProgress() >= 10) {
+        } else if (todayProgress >= DAILY_GOAL) {
             messageResId = R.string.msg_good_job;
+        } else if (todayProgress >= DAILY_GOAL / 2) {
+            messageResId = R.string.msg_keep_going;
         } else if (stats.getWordsLearned() > 0) {
             messageResId = R.string.msg_keep_going;
         } else {
@@ -130,6 +239,20 @@ public class Fragment1 extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        // Обновляем текущий язык при возвращении
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String newLanguage = languageManager.getCurrentLanguage();
+
+        if (!newLanguage.equals(currentLanguage)) {
+            Log.d(TAG, "Язык изменился с " + currentLanguage + " на " + newLanguage);
+            currentLanguage = newLanguage;
+        }
+
+        // Всегда пересчитываем статистику при возвращении
+        refreshStats();
+
+        // Остальной код...
         if (getView() != null) {
             Button startButton = getView().findViewById(R.id.startButton);
             ProgressBar progressBar = getView().findViewById(R.id.loadingProgressBar);
@@ -138,9 +261,44 @@ public class Fragment1 extends Fragment {
             startButton.setEnabled(true);
             startButton.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
-            loadUserStats();
         }
     }
+
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // Регистрируем приемник уведомлений об изменении библиотек
+        librariesUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String updatedLanguage = intent.getStringExtra("language");
+                Log.d(TAG, "📡 Получено уведомление об обновлении библиотек для языка: " + updatedLanguage);
+
+                LanguageManager languageManager = new LanguageManager(getContext());
+                currentLanguage = languageManager.getCurrentLanguage();
+                refreshStats();
+            }
+        };
+
+        IntentFilter filter = new IntentFilter("LIBRARIES_UPDATED");
+        // ✅ Используем LocalBroadcastManager - не нужны флаги!
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(librariesUpdateReceiver, filter);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (librariesUpdateReceiver != null) {
+            try {
+                LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(librariesUpdateReceiver);
+            } catch (IllegalArgumentException e) {
+                Log.d(TAG, "Receiver not registered: " + e.getMessage());
+            }
+        }
+    }
+
 
     private void setupBottomButtons(View view) {
         LinearLayout searchButtonLayout = view.findViewById(R.id.searchButtonLayout);
@@ -158,7 +316,6 @@ public class Fragment1 extends Fragment {
         });
     }
 
-    // ИСПРАВЛЕНО: получаем текущий язык и передаем его в SearchWordsFragment
     private void openSearchFragment() {
         LanguageManager languageManager = new LanguageManager(getContext());
         String currentLanguage = languageManager.getCurrentLanguage();
@@ -178,6 +335,8 @@ public class Fragment1 extends Fragment {
                 @Override
                 public void onWordAdded(WordItem addedWord) {
                     Toast.makeText(getContext(), R.string.stats_word_added, Toast.LENGTH_SHORT).show();
+                    // Обновляем статистику после добавления слова
+                    refreshStats();
                 }
 
                 @Override
@@ -190,33 +349,36 @@ public class Fragment1 extends Fragment {
         dialog.show(getParentFragmentManager(), "add_word_with_library_dialog");
     }
 
+    private void checkIfWordsAvailable() {
+        LanguageManager languageManager = new LanguageManager(getContext());
+        String currentLanguage = languageManager.getCurrentLanguage();
 
+        Log.d("Fragment1", "🔍 ПРОВЕРКА КЕША ДЛЯ ЯЗЫКА: " + currentLanguage);
 
-    private void loadFromFirebase(String currentLanguage) {
-        wordRepository.getWordsWithProgress(currentLanguage,
-                new WordRepository.OnWordsWithProgressListener() {
-                    @Override
-                    public void onWordsLoaded(List<WordItem> words) {
-                        hideLoading();
+        wordRepository.getWordsFromCacheOnly(currentLanguage, new WordRepository.OnWordsLoadedListener() {
+            @Override
+            public void onWordsLoaded(List<WordItem> words) {
+                hideLoading();
+                Log.d("Fragment1", "📊 getWordsFromCacheOnly вернул: " + words.size() + " слов");
 
-                        if (words.isEmpty()) {
-                            Toast.makeText(getContext(), R.string.stats_no_words, Toast.LENGTH_LONG).show();
-                        } else {
-                            WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
-                            requireActivity().getSupportFragmentManager().beginTransaction()
-                                    .replace(android.R.id.content, startFragment)
-                                    .addToBackStack("fragment1_navigation")
-                                    .commit();
-                        }
-                    }
+                if (!words.isEmpty()) {
+                    WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
+                    requireActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(android.R.id.content, startFragment)
+                            .addToBackStack("fragment1_navigation")
+                            .commit();
+                } else {
+                    Toast.makeText(getContext(), "Нет слов. Добавьте слова в библиотеках.", Toast.LENGTH_LONG).show();
+                }
+            }
 
-                    @Override
-                    public void onError(Exception e) {
-                        hideLoading();
-                        Log.e("Fragment1", "Ошибка загрузки", e);
-                        Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
-                    }
-                });
+            @Override
+            public void onError(Exception e) {
+                hideLoading();
+                Log.e("Fragment1", "Ошибка", e);
+                Toast.makeText(getContext(), "Ошибка загрузки из кеша", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void hideLoading() {
@@ -232,80 +394,5 @@ public class Fragment1 extends Fragment {
             }
             isProcessingClick = false;
         }
-    }
-
-    private void checkIfWordsAvailable() {
-        LanguageManager languageManager = new LanguageManager(getContext());
-        String currentLanguage = languageManager.getCurrentLanguage();
-
-        Log.d("Fragment1", "🔍 ПРОВЕРКА КЕША ДЛЯ ЯЗЫКА: " + currentLanguage);
-
-        // ДИАГНОСТИКА: прямой запрос в Room
-        new Thread(() -> {
-            try {
-                AppDatabase db = AppDatabase.getInstance(getContext());
-
-                // 1. Все библиотеки
-                List<LocalWordLibrary> allLibs = db.libraryDao().getAllLibraries();
-                Log.d("Fragment1", "=== ВСЕ БИБЛИОТЕКИ ===");
-                for (LocalWordLibrary lib : allLibs) {
-                    Log.d("Fragment1", "📚 " + lib.getName() + " | languageFrom: " + lib.getLanguageFrom() + " | isActive: " + lib.isActive());
-                }
-
-                // 2. Активные библиотеки для текущего языка
-                List<LocalWordLibrary> activeLibs = db.libraryDao().getActiveLibrariesByLanguage(currentLanguage);
-                Log.d("Fragment1", "=== АКТИВНЫЕ БИБЛИОТЕКИ ДЛЯ " + currentLanguage + " ===");
-                Log.d("Fragment1", "Найдено: " + activeLibs.size());
-                for (LocalWordLibrary lib : activeLibs) {
-                    Log.d("Fragment1", "📚 " + lib.getName());
-
-                    // Слова в этой библиотеке
-                    List<LocalWordItem> words = db.wordDao().getWordsByLibrary(lib.getLibraryId());
-                    Log.d("Fragment1", "   Слов: " + words.size());
-                    for (LocalWordItem w : words) {
-                        Log.d("Fragment1", "      - " + w.getWord() + " -> " + w.getTranslation());
-                    }
-                }
-
-                // 3. Все слова из активных библиотек (через JOIN)
-                List<LocalWordItem> wordsFromActive = db.wordDao().getWordsFromActiveLibraries();
-                Log.d("Fragment1", "=== СЛОВА ИЗ АКТИВНЫХ БИБЛИОТЕК (JOIN) ===");
-                Log.d("Fragment1", "Всего: " + wordsFromActive.size());
-                for (LocalWordItem w : wordsFromActive) {
-                    Log.d("Fragment1", "📖 " + w.getWord());
-                }
-
-            } catch (Exception e) {
-                Log.e("Fragment1", "Ошибка диагностики", e);
-            }
-        }).start();
-
-        // Обычная проверка
-        wordRepository.getWordsFromCacheOnly(currentLanguage, new WordRepository.OnWordsLoadedListener() {
-            @Override
-            public void onWordsLoaded(List<WordItem> words) {
-                hideLoading();
-                Log.d("Fragment1", "📊 getWordsFromCacheOnly вернул: " + words.size() + " слов");
-
-                if (!words.isEmpty()) {
-                    WordsFragment startFragment = WordsFragment.newInstanceWithWords(words, currentLanguage);
-                    requireActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(android.R.id.content, startFragment)
-                            .addToBackStack("fragment1_navigation")
-                            .commit();
-                } else {
-                    // Если через метод ничего не вернулось, но в Room есть слова - значит проблема в методе
-                    Log.e("Fragment1", "❌ getWordsFromCacheOnly вернул 0, хотя в Room могут быть слова!");
-                    Toast.makeText(getContext(), "Нет слов. Проверьте интернет и перезапустите.", Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
-                hideLoading();
-                Log.e("Fragment1", "Ошибка", e);
-                Toast.makeText(getContext(), "Ошибка загрузки из кеша", Toast.LENGTH_LONG).show();
-            }
-        });
     }
 }

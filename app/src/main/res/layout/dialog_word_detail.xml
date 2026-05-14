@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Word"
+        android:text="@string/placeholder_word"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
@@ -26,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Translation"
+        android:text="@string/placeholder_translation"
         android:textSize="18sp"
         android:textColor="#B0B0B0"
         android:gravity="center"
@@ -39,21 +39,22 @@
         android:layout_marginVertical="24dp"
         android:background="#3D3D3D" />
 
-    <!-- Заметка -->
+    <!-- Заметка (заголовок) -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📝 Заметка"
+        android:text="@string/label_note"
         android:textColor="#E0E0E0"
         android:textSize="14sp"
         android:layout_marginBottom="8dp"
         android:fontFamily="@font/jura_font_wght" />
 
+    <!-- Заметка (текст) -->
     <TextView
         android:id="@+id/noteText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Note"
+        android:text="@string/placeholder_note"
         android:textSize="16sp"
         android:textColor="#FFFFFF"
         android:padding="12dp"
@@ -67,7 +68,7 @@
         android:id="@+id/dateAddedText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📅 Дата"
+        android:text="@string/label_date_added"
         android:textSize="14sp"
         android:textColor="#B0B0B0"
         android:layout_marginBottom="8dp"
@@ -78,7 +79,7 @@
         android:id="@+id/libraryText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📚 Коллекция"
+        android:text="@string/label_collection"
         android:textSize="14sp"
         android:textColor="#B0B0B0"
         android:layout_marginBottom="24dp"
@@ -89,7 +90,7 @@
         android:id="@+id/wordTypeText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="✏️ Пользовательское слово"
+        android:text="@string/label_word_type"
         android:textSize="12sp"
         android:textColor="#B0B0B0"
         android:layout_marginTop="8dp"
@@ -110,7 +111,7 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="🔊 Слушать"
+            android:text="@string/button_listen"
             android:textColor="#FFFFFF"
             android:backgroundTint="#2A2A2A"
             android:fontFamily="@font/jura_font_wght" />
@@ -123,7 +124,7 @@
             android:layout_weight="1"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp"
-            android:text="✏️ Редактировать"
+            android:text="@string/button_edit"
             android:textColor="#FFFFFF"
             android:backgroundTint="#2A2A2A"
             android:fontFamily="@font/jura_font_wght" />
@@ -135,7 +136,7 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="🗑 Удалить"
+            android:text="@string/button_delete"
             android:textColor="#FF6B6B"
             android:backgroundTint="#2A2A2A"
             android:fontFamily="@font/jura_font_wght" />

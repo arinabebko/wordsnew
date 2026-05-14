@@ -2,6 +2,7 @@ package com.example.newwords;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -372,7 +374,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Обновляем локальное состояние
         activeLibrariesMap.put(libraryId, isActive);
-
+        // ✅ Отправляем уведомление
+        sendStatsUpdateBroadcast();
         // Обновляем состояние в availableLibraries
         for (WordLibrary library : availableLibraries) {
             if (library.getLibraryId().equals(libraryId)) {
@@ -382,16 +385,31 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
         }
 
-        // НЕМЕДЛЕННО сохраняем состояние для текущего языка
+        // Сохраняем состояние
         if (!activeLibrariesMap.isEmpty()) {
             languageManager.saveActiveLibrariesForCurrentLanguage(activeLibrariesMap);
-            Log.d(TAG, "✅ Сохранено активных библиотек: " + activeLibrariesMap.size());
         }
 
         updateStartButtonState();
 
+        // ✅ ОТПРАВЛЯЕМ УВЕДОМЛЕНИЕ Fragment1 ОБ ИЗМЕНЕНИИ
+        sendStatsUpdateBroadcast();
+
         String message = isActive ? getString(R.string.lib_status_activated) : getString(R.string.lib_status_deactivated);
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Отправляет широковещательное уведомление об изменении активных библиотек
+     */
+    private void sendStatsUpdateBroadcast() {
+        Intent intent = new Intent("LIBRARIES_UPDATED");
+        intent.putExtra("language", currentLanguage);
+        if (getContext() != null) {
+            // ✅ Используем LocalBroadcastManager
+            LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
+            Log.d(TAG, "📡 Отправлено уведомление об обновлении библиотек для языка: " + currentLanguage);
+        }
     }
     /**
      * Загружает активные библиотеки из локального хранилища
