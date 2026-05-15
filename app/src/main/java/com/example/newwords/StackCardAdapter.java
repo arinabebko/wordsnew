@@ -100,21 +100,19 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         if (currentPosition < wordList.size()) {
             WordItem currentWord = wordList.get(currentPosition);
 
-            Log.d("StackCardAdapter", "=== SWIPE RIGHT (ВЫУЧИЛ) ===");
-            Log.d("StackCardAdapter", "Слово ДО: " + currentWord.getWord() +
-                    ", stage=" + currentWord.getReviewStage() +
-                    ", shows=" + currentWord.getConsecutiveShows());
+            Log.d("PROGRESS_DEBUG", "🔴 1. swipeRight вызван для: " + currentWord.getWord());
+            Log.d("PROGRESS_DEBUG", "🔴 1a. Было ли слово выучено? " + SimpleRepetitionSystem.isLearnedWord(currentWord));
 
-            // Обрабатываем в системе повторений
             SimpleRepetitionSystem.processAnswer(currentWord, true);
 
-            Log.d("StackCardAdapter", "Слово ПОСЛЕ processAnswer: stage=" + currentWord.getReviewStage());
+            Log.d("PROGRESS_DEBUG", "🔴 2. После processAnswer, reviewStage=" + currentWord.getReviewStage());
+            Log.d("PROGRESS_DEBUG", "🔴 2a. Теперь слово выучено? " + SimpleRepetitionSystem.isLearnedWord(currentWord));
 
-            // Сохраняем в базу
             wordRepository.updateWord(currentWord);
 
             if (listener != null) {
                 listener.onCardLearned(currentWord);
+                Log.d("PROGRESS_DEBUG", "🔴 3. listener.onCardLearned вызван");
             }
             moveToNextCard();
         }

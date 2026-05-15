@@ -29,7 +29,7 @@ public class UserStats {
 
     public UserStats(@NonNull String userId) {
         this.userId = userId;
-        this.streakDays = 1;
+        this.streakDays = 0;
         //todo
         this.wordsInProgress = 0;
         this.wordsLearned = 0;

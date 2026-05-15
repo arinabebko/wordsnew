@@ -261,22 +261,54 @@ public class FragmentLoginParamsOption extends Fragment {
     }
 
     private void deleteUserAccount() {
-        if (mAuth.getCurrentUser() != null) {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user != null) {
+            Log.d("DeleteAccount", "🚀 Начинаем процесс удаления для: " + user.getEmail());
+            // Сначала чистим кеш, потом удаляем
             wordRepository.clearLocalCache(
-                    () -> performAccountDeletion(),
-                    e -> performAccountDeletion()
+                    () -> {
+                        Log.d("DeleteAccount", "🧹 Локальный кеш очищен успешно");
+                        performAccountDeletion();
+                    },
+                    e -> {
+                        Log.e("DeleteAccount", "⚠️ Ошибка очистки кеша, но продолжаем удаление", e);
+                        performAccountDeletion();
+                    }
             );
+        } else {
+            Log.w("DeleteAccount", "❌ Попытка удаления, но пользователь == null");
         }
     }
 
     private void performAccountDeletion() {
-        mAuth.getCurrentUser().delete()
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) return;
+
+        user.delete()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
+                        Log.d("DeleteAccount", "✅ Аккаунт успешно удален из Firebase");
                         Toast.makeText(getContext(), "Аккаунт удален", Toast.LENGTH_SHORT).show();
                         goToLoginActivity();
                     } else {
-                        Toast.makeText(getContext(), "Ошибка при удалении аккаунта", Toast.LENGTH_SHORT).show();
+                        Exception e = task.getException();
+                        Log.e("DeleteAccount", "❌ Ошибка при удалении аккаунта!");
+
+                        if (e != null) {
+                            String errorCode = "";
+                            if (e instanceof com.google.firebase.FirebaseException) {
+                                // Пытаемся достать код ошибки напрямую, если класс не распознан
+                                Log.e("DeleteAccount", "Full Exception: ", e);
+                            }
+
+                            // Самая надежная проверка, если символы не резолвятся:
+                            if (e.getMessage() != null && e.getMessage().contains("recent login")) {
+                                Log.w("DeleteAccount", "🔐 Сессия устарела. Нужно перезайти.");
+                                Toast.makeText(getContext(), "Для удаления аккаунта нужно выйти и зайти снова (требование безопасности)", Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(getContext(), "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        }
                     }
                 });
     }

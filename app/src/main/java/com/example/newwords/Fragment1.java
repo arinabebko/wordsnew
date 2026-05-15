@@ -157,7 +157,10 @@ public class Fragment1 extends Fragment {
     private void updateStatsUI(UserStats stats) {
         if (getActivity() == null) return;
         getActivity().runOnUiThread(() -> {
-            daysTextView.setText(getString(R.string.stats_streak_days, stats.getStreakDays()));
+            // ✅ ПРАВИЛЬНОЕ СКЛОНЕНИЕ В ЗАВИСИМОСТИ ОТ ЯЗЫКА
+            String streakText = getLocalizedStreakText(stats.getStreakDays());
+            daysTextView.setText(streakText);
+
             wordsInProgressTextView.setText(" " + stats.getWordsInProgress());
             wordsLearnedTextView.setText(" " + stats.getWordsLearned());
 
@@ -179,6 +182,53 @@ public class Fragment1 extends Fragment {
         });
     }
 
+    /**
+     * Возвращает правильное склонение для числа дней
+     * 1 день, 2 дня, 3 дня, 4 дня, 5 дней, 6 дней и т.д.
+     */
+    /**
+     * Возвращает правильное склонение для числа дней в зависимости от языка
+     */
+    private String getLocalizedStreakText(int days) {
+        String currentLanguage = getResources().getConfiguration().locale.getLanguage();
+
+        // ✅ ЕСЛИ 0 ДНЕЙ - НЕ ПОКАЗЫВАЕМ "0 дней подряд"
+        if (days == 0) {
+            if (currentLanguage.equals("ru")) {
+                return "Добро пожаловать!";
+            } else if (currentLanguage.equals("ba")) {
+                return "Рәхим итегеҙ!";
+            } else {
+                return "Welcome!";
+            }
+        }
+
+        // ДЛЯ 1+ ДНЕЙ - НОРМАЛЬНОЕ СКЛОНЕНИЕ
+        if (currentLanguage.equals("ru")) {
+            int lastDigit = days % 10;
+            int lastTwoDigits = days % 100;
+
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+                return days + " дней подряд";
+            }
+
+            switch (lastDigit) {
+                case 1: return days + " день подряд";
+                case 2:
+                case 3:
+                case 4: return days + " дня подряд";
+                default: return days + " дней подряд";
+            }
+        }
+        else if (currentLanguage.equals("ba")) {
+            return days + " көн рәттән";
+        }
+        else {
+            if (days == 1) return days + " day in a row";
+            return days + " days in a row";
+        }
+    }
+
     private void showDefaultStats() {
         if (getActivity() == null) return;
         getActivity().runOnUiThread(() -> {
@@ -190,7 +240,6 @@ public class Fragment1 extends Fragment {
             goodJobTextView.setText("let's\nstart!");
         });
     }
-
     private void updateMotivationalMessage(UserStats stats) {
         int messageResId;
         int todayProgress = stats.getTodayProgress();

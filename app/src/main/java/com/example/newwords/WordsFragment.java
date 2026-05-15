@@ -814,42 +814,32 @@ public class WordsFragment extends Fragment implements StackCardAdapter.OnCardAc
         Log.d(TAG, "=== ВЫУЧЕНО СЛОВО: " + word.getWord() + " ===");
         Log.d(TAG, "Текущий reviewStage: " + word.getReviewStage());
 
-        // ⚠️ ВАЖНО: processAnswer() УЖЕ был вызван в адаптере!
-        // Слово уже имеет обновленный reviewStage (0→1 или 1→2 и т.д.)
+        Log.d("PROGRESS_DEBUG", "🔴 [1] onCardLearned ВХОД");
+        Log.d("PROGRESS_DEBUG", "🔴 [1a] wordId=" + word.getWordId());
+        Log.d("PROGRESS_DEBUG", "🔴 [1b] reviewStage=" + word.getReviewStage());
 
         // 1. Сохраняем обновленный прогресс в БД
         wordRepository.updateWord(word);
+        Log.d("PROGRESS_DEBUG", "🔴 [2] updateWord выполнен");
 
-        // 2. ✅ ПРОВЕРЯЕМ: действительно ли слово ВЫУЧЕНО (stage >= 6)?
+        // 2. Проверяем, действительно ли слово ВЫУЧЕНО (stage >= 6)
         boolean isReallyLearned = SimpleRepetitionSystem.isLearnedWord(word);
+        Log.d("PROGRESS_DEBUG", "🔴 [3] isReallyLearned = " + isReallyLearned);
 
         if (isReallyLearned) {
             Log.d(TAG, "🎉 СЛОВО ДЕЙСТВИТЕЛЬНО ВЫУЧЕНО! +1 к статистике");
-
-            // ТОЛЬКО ТЕПЕРЬ увеличиваем счетчик выученных слов
+            Log.d("PROGRESS_DEBUG", "🔴 [4] ВЫЗЫВАЮ onWordLearned()");
             wordRepository.onWordLearned(word.getWordId());
-
-            //Toast.makeText(getContext(), "🎉 Слово выучено! +1 к прогрессу!", Toast.LENGTH_SHORT).show();
         } else {
             Log.d(TAG, "📚 Прогресс сохранен. Слово на этапе: " + word.getReviewStage());
-           // Toast.makeText(getContext(), "✅ Прогресс: этап " + word.getReviewStage() + "/6", Toast.LENGTH_SHORT).show();
+            Log.d("PROGRESS_DEBUG", "🔴 [4] ВЫЗЫВАЮ onWordReviewed()");
+            wordRepository.onWordReviewed();
         }
 
-        // 3. Обновляем статистику на экране
-        wordRepository.recalculateStatsFromCache(currentLanguage, new WordRepository.OnStatsLoadedListener() {
-            @Override
-            public void onStatsLoaded(UserStats stats) {
-                Log.d(TAG, "✅ Статистика пересчитана: wordsLearned=" + stats.getWordsLearned() +
-                        ", wordsInProgress=" + stats.getWordsInProgress());
-                updateProgress();
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Ошибка пересчета статистики", e);
-                updateProgress();
-            }
-        });
+        // ❌ УБИРАЕМ recalculateStatsFromCache - он вызывает race condition
+        // ✅ Вместо этого просто обновляем прогресс на основе LiveData
+        Log.d("PROGRESS_DEBUG", "🔴 [5] Обновляю UI");
+        updateProgress();
     }
     @Override
     public void onCardNotLearned(WordItem word) {

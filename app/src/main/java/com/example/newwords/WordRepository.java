@@ -1211,67 +1211,185 @@ public class WordRepository {
     }
 
     public void updateStatsAsync(StatUpdateListener updateListener) {
-        if (userId == null || userId.equals("anonymous")) {
-            Log.e(TAG, "Нельзя обновить статистику: пользователь не авторизован");
+        if (userId == null) {
+            Log.e(TAG, "Нельзя обновить статистику: userId = null");
             return;
         }
 
-        // ✅ СНАЧАЛА ЗАГРУЖАЕМ ТЕКУЩУЮ СТАТИСТИКУ
-        db.collection("users")
-                .document(userId)
-                .collection("stats")
-                .document("main")
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    UserStats currentStats;
+        // ========== ШАГ 1: МГНОВЕННОЕ ОБНОВЛЕНИЕ ЛОКАЛЬНО (ОФФЛАЙН) ==========
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                // Загружаем текущую статистику из Room
+                UserStats currentStats = localDb.statsDao().getStats(userId);
+                if (currentStats == null) {
+                    currentStats = new UserStats(userId);
+                }
 
-                    if (documentSnapshot.exists()) {
-                        currentStats = documentSnapshot.toObject(UserStats.class);
-                        if (currentStats == null) {
-                            currentStats = new UserStats(userId);
-                        }
-                    } else {
-                        currentStats = new UserStats(userId);
-                    }
+                // Применяем изменения
+                UserStats updatedStats = updateListener.onUpdate(currentStats);
 
-                    // Применяем изменения
-                    UserStats updatedStats = updateListener.onUpdate(currentStats);
+                // Сохраняем в Room (мгновенно!)
+                localDb.statsDao().insertStats(updatedStats);
 
-                    // Сохраняем обратно
-                    db.collection("users")
-                            .document(userId)
-                            .collection("stats")
-                            .document("main")
-                            .set(updatedStats, SetOptions.merge())
-                            .addOnSuccessListener(aVoid -> {
-                                Log.d(TAG, "✅ Статистика обновлена: todayProgress=" + updatedStats.getTodayProgress());
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "❌ Ошибка сохранения статистики", e);
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Ошибка загрузки статистики", e);
+                Log.d(TAG, "✅ [OFFLINE] Статистика обновлена локально: todayProgress=" + updatedStats.getTodayProgress());
+
+                // Обновляем LiveData для UI
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    statsLiveData.postValue(updatedStats);
                 });
-    }
 
-    public void onWordLearned(String wordId) {
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка локального обновления", e);
+            }
+        });
+
+        // ========== ШАГ 2: ФОНОВАЯ СИНХРОНИЗАЦИЯ С FIREBASE (ЕСЛИ ЕСТЬ ИНТЕРНЕТ) ==========
+        if (isNetworkAvailable() && !userId.equals("anonymous")) {
+            Log.d(TAG, "🔄 [SYNC] Фоновая синхронизация с Firebase...");
+
+            db.collection("users")
+                    .document(userId)
+                    .collection("stats")
+                    .document("main")
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        // ✅ ВЫНОСИМ В ОТДЕЛЬНЫЙ МЕТОД, ЧТОБЫ ИЗБЕЖАТЬ ПРОБЛЕМЫ С EFFECTIVELY FINAL
+                        syncStatsToFirebase(documentSnapshot);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "❌ [SYNC] Ошибка загрузки из Firebase", e);
+                    });
+        } else {
+            Log.d(TAG, "📴 [SYNC] Нет интернета или аноним, синхронизация отложена");
+        }
+    }
+    public void updateStreakIfNeeded() {
         updateStatsAsync(stats -> {
-            stats.setWordsLearned(stats.getWordsLearned() + 1);
-            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            Date lastSession = stats.getLastSessionDate();
+            Date today = new Date();
+
+            Calendar lastCal = Calendar.getInstance();
+            lastCal.setTime(lastSession);
+            Calendar todayCal = Calendar.getInstance();
+            todayCal.setTime(today);
+
+            int lastDay = lastCal.get(Calendar.DAY_OF_YEAR);
+            int lastYear = lastCal.get(Calendar.YEAR);
+            int todayDay = todayCal.get(Calendar.DAY_OF_YEAR);
+            int todayYear = todayCal.get(Calendar.YEAR);
+
+            boolean isSameDay = (lastYear == todayYear && lastDay == todayDay);
+            boolean isYesterday = false;
+
+            // Проверяем, была ли последняя сессия вчера
+            if (!isSameDay) {
+                lastCal.add(Calendar.DAY_OF_YEAR, 1);
+                isYesterday = (lastCal.get(Calendar.DAY_OF_YEAR) == todayDay &&
+                        lastCal.get(Calendar.YEAR) == todayYear);
+            }
+
+            int currentStreak = stats.getStreakDays();
+            int todayProgress = stats.getTodayProgress();
+
+            if (isSameDay) {
+                // Уже занимались сегодня - серия не меняется
+                Log.d(TAG, "📅 Сегодня уже занимались, серия: " + currentStreak);
+            }
+            else if (isYesterday) {
+                // Вчера занимались - увеличиваем серию
+                if (todayProgress > 0) {
+                    currentStreak++;
+                    stats.setStreakDays(currentStreak);
+                    Log.d(TAG, "✅ Серия продолжена! +1 день, теперь: " + currentStreak);
+                }
+            }
+            else {
+                // Пропустили день - сбрасываем серию
+                if (todayProgress > 0) {
+                    stats.setStreakDays(1);  // Начинаем новую серию с 1
+                    Log.d(TAG, "⚠️ Серия сброшена! Новая серия: 1 день");
+                }
+            }
+
             stats.setLastSessionDate(new Date());
             return stats;
         });
+    }
+    // ✅ ВЫНЕСЕННЫЙ МЕТОД ДЛЯ СИНХРОНИЗАЦИИ
+    private void syncStatsToFirebase(DocumentSnapshot documentSnapshot) {
+        UserStats firebaseStats;
+
+        if (documentSnapshot.exists()) {
+            firebaseStats = documentSnapshot.toObject(UserStats.class);
+            if (firebaseStats == null) firebaseStats = new UserStats(userId);
+        } else {
+            firebaseStats = new UserStats(userId);
+        }
+
+        final UserStats finalFirebaseStats = firebaseStats;
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                UserStats localStats = localDb.statsDao().getStats(userId);
+
+                if (localStats != null) {
+                    finalFirebaseStats.setTodayProgress(localStats.getTodayProgress());
+                    finalFirebaseStats.setWordsLearned(Math.max(finalFirebaseStats.getWordsLearned(), localStats.getWordsLearned()));
+                    finalFirebaseStats.setWordsInProgress(Math.max(finalFirebaseStats.getWordsInProgress(), localStats.getWordsInProgress()));
+                    finalFirebaseStats.setStreakDays(Math.max(finalFirebaseStats.getStreakDays(), localStats.getStreakDays()));
+                    finalFirebaseStats.setLastSessionDate(localStats.getLastSessionDate());
+                    finalFirebaseStats.setLastUpdated(new Date());
+                }
+
+                // Сохраняем в Firebase (без повторного сохранения в Room)
+                db.collection("users")
+                        .document(userId)
+                        .collection("stats")
+                        .document("main")
+                        .set(finalFirebaseStats, SetOptions.merge())
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d(TAG, "✅ [SYNC] Статистика синхронизирована с Firebase: todayProgress=" + finalFirebaseStats.getTodayProgress());
+                            // ❌ НЕ НАДО localDb.statsDao().insertStats() - уже есть в ШАГЕ 1!
+                        })
+                        .addOnFailureListener(e -> Log.e(TAG, "❌ [SYNC] Ошибка", e));
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка", e);
+            }
+        });
+    }
+    public void onWordLearned(String wordId) {
+        Log.d("PROGRESS_DEBUG", "🔴🔴 [7] onWordLearned ВХОД, wordId=" + wordId);
+
+        updateStatsAsync(stats -> {
+            int oldProgress = stats.getTodayProgress();
+            int oldLearned = stats.getWordsLearned();
+            Log.d("PROGRESS_DEBUG", "🔴🔴 [8] ДО обновления: todayProgress=" + oldProgress + ", wordsLearned=" + oldLearned);
+
+            stats.setWordsLearned(oldLearned + 1);
+            stats.setTodayProgress(oldProgress + 1);
+            stats.setLastSessionDate(new Date());
+
+            Log.d("PROGRESS_DEBUG", "🔴🔴 [9] ПОСЛЕ обновления: todayProgress=" + (oldProgress + 1) + ", wordsLearned=" + (oldLearned + 1));
+            return stats;
+        });
+        updateStreakIfNeeded();
     }
 
     public void onWordReviewed() {
+        Log.d("PROGRESS_DEBUG", "🔴🔴 [7] onWordReviewed ВХОД");
+
         updateStatsAsync(stats -> {
-            stats.setTodayProgress(stats.getTodayProgress() + 1);
+            int oldProgress = stats.getTodayProgress();
+            Log.d("PROGRESS_DEBUG", "🔴🔴 [8] ДО обновления: todayProgress=" + oldProgress);
+
+            stats.setTodayProgress(oldProgress + 1);
             stats.setLastSessionDate(new Date());
+
+            Log.d("PROGRESS_DEBUG", "🔴🔴 [9] ПОСЛЕ обновления: todayProgress=" + (oldProgress + 1));
             return stats;
         });
+        updateStreakIfNeeded();
     }
-
 
     /**
      * Добавить слово в пользовательскую библиотеку
@@ -3053,7 +3171,6 @@ public class WordRepository {
         long lastResetDate = prefs.getLong("last_reset_date", 0);
         long today = System.currentTimeMillis();
 
-        // Проверяем, не наступил ли новый день
         Calendar lastCal = Calendar.getInstance();
         lastCal.setTimeInMillis(lastResetDate);
         Calendar todayCal = Calendar.getInstance();
@@ -3062,22 +3179,24 @@ public class WordRepository {
         boolean isNewDay = lastCal.get(Calendar.DAY_OF_YEAR) != todayCal.get(Calendar.DAY_OF_YEAR);
 
         if (isNewDay && lastResetDate != 0) {
-            // Сбрасываем todayProgress
+            Log.d(TAG, "🔄 Новый день! Сбрасываем todayProgress...");
+
+            // ✅ ВАЖНО: обновляем статистику и сохраняем!
             updateStatsAsync(stats -> {
                 stats.setTodayProgress(0);
                 stats.setLastUpdated(new Date());
                 return stats;
             });
 
-            // Сохраняем дату сброса
             prefs.edit().putLong("last_reset_date", today).apply();
-            Log.d(TAG, "🔄 Сброшен todayProgress для нового дня");
+            Log.d(TAG, "✅ todayProgress сброшен до 0");
         } else if (lastResetDate == 0) {
-            // Первый запуск
             prefs.edit().putLong("last_reset_date", today).apply();
+            Log.d(TAG, "📅 Первый запуск, сохранена дата: " + today);
+        } else {
+            Log.d(TAG, "📅 Не новый день, todayProgress не сбрасываем");
         }
     }
-
 
     /**
      * Пересчитывает всю статистику на основе кеша (Room)
@@ -3136,20 +3255,33 @@ public class WordRepository {
                     stats = new UserStats(userId);
                 }
 
-                // Сохраняем старый todayProgress
-                int oldTodayProgress = stats.getTodayProgress();
-                Log.d(TAG, "   old todayProgress = " + oldTodayProgress);
+                // ✅ СОХРАНЯЕМ ТЕКУЩИЕ ЗНАЧЕНИЯ ДО ОБНОВЛЕНИЯ
+                int currentTodayProgress = stats.getTodayProgress();
+                int currentStreakDays = stats.getStreakDays();
+                Date currentLastSessionDate = stats.getLastSessionDate();
+                Date currentLastUpdated = stats.getLastUpdated();
+
+                Log.d(TAG, "📊 Текущие значения из Room:");
+                Log.d(TAG, "   todayProgress = " + currentTodayProgress);
+                Log.d(TAG, "   streakDays = " + currentStreakDays);
 
                 // Обновляем только слова в процессе и выученные
                 stats.setWordsInProgress(wordsInProgress);
                 stats.setWordsLearned(wordsLearned);
-                // ✅ НЕ ТРОГАЕМ todayProgress!
+
+                // ✅ ВОССТАНАВЛИВАЕМ СОХРАНЕННЫЕ ЗНАЧЕНИЯ
+                stats.setTodayProgress(currentTodayProgress);
+                stats.setStreakDays(currentStreakDays);
+                stats.setLastSessionDate(currentLastSessionDate);
+                stats.setLastUpdated(new Date());  // обновляем время последнего обновления
+
+                Log.d(TAG, "📊 ПОСЛЕ пересчета:");
+                Log.d(TAG, "   todayProgress = " + stats.getTodayProgress());
+                Log.d(TAG, "   streakDays = " + stats.getStreakDays());
 
                 // 5. Сохраняем в Firebase (если есть интернет)
                 if (isNetworkAvailable() && !userId.equals("anonymous")) {
-                    // ✅ СОЗДАЕМ ФИНАЛЬНУЮ КОПИЮ ДЛЯ ЛЯМБДЫ
                     final UserStats statsForFirebase = stats;
-
                     db.collection("users")
                             .document(userId)
                             .collection("stats")

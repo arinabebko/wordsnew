@@ -205,6 +205,7 @@
 
 
 
+    <string name="stats_streak_days">%d дней</string>
 
 
 
@@ -214,7 +215,7 @@
     <string name="msg_keep_going">так\nдержать!</string>
     <string name="msg_lets_start">давай\nначнем!</string>
 
-    <string name="stats_streak_days">%1$d дней подряд</string>
+
     <string name="stats_in_progress">слов в процессе:</string>
     <string name="stats_learned">выучено слов:</string>
     <string name="stats_loading_study">Начинаем обучение…</string>
