@@ -6,8 +6,18 @@
     <string name="login_et_password">Password</string>
     <string name="login_btn_enter">Login</string>
     <string name="login_tv_no_account">No account? Sign up</string>
-
-
+    <!-- Dialog edit word -->
+    <string name="edit_word_dialog_title">Edit Word</string>
+    <string name="edit_word_btn_save">Save</string>
+    <!-- Dialog change password -->
+    <string name="change_password_dialog_title">Change Password</string>
+    <string name="change_password_current_label">Current Password</string>
+    <string name="change_password_current_hint">Enter current password</string>
+    <string name="change_password_new_label">New Password</string>
+    <string name="change_password_new_hint">Enter new password</string>
+    <string name="change_password_confirm_label">Confirm Password</string>
+    <string name="change_password_confirm_hint">Confirm new password</string>
+    <string name="change_password_btn_change">Change</string>
 
     <string name="register_tv_title">Create account</string>
     <string name="register_et_username">Username</string>

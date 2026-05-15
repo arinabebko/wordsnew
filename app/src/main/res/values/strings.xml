@@ -124,8 +124,18 @@
     <string name="profile_settings_tv_theme_label">Тема</string>
     <string name="profile_settings_tv_theme_current">Темная</string>
     <string name="common_back_upper">Назад</string>
-
-
+    <!-- Dialog change password -->
+    <string name="change_password_dialog_title">Смена пароля</string>
+    <string name="change_password_current_label">Текущий пароль</string>
+    <string name="change_password_current_hint">Введите текущий пароль</string>
+    <string name="change_password_new_label">Новый пароль</string>
+    <string name="change_password_new_hint">Введите новый пароль</string>
+    <string name="change_password_confirm_label">Подтверждение пароля</string>
+    <string name="change_password_confirm_hint">Подтвердите новый пароль</string>
+    <string name="change_password_btn_change">Сменить</string>
+    <!-- Dialog edit word -->
+    <string name="edit_word_dialog_title">Редактировать слово</string>
+    <string name="edit_word_btn_save">Сохранить</string>
 
     <string name="learning_process_desc_review">Повторить позже</string>
     <string name="learning_process_desc_learned">Выучено</string>

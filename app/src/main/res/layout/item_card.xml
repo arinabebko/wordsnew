@@ -20,6 +20,22 @@
         android:fontFamily="@font/jura_font_wght"
         android:layout_marginTop="32dp"/>
 
+    <!-- 🆕 КНОПКА ВКЛЮЧЕНИЯ/ВЫКЛЮЧЕНИЯ ОЗВУЧКИ -->
+    <ImageButton
+        android:id="@+id/speakToggleButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_volume_off"
+        android:scaleType="fitCenter"
+        android:padding="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="#FFFFFF"
+        android:contentDescription="Включить/выключить озвучку"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@id/starButton"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="8dp"/>
+
     <ImageButton
         android:id="@+id/starButton"
         android:layout_width="48dp"

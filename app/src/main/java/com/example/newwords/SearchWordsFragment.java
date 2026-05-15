@@ -1,5 +1,7 @@
 package com.example.newwords;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -7,6 +9,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -366,19 +370,31 @@ public class SearchWordsFragment extends Fragment implements
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Редактировать слово: " + word.getWord());
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View dialogView = inflater.inflate(R.layout.dialog_edit_word, null);
 
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_word, null);
         EditText editWord = dialogView.findViewById(R.id.editWordText);
         EditText editTranslation = dialogView.findViewById(R.id.editTranslationText);
         EditText editNote = dialogView.findViewById(R.id.editNoteText);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+        Button saveButton = dialogView.findViewById(R.id.saveButton);
 
         editWord.setText(word.getWord());
         editTranslation.setText(word.getTranslation());
         editNote.setText(word.getNote());
 
         builder.setView(dialogView);
-        builder.setPositiveButton("Сохранить", (dialog, which) -> {
+
+        AlertDialog dialog = builder.create();
+
+        // Убираем стандартный заголовок
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        saveButton.setOnClickListener(v -> {
             String newWord = editWord.getText().toString().trim();
             String newTranslation = editTranslation.getText().toString().trim();
             String newNote = editNote.getText().toString().trim();
@@ -396,10 +412,10 @@ public class SearchWordsFragment extends Fragment implements
                                 int index = allWords.indexOf(word);
                                 if (index != -1) {
                                     allWords.set(index, word);
-                                    applyFilter(); // ← ЗАМЕНИТЕ filterWords на applyFilter
+                                    applyFilter();
                                 }
                                 Toast.makeText(getContext(), "Слово обновлено", Toast.LENGTH_SHORT).show();
-
+                                dialog.dismiss();
                             });
                         }
                     }
@@ -417,8 +433,10 @@ public class SearchWordsFragment extends Fragment implements
                 Toast.makeText(getContext(), "Заполните слово и перевод", Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton("Отмена", null);
-        builder.show();
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void confirmAndDeleteWord(WordItem word) {

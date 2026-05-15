@@ -22,6 +22,9 @@ import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.Window;
 
 public class FragmentLoginParamsOption extends Fragment {
 
@@ -98,65 +101,69 @@ public class FragmentLoginParamsOption extends Fragment {
     }
 
     /**
-     * Диалог смены пароля
+     * Диалог смены пароля (кастомный)
      */
     /**
-     * Диалог смены пароля
+     * Диалог смены пароля (простой рабочий вариант)
+     */
+    /**
+     * Диалог смены пароля (кастомный фон)
+     */
+    /**
+     * Диалог смены пароля (кастомный фон)
      */
     private void showChangePasswordDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Смена пароля");
 
         // Создаем layout для диалога
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password_simple, null);
         builder.setView(dialogView);
 
         EditText currentPasswordEditText = dialogView.findViewById(R.id.currentPasswordEditText);
         EditText newPasswordEditText = dialogView.findViewById(R.id.newPasswordEditText);
         EditText confirmPasswordEditText = dialogView.findViewById(R.id.confirmPasswordEditText);
 
-        // Создаем диалог
-        AlertDialog dialog = builder.create();
-
-        // Устанавливаем кастомные обработчики для кнопок
-        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Сменить", (message, which) -> {
-            // Пустая реализация - обрабатываем вручную ниже
-        });
-
-        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Отмена", (message, which) -> {
-            dialog.dismiss();
-        });
-
-        dialog.show();
-
-        // Кастомная обработка кнопки "Сменить"
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        builder.setPositiveButton("Сменить", (dialog, which) -> {
             String currentPassword = currentPasswordEditText.getText().toString().trim();
             String newPassword = newPasswordEditText.getText().toString().trim();
             String confirmPassword = confirmPasswordEditText.getText().toString().trim();
 
-            // Валидация (диалог НЕ закрывается при ошибках)
             if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
                 Toast.makeText(getContext(), "Заполните все поля", Toast.LENGTH_SHORT).show();
-                return; // Не закрываем диалог
+                return;
             }
 
             if (!newPassword.equals(confirmPassword)) {
                 Toast.makeText(getContext(), "Новые пароли не совпадают", Toast.LENGTH_SHORT).show();
-                return; // Не закрываем диалог
+                return;
             }
 
             if (newPassword.length() < 6) {
                 Toast.makeText(getContext(), "Пароль должен содержать минимум 6 символов", Toast.LENGTH_SHORT).show();
-                return; // Не закрываем диалог
+                return;
             }
 
-            // Если валидация прошла - закрываем диалог и меняем пароль
-            dialog.dismiss();
             changePassword(currentPassword, newPassword, confirmPassword);
         });
-    }
 
+        builder.setNegativeButton("Отмена", null);
+
+        AlertDialog dialog = builder.create();
+
+        // Убираем стандартный заголовок
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        // Устанавливаем фон окна
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#211B20")));
+        }
+
+        dialog.show();
+
+        // Меняем цвет кнопок после показа
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#A2B2FF"));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#625fba"));
+    }
     /**
      * Смена пароля
      */

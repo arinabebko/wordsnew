@@ -1,11 +1,12 @@
 package com.example.newwords;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,18 +17,86 @@ import java.util.List;
 
 public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.ViewHolder> {
 
+    private static final String PREFS_NAME = "StackCardPrefs";
+    private static final String KEY_SPEAK_ENABLED = "speak_enabled";
+
     private List<WordItem> wordList;
     private OnCardActionListener listener;
     private int currentPosition = 0;
-
-    // ДОБАВЬ ЭТО ПОЛЕ:
     private WordRepository wordRepository;
+    private Context context;
+    private TextToSpeechManager ttsManager;
+    private boolean isSpeakEnabled = false; // 🔇 ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНА!
 
-    // ОБНОВИ КОНСТРУКТОР:
     public StackCardAdapter(List<WordItem> wordList, OnCardActionListener listener, WordRepository wordRepository) {
         this.wordList = wordList;
         this.listener = listener;
-        this.wordRepository = wordRepository; // ДОБАВЬ ЭТУ СТРОКУ
+        this.wordRepository = wordRepository;
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        this.context = recyclerView.getContext();
+        this.ttsManager = TextToSpeechManager.getInstance(context);
+
+        // Загружаем настройку озвучки (по умолчанию false)
+        loadSpeakPreference();
+    }
+
+    /**
+     * Загружает настройку озвучки из SharedPreferences
+     */
+    private void loadSpeakPreference() {
+        if (context != null) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            isSpeakEnabled = prefs.getBoolean(KEY_SPEAK_ENABLED, false); // ПО УМОЛЧАНИЮ false
+            Log.d("StackCardAdapter", "Настройка озвучки загружена: " + (isSpeakEnabled ? "ВКЛ" : "ВЫКЛ"));
+        }
+    }
+
+    /**
+     * Сохраняет настройку озвучки
+     */
+    private void saveSpeakPreference(boolean enabled) {
+        if (context != null) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit().putBoolean(KEY_SPEAK_ENABLED, enabled).apply();
+            Log.d("StackCardAdapter", "Настройка озвучки сохранена: " + (enabled ? "ВКЛ" : "ВЫКЛ"));
+        }
+    }
+
+    /**
+     * Переключает состояние озвучки
+     */
+    public void toggleSpeak() {
+        isSpeakEnabled = !isSpeakEnabled;
+        saveSpeakPreference(isSpeakEnabled);
+
+        // Уведомляем все видимые карточки об изменении иконки
+        notifyItemRangeChanged(0, getItemCount());
+
+        String message = isSpeakEnabled ? "🔊 Озвучка включена" : "🔇 Озвучка выключена";
+        if (context != null) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Проверяет, включена ли озвучка
+     */
+    public boolean isSpeakEnabled() {
+        return isSpeakEnabled;
+    }
+
+    /**
+     * Озвучивает слово (если включена озвучка)
+     */
+    private void speakWord(String word) {
+        if (isSpeakEnabled && ttsManager != null) {
+            Log.d("StackCardAdapter", "🔊 Озвучиваем слово: " + word);
+            ttsManager.speak(word);
+        }
     }
 
     @NonNull
@@ -40,31 +109,24 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // Показываем только текущую карточку
         if (position == 0 && currentPosition < wordList.size()) {
             WordItem wordItem = wordList.get(currentPosition);
             holder.bind(wordItem);
             holder.itemView.setVisibility(View.VISIBLE);
         } else {
-            // Остальные карточки скрыты
             holder.itemView.setVisibility(View.GONE);
         }
     }
 
     @Override
     public int getItemCount() {
-        // Всегда показываем 3 карточки для анимаций, но только одна видима
         return Math.min(wordList.size() - currentPosition, 3);
     }
 
-    /**
-     * Переход к следующей карточке
-     */
     private void moveToNextCard() {
         currentPosition++;
         notifyDataSetChanged();
 
-        // Если карточки закончились - уведомляем сразу
         if (currentPosition >= wordList.size()) {
             if (listener != null) {
                 listener.onAllCardsCompleted();
@@ -72,9 +134,6 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         }
     }
 
-    /**
-     * Получить текущее слово
-     */
     public WordItem getCurrentWord() {
         if (currentPosition < wordList.size()) {
             return wordList.get(currentPosition);
@@ -82,9 +141,6 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         return null;
     }
 
-    /**
-     * Получить прогресс
-     */
     public int getCurrentProgress() {
         return currentPosition;
     }
@@ -93,9 +149,6 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         return wordList.size();
     }
 
-    /**
-     * Свайп вправо - выучил
-     */
     public void swipeRight() {
         if (currentPosition < wordList.size()) {
             WordItem currentWord = wordList.get(currentPosition);
@@ -118,17 +171,11 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         }
     }
 
-    /**
-     * Свайп влево - не выучил
-     */
     public void swipeLeft() {
         if (currentPosition < wordList.size()) {
             WordItem currentWord = wordList.get(currentPosition);
 
-            // Обрабатываем в системе повторений
             SimpleRepetitionSystem.processAnswer(currentWord, false);
-
-            // Сохраняем в базу
             wordRepository.updateWord(currentWord);
 
             if (listener != null) {
@@ -138,13 +185,13 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
         }
     }
 
-    // ViewHolder
     public class ViewHolder extends RecyclerView.ViewHolder {
         private TextView wordText;
         private TextView hintText;
         private TextView statusText;
         private TextView nextReviewText;
         private ImageButton starButton;
+        private ImageButton speakToggleButton; // 🆕 Кнопка озвучки
         private WordItem currentWordItem;
 
         public ViewHolder(@NonNull View itemView) {
@@ -154,6 +201,7 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
             statusText = itemView.findViewById(R.id.statusText);
             nextReviewText = itemView.findViewById(R.id.nextReviewText);
             starButton = itemView.findViewById(R.id.starButton);
+            speakToggleButton = itemView.findViewById(R.id.speakToggleButton); // 🆕
 
             setupClickListeners();
         }
@@ -165,90 +213,96 @@ public class StackCardAdapter extends RecyclerView.Adapter<StackCardAdapter.View
             hintText.setVisibility(View.GONE);
 
             updateRepetitionUI(wordItem);
-
-            // ВМЕСТО setBackgroundColor используем иконку:
             updateStarIcon(wordItem.isFavorite());
+            updateSpeakButtonIcon(); // 🆕 Обновляем иконку кнопки озвучки
         }
 
-        // НОВЫЙ МЕТОД:
         private void updateStarIcon(boolean isFavorite) {
             starButton.setBackgroundResource(android.R.color.transparent);
             if (isFavorite) {
                 starButton.setImageResource(R.drawable.ic_full_heart_icon);
-                // Если в XML остался tint, он может мешать.
-                // Можно управлять цветом программно:
-                starButton.setColorFilter(0xFFCE5D5D); // Красный
+                starButton.setColorFilter(0xFFCE5D5D);
             } else {
                 starButton.setImageResource(R.drawable.ic_empty_heart_icon);
-                starButton.setColorFilter(0xFFFFFFFF); // Белый
+                starButton.setColorFilter(0xFFFFFFFF);
             }
         }
 
+        /**
+         * 🆕 Обновляет иконку кнопки озвучки в зависимости от состояния
+         */
+        private void updateSpeakButtonIcon() {
+            if (speakToggleButton != null) {
+                if (isSpeakEnabled) {
+                    speakToggleButton.setImageResource(R.drawable.ic_volume_up);
+                    speakToggleButton.setColorFilter(0xFF4CAF50); // Зеленый - включено
+                } else {
+                    speakToggleButton.setImageResource(R.drawable.ic_volume_off);
+                    speakToggleButton.setColorFilter(0xFFFFFFFF); // Белый - выключено
+                }
+            }
+        }
 
         private void updateRepetitionUI(WordItem word) {
             if (statusText != null) {
-                // ЗАМЕНА: Используем метод из WordItem, возвращающий ID ресурса
                 statusText.setText(word.getStatusText());
-
-                // Цвет можно оставить как был (программный) или брать из word
                 statusText.setBackgroundColor(getStatusColor(word));
             }
 
-            if (nextReviewText != null) {
-                // ЗАМЕНА: Передаем Context (через itemView) и само слово
+            if (nextReviewText != null && itemView.getContext() != null) {
                 nextReviewText.setText(SimpleRepetitionSystem.getNextReviewText(itemView.getContext(), word));
             }
 
-            // Отладочная информация (логи можно оставить для себя)
             Log.d("CardDebug", "Слово: " + word.getWord() +
                     ", этап: " + word.getReviewStage());
         }
 
-        // ВРЕМЕННЫЕ МЕТОДЫ (пока нет полноценной системы):
-        private String getStatusText(WordItem word) {
-            // Временная логика - используем difficulty
-            if (word.getDifficulty() == 3) return "НОВОЕ СЛОВО";
-            if (word.getDifficulty() == 2) return "ИЗУЧАЕТСЯ";
-            if (word.getDifficulty() == 1) return "ВЫУЧЕНО";
-            return "НЕИЗВЕСТНО";
-        }
-
-        private String getNextReviewText(WordItem word) {
-            // Временная заглушка
-            if (word.getDifficulty() == 3) return "Повторить: сегодня";
-            if (word.getDifficulty() == 2) return "Повторить: через 3 дня";
-            if (word.getDifficulty() == 1) return "Повторить: через 7 дней";
-            return "Следующее: скоро";
-        }
-
         private int getStatusColor(WordItem word) {
-            // Цвета в твоей теме
-            if (word.getDifficulty() == 3) return 0xFF625fba; // Фиолетовый - новые
-            if (word.getDifficulty() == 2) return 0xFFbabba9; // Серый - изучается
-            if (word.getDifficulty() == 1) return 0xFF4CAF50; // Зеленый - выучено
-            return 0xFF625fba; // Фиолетовый по умолчанию
+            switch(word.getReviewStage()) {
+                case 0: return 0xFF625fba; // Новое
+                case 1:
+                case 2:
+                case 3: return 0xFFbabba9; // Изучается
+                case 4:
+                case 5:
+                case 6: return 0xFF4CAF50; // Выучено
+                default: return 0xFF625fba;
+            }
         }
 
         private void setupClickListeners() {
+            // 🆕 Кнопка включения/выключения озвучки
+            speakToggleButton.setOnClickListener(v -> {
+                toggleSpeak();
+                updateSpeakButtonIcon();
+            });
+
+            // Кнопка избранного
             starButton.setOnClickListener(v -> {
                 if (currentWordItem != null && listener != null) {
                     boolean newFavoriteState = !currentWordItem.isFavorite();
                     currentWordItem.setFavorite(newFavoriteState);
-
-                    // Теперь используем только метод с иконками
                     updateStarIcon(newFavoriteState);
-
                     wordRepository.updateWord(currentWordItem);
                     listener.onCardFavoriteToggled(currentWordItem, newFavoriteState);
                 }
             });
 
+            // 🆕 Клик по карточке - показывает перевод и ОЗВУЧИВАЕТ (если включено)
             itemView.findViewById(R.id.wordCard).setOnClickListener(v -> {
-                hintText.setVisibility(hintText.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+                // Переключаем видимость перевода
+                if (hintText.getVisibility() == View.VISIBLE) {
+                    hintText.setVisibility(View.GONE);
+                } else {
+                    hintText.setVisibility(View.VISIBLE);
+
+                    // 🆕 Если озвучка включена - произносим слово при показе перевода
+                    if (isSpeakEnabled && currentWordItem != null) {
+                        speakWord(currentWordItem.getWord());
+                    }
+                }
             });
         }
-
-
     }
 
     public interface OnCardActionListener {
