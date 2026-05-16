@@ -33,7 +33,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.AdapterView;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.LinkedHashSet;
 public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActionListener {
 
     private RecyclerView librariesRecyclerView;
@@ -53,6 +58,12 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private String currentLanguage = "en"; // текущий выбранный язык
     private EditText searchEditText;
     private static final String TAG = "Fragment2";
+    private AdapterView.OnItemSelectedListener filterSpinnerListener;
+    private Spinner filterSpinner;
+    private ArrayAdapter<String> filterAdapter;
+    private String currentFilter = "all"; // "all" или конкретное значение
+    private List<String> filterOptions = new ArrayList<>();
+
     @Nullable
     @Override
 
@@ -72,7 +83,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Находим View элементы
         librariesRecyclerView = view.findViewById(R.id.librariesRecyclerView);
-      //  progressBar = view.findViewById(R.id.progressBar);
+        //  progressBar = view.findViewById(R.id.progressBar);
         emptyStateText = view.findViewById(R.id.emptyStateText);
         startLearningButton = view.findViewById(R.id.startLearningButton);
         searchEditText = view.findViewById(R.id.searchEditText);
@@ -95,12 +106,13 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         // Настраиваем поиск
         setupSearch();
-
+        setupFilters(view);
         // Загружаем библиотеки (с учетом текущего языка)
         loadLibraries();
 
         return view;
     }
+
     /**
      * Настраивает переключатель языков
      */
@@ -161,6 +173,9 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     /**
      * Очищает UI при смене языка
      */
+    /**
+     * Очищает UI при смене языка
+     */
     private void clearUIForLanguageChange() {
         // Очищаем адаптер
         if (libraryAdapter != null) {
@@ -181,6 +196,17 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         // Показываем загрузку
         showLoading(true);
         showEmptyState(false);
+
+        // ✅ БЕЗОПАСНЫЙ СБРОС ФИЛЬТРОВ
+        currentFilter = "all";
+        if (filterSpinner != null) {
+            // 1. Временно отключаем слушатель
+            filterSpinner.setOnItemSelectedListener(null);
+            // 2. Устанавливаем выбор на первый элемент
+            filterSpinner.setSelection(0);
+            // 3. Возвращаем слушатель обратно
+            filterSpinner.setOnItemSelectedListener(filterSpinnerListener);
+        }
     }
 
     /**
@@ -203,107 +229,19 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             languageBashkirText.setBackgroundResource(R.drawable.language_selector_selected);
             languageBashkirText.setTextColor(0xFFFFFFFF);
         }
-    }
 
-    private void loadLibraries() {
-        Log.d(TAG, "Загрузка библиотек для языка: " + currentLanguage);
-        showLoading(true);
-
-        // СНАЧАЛА ОЧИСТИТЬ ВИДИМЫЕ ЭЛЕМЕНТЫ
-        if (libraryAdapter != null) {
-            libraryAdapter.updateLibraries(new ArrayList<>()); // очистить список
+        if (filterAdapter != null && filterOptions.size() > 0) {
+            updateFilterOptions();
         }
-        showEmptyState(false); // временно скрыть empty state
-
-        wordRepository.getAvailableLibraries(new WordRepository.OnLibrariesLoadedListener() {
-            @Override
-            public void onLibrariesLoaded(List<WordLibrary> libraries) {
-                Log.d(TAG, "Загружено всего библиотек: " + libraries.size());
-
-                availableLibraries.clear();
-                filteredLibraries.clear();
-                // НЕ очищаем activeLibrariesMap здесь! // ← УБРАТЬ ЭТУ СТРОКУ
-
-                // ФИЛЬТРУЕМ БИБЛИОТЕКИ ПО languageFrom (оригинальный язык)
-                for (WordLibrary library : libraries) {
-                    String libraryOriginalLanguage = library.getLanguageFrom();
-                    // ✅ ДОБАВЬ ЭТОТ ЛОГ:
-                    Log.d("FRAGMENT2_DEBUG", "Библиотека: " + library.getLocalizedName() +
-                            ", languageFrom=" + libraryOriginalLanguage +
-                            ", createdBy=" + library.getCreatedBy() +
-                            ", isCustom=" + (library.getCreatedBy() != null && !library.getCreatedBy().equals("system")));
-                    if (libraryOriginalLanguage != null && libraryOriginalLanguage.equals(currentLanguage)) {
-                        availableLibraries.add(library);
-                        Log.d(TAG, "✅ Добавлена библиотека: " + library.getName());
-                    }
-                }
-
-                Log.d(TAG, "Отфильтровано для языка " + currentLanguage + ": " +
-                        availableLibraries.size() + " библиотек");
-
-                // Всегда обновляем filteredLibraries
-                filteredLibraries.clear();
-                filteredLibraries.addAll(availableLibraries);
-
-                // ОБНОВЛЯЕМ АДАПТЕР СРАЗУ
-                if (libraryAdapter != null) {
-                    libraryAdapter.updateLibraries(filteredLibraries);
-                    libraryAdapter.updateActiveLibraries(new HashMap<>()); // очистить отображение
-                }
-
-                if (availableLibraries.isEmpty()) {
-                    showEmptyState(true);
-                    String languageName = languageManager.getLanguageDisplayName(currentLanguage);
-                    emptyStateText.setText(getString(R.string.lib_select_error_no_libraries, languageName));
-                    // Если нет библиотек для этого языка, очищаем activeLibrariesMap
-                    activeLibrariesMap.clear();
-                } else {
-                    showEmptyState(false);
-                    // Загружаем активные библиотеки пользователя ДЛЯ ТЕКУЩЕГО ЯЗЫКА
-                    loadUserActiveLibrariesForCurrentLanguage();
-                }
-                for (WordLibrary library : libraries) {
-                    String libraryOriginalLanguage = library.getLanguageFrom();
-                    Log.d("DEBUG_LANG", "Библиотека: " + library.getName() +
-                            ", languageFrom=" + libraryOriginalLanguage +
-                            ", создана: " + library.getCreatedBy());
-
-                    if (libraryOriginalLanguage != null && libraryOriginalLanguage.equals(currentLanguage)) {
-                        availableLibraries.add(library);
-                    }
-                }
-                // Обновляем состояние кнопки
-                updateStartButtonState();
-
-                showLoading(false);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Ошибка загрузки библиотек: " + e.getMessage()); // Логи оставляем на английском/русском для дебага [cite: 217]
-
-                // Очистить адаптер и показать ошибку [cite: 218]
-                if (libraryAdapter != null) {
-                    libraryAdapter.updateLibraries(new ArrayList<>()); // [cite: 220]
-                }
-
-                // Используем строковый ресурс для Toast [cite: 222]
-                Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
-
-                showEmptyState(true); // [cite: 223]
-
-                // Устанавливаем текст ошибки из ресурсов [cite: 224]
-                emptyStateText.setText(R.string.lib_load_error_connection);
-
-                showLoading(false); // [cite: 225]
-            }
-        });
     }
+
+
     @Override
     public void onLibraryViewClicked(WordLibrary library) {
         Log.d(TAG, "Просмотр публичной библиотеки: " + library.getName());
         showLibraryWords(library); // Используем тот же метод, что и для просмотра слов в кастомной
     }
+
     /**
      * Загружает активные библиотеки пользователя для текущего языка
      */
@@ -384,6 +322,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             library.setActiveForLanguage(currentLanguage, isActive);
         }
     }
+
     @Override
     public void onLibraryToggleSuccess(String libraryId, boolean isActive) {
         Log.d(TAG, "Успешное переключение библиотеки: " + libraryId + " = " + isActive);
@@ -427,6 +366,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             Log.d(TAG, "📡 Отправлено уведомление об обновлении библиотек для языка: " + currentLanguage);
         }
     }
+
     /**
      * Загружает активные библиотеки из локального хранилища
      */
@@ -534,6 +474,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
         }).start();
     }
+
     @Override
     public void onPause() {
         super.onPause();
@@ -549,20 +490,14 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     }
 
 
-
-
-
-
-
-
-
     /**
      * Настраивает поисковую строку
      */
     private void setupSearch() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -570,7 +505,8 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
 
         // Обработчик кнопки поиска на клавиатуре
@@ -588,43 +524,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     /**
      * Фильтрует библиотеки по поисковому запросу
      */
-
-    private void filterLibraries(String query) {
-        if (query.isEmpty()) {
-            filteredLibraries.clear();
-            filteredLibraries.addAll(availableLibraries);
-        } else {
-            filteredLibraries.clear();
-            for (WordLibrary library : availableLibraries) {
-                String name = library.getName() != null ? library.getLocalizedName().toLowerCase() : "";
-                String description = library.getDescription() != null ? library.getLocalizedDescription().toLowerCase() : "";
-                String category = library.getCategory() != null ? library.getCategory().toLowerCase() : "";
-
-                String queryLower = query.toLowerCase();
-
-                if (name.contains(queryLower) ||
-                        description.contains(queryLower) ||
-                        category.contains(queryLower)) {
-                    filteredLibraries.add(library);
-                }
-            }
-        }
-
-        libraryAdapter.updateLibraries(filteredLibraries);
-
-        // Показываем/скрываем состояние пустого списка
-        if (filteredLibraries.isEmpty() && !query.isEmpty()) {
-            showEmptyState(true);
-            // ⭐ ИСПОЛЬЗУЕМ РЕСУРС С ПАРАМЕТРОМ:
-            emptyStateText.setText(getString(R.string.lib_search_not_found, query));
-        } else if (filteredLibraries.isEmpty()) {
-            showEmptyState(true);
-            // Тут можно использовать общий текст "Библиотеки не найдены"
-            emptyStateText.setText(R.string.lib_select_tv_empty_state);
-        } else {
-            showEmptyState(false);
-        }
-    }
 
 
     /**
@@ -720,7 +619,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     }
 
 
-
     private void syncWithFirebase() {
         // Это можно делать асинхронно, не блокируя пользователя
         for (Map.Entry<String, Boolean> entry : activeLibrariesMap.entrySet()) {
@@ -784,13 +682,13 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 startLearningButton.setEnabled(hasActive);
                 startLearningButton.setAlpha(hasActive ? 1.0f : 0.5f);
                 //todo
-               // if (hasActive) {
-                 //   int activeCount = getActiveLibrariesCount();
-                    // ⭐ Используем ресурс с числовым параметром
-                   // startLearningButton.setText(getString(R.string.lib_btn_start_with_count, activeCount));
+                // if (hasActive) {
+                //   int activeCount = getActiveLibrariesCount();
+                // ⭐ Используем ресурс с числовым параметром
+                // startLearningButton.setText(getString(R.string.lib_btn_start_with_count, activeCount));
                 //} else {
-                    // ⭐ Используем обычный ресурс кнопки
-                    startLearningButton.setText(R.string.lib_select_btn_start);
+                // ⭐ Используем обычный ресурс кнопки
+                startLearningButton.setText(R.string.lib_select_btn_start);
                 //}
             });
         }
@@ -799,20 +697,20 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     /**
      * Настраивает кнопку назад
 
-    private void setupBackButton(View view) {
-        ImageButton backButton = view.findViewById(R.id.backButton);
-        if (backButton != null) {
-            backButton.setOnClickListener(v -> {
-                if (getActivity() != null) {
-                    getActivity().onBackPressed();
-                }
-            });
-        }
-    }
- */
+     private void setupBackButton(View view) {
+     ImageButton backButton = view.findViewById(R.id.backButton);
+     if (backButton != null) {
+     backButton.setOnClickListener(v -> {
+     if (getActivity() != null) {
+     getActivity().onBackPressed();
+     }
+     });
+     }
+     }
+     */
     /**
      * Показывает/скрывает индикатор загрузки
-     /**
+     * /**
      * Показывает/скрывает индикатор загрузки
      */
     private void showLoading(boolean show) {
@@ -833,6 +731,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             });
         }
     }
+
     /**
      * Показывает/скрывает состояние пустого списка
      */
@@ -865,7 +764,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     }
 
 
-
     @Override
     public void onLibraryToggleError(String libraryId, boolean originalState) {
         Log.e(TAG, "Ошибка переключения библиотеки: " + libraryId);
@@ -878,7 +776,6 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         Toast.makeText(getContext(), "Ошибка изменения состояния библиотеки", Toast.LENGTH_SHORT).show();
     }
-
 
 
     @Override
@@ -913,6 +810,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         });
         dialog.show(getParentFragmentManager(), "add_library_dialog");
     }
+
     private void createCustomLibrary(String name, String description, String category, String language) {
         wordRepository.createCustomLibrary(name, description, category, language,
                 new WordRepository.OnLibraryCreatedListener() {
@@ -993,6 +891,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
 
         dialog.show();
     }
+
     private void addWordToLibrary(String libraryId, String word, String translation, String note) {
         WordItem newWord = new WordItem(word, translation, note);
         wordRepository.addWordToCustomLibrary(libraryId, newWord,
@@ -1028,6 +927,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                     .commit();
         }
     }
+
     private void showAddWordDialog(WordLibrary library) {
         AddWordDialog dialog = AddWordDialog.newInstance(library.getLibraryId(), library.getLocalizedName());
         dialog.setOnWordAddedListener(new AddWordDialog.OnWordAddedListener() {
@@ -1072,5 +972,354 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                     Toast.makeText(getContext(), R.string.lib_delete_error, Toast.LENGTH_SHORT).show();
                 }
         );
+    }
+
+
+    /**
+     * Применяет текстовый поиск к уже отфильтрованному списку
+     */
+    private void applyTextSearchToFilteredList(String query) {
+        String lowerQuery = query.toLowerCase().trim();
+        List<WordLibrary> searchResult = new ArrayList<>();
+
+        for (WordLibrary library : filteredLibraries) {
+            String name = library.getLocalizedName().toLowerCase();
+            String description = library.getLocalizedDescription().toLowerCase();
+
+            if (name.contains(lowerQuery) || description.contains(lowerQuery)) {
+                searchResult.add(library);
+            }
+        }
+
+        libraryAdapter.updateLibraries(searchResult);
+
+        // Показываем состояние пустого списка для поиска
+        if (searchResult.isEmpty() && !query.isEmpty()) {
+            // Ситуация: есть фильтр, но поиск не дал результатов
+            showEmptyState(true);
+            emptyStateText.setText(getString(R.string.lib_search_not_found, query));
+        } else if (searchResult.isEmpty() && filteredLibraries.isEmpty()) {
+            // Ситуация: нет библиотек после фильтрации (и поиск пуст)
+            showEmptyState(true);
+            if (!currentFilter.equals("all")) {
+                emptyStateText.setText(getLocalizedString(
+                        "Нет библиотек с выбранными фильтрами",
+                        "Һайланған фильтрҙар буйынса китапханалар юҡ",
+                        "No libraries with selected filters"
+                ));
+            } else {
+                emptyStateText.setText(R.string.lib_select_tv_empty_state);
+            }
+        } else {
+            // Есть результаты поиска ИЛИ есть библиотеки, но поиск не применялся
+            showEmptyState(false);
+        }
+    }
+
+
+    // ============ НОВЫЕ МЕТОДЫ ДЛЯ ОДНОГО SPINNER'А ============
+
+    /**
+     * Собирает уникальные категории и подкатегории в один плоский список
+     */
+    private void updateFilterOptions() {
+        Set<String> uniqueFilters = new LinkedHashSet<>();
+        String allFilters = getLocalizedString("Все категории", "Бөтә категориялар", "All categories");
+
+        for (WordLibrary library : availableLibraries) {
+            // Добавляем категорию
+            String category = library.getCategory();
+            if (category != null && !category.isEmpty()) {
+                String displayCategory = getCategoryDisplayName(category);
+                uniqueFilters.add(displayCategory);
+            }
+
+            // Добавляем подкатегорию
+            String subcategory = library.getLocalizedSubcategory();
+            if (subcategory != null && !subcategory.isEmpty()) {
+                uniqueFilters.add(subcategory);
+            }
+        }
+
+        filterOptions.clear();
+        filterOptions.add(allFilters);
+        filterOptions.addAll(uniqueFilters);
+
+        if (filterAdapter != null) {
+            filterAdapter.notifyDataSetChanged();
+        }
+
+        // ✅ СБРАСЫВАЕМ ВЫБОР НА "ВСЕ КАТЕГОРИИ"
+        if (filterSpinner != null) {
+            filterSpinner.setSelection(0);
+            currentFilter = "all";
+        }
+    }
+    private void applyFilter() {
+        Log.d(TAG, "applyFilter: currentFilter = " + currentFilter);
+        Log.d(TAG, "applyFilter: availableLibraries size = " + availableLibraries.size());
+
+        List<WordLibrary> result;
+
+        // ПРИМЕНЯЕМ ФИЛЬТР ТОЛЬКО ЕСЛИ ВЫБРАН НЕ "ВСЕ КАТЕГОРИИ"
+        if (!currentFilter.equals("all")) {
+            result = new ArrayList<>();
+            for (WordLibrary library : availableLibraries) {
+                String category = getCategoryDisplayName(library.getCategory());
+                String subcategory = library.getLocalizedSubcategory();
+
+                // Проверяем, совпадает ли выбранный фильтр с категорией ИЛИ подкатегорией
+                if (currentFilter.equals(category) ||
+                        (subcategory != null && currentFilter.equals(subcategory))) {
+                    result.add(library);
+                }
+            }
+            Log.d(TAG, "applyFilter: после фильтрации размер = " + result.size());
+        } else {
+            // ✅ ВАЖНО: При выборе "Все категории" показываем ВСЕ библиотеки
+            result = new ArrayList<>(availableLibraries);
+            Log.d(TAG, "applyFilter: Показываем все библиотеки (фильтр сброшен), размер = " + result.size());
+        }
+
+        // ✅ ОБНОВЛЯЕМ filteredLibraries
+        filteredLibraries.clear();
+        filteredLibraries.addAll(result);
+
+        Log.d(TAG, "applyFilter: filteredLibraries size = " + filteredLibraries.size());
+
+        // Применяем текстовый поиск
+        String searchQuery = searchEditText.getText().toString();
+        if (searchQuery.trim().isEmpty()) {
+            libraryAdapter.updateLibraries(filteredLibraries);
+            Log.d(TAG, "applyFilter: показано библиотек (без поиска) = " + filteredLibraries.size());
+        } else {
+            applyTextSearchToFilteredList(searchQuery);
+        }
+
+        libraryAdapter.updateActiveLibraries(activeLibrariesMap);
+        updateStartButtonState();
+        updateEmptyStateAfterFilter();
+    }
+
+    /**
+     * Обновляет состояние пустого списка после применения фильтров
+     */
+    private void updateEmptyStateAfterFilter() {
+        boolean hasItems = libraryAdapter.getItemCount() > 0;
+        String searchQuery = searchEditText.getText().toString();
+
+        if (hasItems) {
+            // Есть результаты - скрываем empty state
+            showEmptyState(false);
+        } else {
+            // Нет результатов - показываем empty state с соответствующим сообщением
+            showEmptyState(true);
+
+            if (!searchQuery.isEmpty()) {
+                // Поиск не дал результатов
+                emptyStateText.setText(getString(R.string.lib_search_not_found, searchQuery));
+            } else if (filteredLibraries.isEmpty() && !currentFilter.equals("all")) {
+                // Фильтр выбран, но библиотек нет
+                emptyStateText.setText(getLocalizedString(
+                        "Нет библиотек с выбранными фильтрами",
+                        "Һайланған фильтрҙар буйынса китапханалар юҡ",
+                        "No libraries with selected filters"));
+            } else if (filteredLibraries.isEmpty()) {
+                // Нет библиотек вообще
+                emptyStateText.setText(R.string.lib_select_tv_empty_state);
+            } else {
+                // filteredLibraries не пуст, но адаптер пуст - поиск вероятно ничего не нашел
+                // (этот случай уже покрыт первым условием)
+                if (searchQuery.isEmpty()) {
+                    emptyStateText.setText(R.string.lib_select_tv_empty_state);
+                }
+            }
+        }
+    }
+
+    private void loadLibraries() {
+        Log.d(TAG, "Загрузка библиотек для языка: " + currentLanguage);
+        showLoading(true);
+
+        if (libraryAdapter != null) {
+            libraryAdapter.updateLibraries(new ArrayList<>());
+        }
+        showEmptyState(false);
+
+        wordRepository.getAvailableLibraries(new WordRepository.OnLibrariesLoadedListener() {
+            @Override
+            public void onLibrariesLoaded(List<WordLibrary> libraries) {
+                availableLibraries.clear();
+                filteredLibraries.clear();
+
+                for (WordLibrary library : libraries) {
+                    String libraryOriginalLanguage = library.getLanguageFrom();
+                    if (libraryOriginalLanguage != null && libraryOriginalLanguage.equals(currentLanguage)) {
+                        availableLibraries.add(library);
+                    }
+                }
+
+                updateFilterOptions();
+                applyFilter();
+                updateStartButtonState();
+
+                if (availableLibraries.isEmpty()) {
+                    showEmptyState(true);
+                    String languageName = languageManager.getLanguageDisplayName(currentLanguage);
+                    emptyStateText.setText(getString(R.string.lib_select_error_no_libraries, languageName));
+                    activeLibrariesMap.clear();
+                } else {
+                    showEmptyState(false);
+                    loadUserActiveLibrariesForCurrentLanguage();
+                }
+                showLoading(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (libraryAdapter != null) {
+                    libraryAdapter.updateLibraries(new ArrayList<>());
+                }
+                Toast.makeText(getContext(), R.string.lib_load_error_toast, Toast.LENGTH_SHORT).show();
+                showEmptyState(true);
+                emptyStateText.setText(R.string.lib_load_error_connection);
+                showLoading(false);
+            }
+        });
+    }
+
+    private void filterLibraries(String query) {
+        if (query.isEmpty()) {
+            libraryAdapter.updateLibraries(filteredLibraries);
+            if (filteredLibraries.isEmpty()) {
+                showEmptyState(true);
+                if (!currentFilter.equals("all")) {
+                    emptyStateText.setText(getLocalizedString(
+                            "Нет библиотек с выбранными фильтрами",
+                            "Һайланған фильтрҙар буйынса китапханалар юҡ",
+                            "No libraries with selected filters"));
+                } else {
+                    emptyStateText.setText(R.string.lib_select_tv_empty_state);
+                }
+            } else {
+                showEmptyState(false);
+            }
+        } else {
+            String lowerQuery = query.toLowerCase().trim();
+            List<WordLibrary> searchResult = new ArrayList<>();
+            for (WordLibrary library : filteredLibraries) {
+                String name = library.getLocalizedName().toLowerCase();
+                String description = library.getLocalizedDescription().toLowerCase();
+                String category = library.getCategory() != null ? library.getCategory().toLowerCase() : "";
+                if (name.contains(lowerQuery) || description.contains(lowerQuery) || category.contains(lowerQuery)) {
+                    searchResult.add(library);
+                }
+            }
+            libraryAdapter.updateLibraries(searchResult);
+            if (searchResult.isEmpty()) {
+                showEmptyState(true);
+                emptyStateText.setText(getString(R.string.lib_search_not_found, query));
+            } else {
+                showEmptyState(false);
+            }
+        }
+        libraryAdapter.updateActiveLibraries(activeLibrariesMap);
+    }
+
+
+
+    // В методе setupFilters сохраните слушатель в поле класса
+    private void setupFilters(View view) {
+        filterSpinner = view.findViewById(R.id.filterSpinner);
+
+        String allFilters = getLocalizedString("Все категории", "Бөтә категориялар", "All categories");
+
+        filterOptions.clear();
+        filterOptions.add(allFilters);
+        filterAdapter = new ArrayAdapter<>(getContext(), R.layout.custom_spinner_item, filterOptions);
+        filterAdapter.setDropDownViewResource(R.layout.custom_spinner_dropdown_item);
+        filterSpinner.setAdapter(filterAdapter);
+
+        // ✅ СОХРАНЯЕМ СЛУШАТЕЛЬ В ПОЛЕ КЛАССА
+        filterSpinnerListener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == 0) {
+                    currentFilter = "all";
+                } else {
+                    currentFilter = filterOptions.get(position);
+                }
+                applyFilter();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        };
+
+        filterSpinner.setOnItemSelectedListener(filterSpinnerListener);
+    }
+
+    private String getLocalizedString(String ru, String ba, String en) {
+        String currentLocale = getResources().getConfiguration().locale.getLanguage();
+        if (currentLocale.equals("ru")) {
+            return ru;
+        } else if (currentLocale.equals("ba")) {
+            return ba;
+        } else {
+            return en;
+        }
+    }
+
+    private String getCategoryDisplayName(String category) {
+        String currentLocale = getResources().getConfiguration().locale.getLanguage();
+        boolean isRussian = currentLocale.equals("ru");
+        boolean isBashkir = currentLocale.equals("ba");
+
+        if (category.equals("basic")) {
+            if (isRussian) return "Базовый";
+            if (isBashkir) return "Төп";
+            return "Basic";
+        }
+        if (category.equals("special")) {
+            if (isRussian) return "Специальный";
+            if (isBashkir) return "Махсус";
+            return "Special";
+        }
+        if (category.equals("custom")) {
+            if (isRussian) return "Пользовательский";
+            if (isBashkir) return "Ҡулланыусы";
+            return "Custom";
+        }
+        if (category.equals("business")) {
+            if (isRussian) return "Деловой";
+            if (isBashkir) return "Эш";
+            return "Business";
+        }
+        if (category.equals("travel")) {
+            if (isRussian) return "Путешествия";
+            if (isBashkir) return "Сәйәхәт";
+            return "Travel";
+        }
+        if (category.equals("food")) {
+            if (isRussian) return "Еда";
+            if (isBashkir) return "Ашамлыҡ";
+            return "Food";
+        }
+        if (category.equals("academic")) {
+            if (isRussian) return "Академический";
+            if (isBashkir) return "Академик";
+            return "Academic";
+        }
+        if (category.equals("Programming")) {
+            if (isRussian) return "Программирование";
+            if (isBashkir) return "Программалау";
+            return "Programming";
+        }
+        if (category.equals("Nouns")) {
+            if (isRussian) return "Существительные";
+            if (isBashkir) return "Исемдәр";
+            return "Nouns";
+        }
+        return category;
     }
 }
