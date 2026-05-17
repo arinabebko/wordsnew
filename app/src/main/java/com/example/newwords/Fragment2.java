@@ -63,7 +63,11 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
     private ArrayAdapter<String> filterAdapter;
     private String currentFilter = "all"; // "all" или конкретное значение
     private List<String> filterOptions = new ArrayList<>();
-
+    private Spinner typeSpinner;
+    private ArrayAdapter<String> typeAdapter;
+    private List<String> typeOptions = new ArrayList<>();
+    private String currentTypeFilter = "all";  // "all", "public", "custom"
+    private AdapterView.OnItemSelectedListener typeSpinnerListener;
     @Nullable
     @Override
 
@@ -87,7 +91,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         emptyStateText = view.findViewById(R.id.emptyStateText);
         startLearningButton = view.findViewById(R.id.startLearningButton);
         searchEditText = view.findViewById(R.id.searchEditText);
-
+        typeSpinner = view.findViewById(R.id.typeSpinner);
         // НАХОДИМ ЭЛЕМЕНТЫ ВЫБОРА ЯЗЫКА
         languageEnglishText = view.findViewById(R.id.languageEnglish);
         languageBashkirText = view.findViewById(R.id.languageBashkir);
@@ -207,6 +211,14 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             // 3. Возвращаем слушатель обратно
             filterSpinner.setOnItemSelectedListener(filterSpinnerListener);
         }
+
+
+        currentTypeFilter = "all";
+        if (typeSpinner != null) {
+            typeSpinner.setOnItemSelectedListener(null);
+            typeSpinner.setSelection(0);
+            typeSpinner.setOnItemSelectedListener(typeSpinnerListener);
+        }
     }
 
     /**
@@ -233,6 +245,10 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         if (filterAdapter != null && filterOptions.size() > 0) {
             updateFilterOptions();
         }
+        if (typeAdapter != null) {
+            updateTypeFilterOptions();
+        }
+
     }
 
 
@@ -1055,36 +1071,75 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             currentFilter = "all";
         }
     }
+    private void updateTypeFilterOptions() {
+        if (typeSpinner == null || typeAdapter == null) return;
+
+        // Временно отключаем слушатель, чтобы не сработал applyFilter
+        typeSpinner.setOnItemSelectedListener(null);
+
+        typeOptions.clear();
+        typeOptions.add(getLocalizedString("Все", "Бөтәһе", "All"));
+        typeOptions.add(getLocalizedString("Публичные", "Асыҡ", "Public"));
+        typeOptions.add(getLocalizedString("Пользовательские", "Ҡулланыусы", "Custom"));
+        typeAdapter.notifyDataSetChanged();
+
+        // Восстанавливаем позицию, не вызывая повторную фильтрацию
+        int pos = 0;
+        if (currentTypeFilter.equals("public")) pos = 1;
+        else if (currentTypeFilter.equals("custom")) pos = 2;
+        typeSpinner.setSelection(pos);
+
+        typeSpinner.setOnItemSelectedListener(typeSpinnerListener);
+    }
+    private boolean isLibraryPublic(WordLibrary library) {
+        String createdBy = library.getCreatedBy();
+        return createdBy == null || createdBy.equals("system");
+    }
     private void applyFilter() {
         Log.d(TAG, "applyFilter: currentFilter = " + currentFilter);
+        Log.d(TAG, "applyFilter: currentTypeFilter = " + currentTypeFilter);
         Log.d(TAG, "applyFilter: availableLibraries size = " + availableLibraries.size());
 
         List<WordLibrary> result;
 
-        // ПРИМЕНЯЕМ ФИЛЬТР ТОЛЬКО ЕСЛИ ВЫБРАН НЕ "ВСЕ КАТЕГОРИИ"
+        // 1. ФИЛЬТР ПО КАТЕГОРИИ
         if (!currentFilter.equals("all")) {
             result = new ArrayList<>();
             for (WordLibrary library : availableLibraries) {
                 String category = getCategoryDisplayName(library.getCategory());
                 String subcategory = library.getLocalizedSubcategory();
 
-                // Проверяем, совпадает ли выбранный фильтр с категорией ИЛИ подкатегорией
                 if (currentFilter.equals(category) ||
                         (subcategory != null && currentFilter.equals(subcategory))) {
                     result.add(library);
                 }
             }
-            Log.d(TAG, "applyFilter: после фильтрации размер = " + result.size());
+            Log.d(TAG, "applyFilter: после фильтра по категории размер = " + result.size());
         } else {
-            // ✅ ВАЖНО: При выборе "Все категории" показываем ВСЕ библиотеки
             result = new ArrayList<>(availableLibraries);
-            Log.d(TAG, "applyFilter: Показываем все библиотеки (фильтр сброшен), размер = " + result.size());
+            Log.d(TAG, "applyFilter: показаны все категории, размер = " + result.size());
         }
 
-        // ✅ ОБНОВЛЯЕМ filteredLibraries
+        // 2. ФИЛЬТР ПО ТИПУ (публичные / пользовательские)
+        if (!currentTypeFilter.equals("all")) {
+            List<WordLibrary> typeFiltered = new ArrayList<>();
+            for (WordLibrary library : result) {
+                boolean isPublic = isLibraryPublic(library);
+                if (currentTypeFilter.equals("public") && isPublic) {
+                    typeFiltered.add(library);
+                } else if (currentTypeFilter.equals("custom") && !isPublic) {
+                    typeFiltered.add(library);
+                }
+            }
+            result = typeFiltered;
+            Log.d(TAG, "applyFilter: после фильтра по типу размер = " + result.size());
+        } else {
+            Log.d(TAG, "applyFilter: показаны все типы");
+        }
+
+        // ОБНОВЛЯЕМ filteredLibraries
         filteredLibraries.clear();
         filteredLibraries.addAll(result);
-
         Log.d(TAG, "applyFilter: filteredLibraries size = " + filteredLibraries.size());
 
         // Применяем текстовый поиск
@@ -1118,7 +1173,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
             if (!searchQuery.isEmpty()) {
                 // Поиск не дал результатов
                 emptyStateText.setText(getString(R.string.lib_search_not_found, searchQuery));
-            } else if (filteredLibraries.isEmpty() && !currentFilter.equals("all")) {
+            }  else if (filteredLibraries.isEmpty() && (!currentFilter.equals("all") || !currentTypeFilter.equals("all"))) {
                 // Фильтр выбран, но библиотек нет
                 emptyStateText.setText(getLocalizedString(
                         "Нет библиотек с выбранными фильтрами",
@@ -1160,6 +1215,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
                 }
 
                 updateFilterOptions();
+                updateTypeFilterOptions();
                 applyFilter();
                 updateStartButtonState();
 
@@ -1257,6 +1313,37 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         };
 
         filterSpinner.setOnItemSelectedListener(filterSpinnerListener);
+
+
+
+
+        // --- НАСТРОЙКА ФИЛЬТРА ПО ТИПУ ---
+        typeOptions.clear();
+        String allTypes = getLocalizedString("Все", "Бөтәһе", "All");
+        String publicType = getLocalizedString("Публичные", "Асыҡ", "Public");
+        String customType = getLocalizedString("Пользовательские", "Ҡулланыусы", "Custom");
+        typeOptions.add(allTypes);
+        typeOptions.add(publicType);
+        typeOptions.add(customType);
+
+        typeAdapter = new ArrayAdapter<>(getContext(), R.layout.custom_spinner_item, typeOptions);
+        typeAdapter.setDropDownViewResource(R.layout.custom_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
+
+        typeSpinnerListener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position) {
+                    case 0: currentTypeFilter = "all"; break;
+                    case 1: currentTypeFilter = "public"; break;
+                    case 2: currentTypeFilter = "custom"; break;
+                }
+                applyFilter();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        };
+        typeSpinner.setOnItemSelectedListener(typeSpinnerListener);
     }
 
     private String getLocalizedString(String ru, String ba, String en) {
@@ -1322,4 +1409,7 @@ public class Fragment2 extends Fragment implements LibraryAdapter.OnLibraryActio
         }
         return category;
     }
+
+
+
 }

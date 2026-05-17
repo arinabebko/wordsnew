@@ -238,6 +238,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<LibraryAdapter.ViewHold
         private String getCategoryDisplayName(String category) {
             switch (category) {
                 case "basic": return "Базовый";
+                case "special": return "Специальный";
                 case "business": return "Деловой";
                 case "travel": return "Путешествия";
                 case "food": return "Еда";
