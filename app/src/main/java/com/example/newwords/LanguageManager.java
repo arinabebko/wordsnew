@@ -192,7 +192,14 @@ public class LanguageManager {
             default: return languageCode;
         }
     }
-
+    public void clearAllActiveLibraries() {
+        prefs.edit()
+                .remove(KEY_ACTIVE_LIBRARIES_PREFIX + "en")
+                .remove(KEY_ACTIVE_LIBRARIES_PREFIX + "ba")
+                .remove(KEY_ACTIVE_LIBRARIES_PREFIX + "ru")
+                .apply();
+        Log.d(TAG, "Очищены все сохранённые активные библиотеки");
+    }
     /**
      * Получить все сохраненные языки
      */

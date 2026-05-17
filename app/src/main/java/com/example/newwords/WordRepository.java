@@ -3360,6 +3360,18 @@ public class WordRepository {
             }
         });
     }
+
+
+    public void deactivateAllLibrariesInCache() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                localDb.libraryDao().deactivateAllLibraries();
+                Log.d(TAG, "✅ Все библиотеки деактивированы в кеше");
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Ошибка деактивации библиотек", e);
+            }
+        });
+    }
 }
 
 

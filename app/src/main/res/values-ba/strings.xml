@@ -241,6 +241,7 @@
     <string name="change_password_new_hint">Яңы паролде индерегеҙ</string>
     <string name="change_password_confirm_label">Паролде раҫлағыҙ</string>
     <string name="change_password_confirm_hint">Яңы паролде раҫлағыҙ</string>
+    <string name="auth_params_tv_logoutPassword">паролде ҡайтанан тергеҙеү</string>
     <string name="change_password_btn_change">Үҙгәртергә</string>
 
         <string name="label_note">Иҫкәрмә</string>

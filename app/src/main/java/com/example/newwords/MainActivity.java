@@ -160,8 +160,14 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
         prefs.edit().putBoolean("is_first_launch", false).apply();
 
+        // 🔥 ДЕАКТИВИРУЕМ ВСЕ БИБЛИОТЕКИ ПОСЛЕ ПЕРВОЙ ЗАГРУЗКИ
+        wordRepository.deactivateAllLibrariesInCache();
+        // Очищаем сохранённые активные библиотеки в LanguageManager
+        LanguageManager languageManager = new LanguageManager(this);
+        languageManager.clearAllActiveLibraries();
+
         hideLoadingIndicator();
-        Log.d(TAG, "🎉 ПЕРВИЧНАЯ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА!");
+        Log.d(TAG, "🎉 ПЕРВИЧНАЯ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА! Все библиотеки деактивированы");
 
         // Синхронизируем статистику после первой загрузки
         syncStatsIfNeeded();

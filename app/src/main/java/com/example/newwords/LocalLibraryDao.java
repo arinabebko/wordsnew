@@ -73,4 +73,8 @@ public interface LocalLibraryDao {
     // LocalLibraryDao.java
     @Query("UPDATE local_libraries SET isActive = :isActive WHERE libraryId = :libraryId")
     void updateLibraryActiveStatus(String libraryId, boolean isActive);
+
+    // в интерфейсе LibraryDao
+    @Query("UPDATE local_libraries SET isActive = 0")
+    void deactivateAllLibraries();
 }

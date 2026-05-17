@@ -94,6 +94,7 @@
     <string name="auth_params_tv_password_label">пароль: ******</string>
     <string name="auth_params_btn_change_pass">Сменить пароль</string>
     <string name="auth_params_tv_logout">выйти</string>
+    <string name="auth_params_tv_logoutPassword">сбросить пароль</string>
     <string name="auth_params_tv_delete_account">удалить аккаунт</string>
 
 

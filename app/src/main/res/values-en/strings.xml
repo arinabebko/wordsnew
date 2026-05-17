@@ -9,6 +9,7 @@
     <!-- Dialog edit word -->
     <string name="edit_word_dialog_title">Edit Word</string>
     <string name="edit_word_btn_save">Save</string>
+    <string name="auth_params_tv_logoutPassword">reset password</string>
     <!-- Dialog change password -->
     <string name="change_password_dialog_title">Change Password</string>
     <string name="change_password_current_label">Current Password</string>

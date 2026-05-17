@@ -2,6 +2,7 @@ package com.example.newwords;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -22,6 +24,7 @@ public class Fragment3 extends Fragment {
     private TextView userNameTextView, userEmailTextView;
     private ImageView avatarImageView;
     private FirebaseAuth mAuth;
+    private Typeface juraTypeface; // Добавляем переменную для шрифта
 
     @Nullable
     @Override
@@ -29,6 +32,9 @@ public class Fragment3 extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment3, container, false);
+
+        // Загружаем шрифт
+        juraTypeface = ResourcesCompat.getFont(requireContext(), R.font.jura_font_wght);
 
         mAuth = FirebaseAuth.getInstance();
         initViews(view);
@@ -41,8 +47,13 @@ public class Fragment3 extends Fragment {
     private void initViews(View view) {
         userNameTextView = view.findViewById(R.id.userNameTextView);
         userEmailTextView = view.findViewById(R.id.userEmailTextView);
-      avatarImageView = view.findViewById(R.id.avatarImageView);
-        //todo
+        avatarImageView = view.findViewById(R.id.avatarImageView);
+
+        // Применяем шрифт программно
+        if (juraTypeface != null) {
+            userNameTextView.setTypeface(juraTypeface);
+            userEmailTextView.setTypeface(juraTypeface);
+        }
     }
 
     private void loadUserData() {
@@ -81,22 +92,29 @@ public class Fragment3 extends Fragment {
             userNameTextView.setText("Гость");
             userEmailTextView.setText("Войдите в аккаунт");
         }
+
+        // Повторно применяем шрифт после установки текста (на всякий случай)
+        if (juraTypeface != null) {
+            userNameTextView.setTypeface(juraTypeface);
+            userEmailTextView.setTypeface(juraTypeface);
+        }
     }
 
     private void setupClickListeners(View view) {
         TextView settingsTextView = view.findViewById(R.id.settingsOption);
 
-        // ⭐⭐⭐ ИСПРАВЛЕННЫЙ КОД - только один слушатель ⭐⭐⭐
         settingsTextView.setOnClickListener(v -> {
             FragmentSettingsOption settingsFragment = new FragmentSettingsOption();
 
-            // Устанавливаем слушатель ПРАВИЛЬНО
             settingsFragment.setOnUsernameChangedListener(new FragmentSettingsOption.OnUsernameChangedListener() {
                 @Override
                 public void onUsernameChanged(String newUsername) {
                     // Обновляем имя сразу
                     userNameTextView.setText(newUsername);
-                    // Также можно обновить email если нужно
+                    // Применяем шрифт снова
+                    if (juraTypeface != null) {
+                        userNameTextView.setTypeface(juraTypeface);
+                    }
                 }
             });
 
@@ -142,11 +160,9 @@ public class Fragment3 extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // ⭐⭐⭐ ДОБАВЬТЕ ПРОВЕРКУ ОБНОВЛЕНИЙ ⭐⭐⭐
         checkForRecentUpdates();
     }
 
-    // ⭐⭐⭐ НОВЫЙ МЕТОД: Проверка обновлений из SharedPreferences ⭐⭐⭐
     private void checkForRecentUpdates() {
         if (getContext() == null) return;
 
@@ -154,15 +170,10 @@ public class Fragment3 extends Fragment {
         boolean needsRefresh = prefs.getBoolean("needs_refresh", false);
         long lastUpdate = prefs.getLong("last_update", 0);
 
-        // Если было обновление менее 30 секунд назад
         if (needsRefresh && (System.currentTimeMillis() - lastUpdate < 30000)) {
-            // Принудительно обновляем данные
             refreshUserData();
-
-            // Сбрасываем флаг
             prefs.edit().putBoolean("needs_refresh", false).apply();
         } else {
-            // Обычная загрузка
             loadUserData();
         }
     }
